@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Clock, Shield, Download, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
-import { encryptFileWithCondition, DeadmanCondition, TraceJson } from './lib/taco';
+import { encryptFileWithCondition, commitEncryptedFile, DeadmanCondition, TraceJson, EncryptionResult } from './lib/taco';
 import Onboarding from './components/Onboarding';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { metaMask, coinbaseWallet, walletConnect } from 'wagmi/connectors';
@@ -22,6 +22,8 @@ export default function Home() {
   const [description, setDescription] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
+  const [encryptedCapsule, setEncryptedCapsule] = useState<any>(null);
+  const [isCommitting, setIsCommitting] = useState(false);
   const [lastCheckIn, setLastCheckIn] = useState<Date>(new Date(Date.now() - 2 * 60 * 60 * 1000)); // 2 hours ago
   const [activityLog, setActivityLog] = useState([
     { type: 'Check in confirmed', date: 'Apr 31, 2026, 16:01 AM' },
@@ -71,41 +73,85 @@ export default function Home() {
         duration: `${checkInInterval} HOURS`
       };
 
-      // Try to use real TACo encryption, fallback to mock data
-      const { traceJson: newTraceJson } = await encryptFileWithCondition(
+      // Encrypt the file with TACo (no upload yet)
+      const encryptionResult = await encryptFileWithCondition(
         uploadedFile,
         condition,
         description
       );
       
-      setTraceJson(newTraceJson);
+      setEncryptedCapsule(encryptionResult);
       
       // Add to activity log
       setActivityLog(prev => [
-        { type: 'Capsule created', date: new Date().toLocaleString() },
+        { type: 'Capsule encrypted', date: new Date().toLocaleString() },
         ...prev
       ]);
       
     } catch (error) {
-      console.error('Error processing file:', error);
+      console.error('Error encrypting file:', error);
       
-      // Fallback to mock data for demonstration
-      const mockTraceJson: TraceJson = {
-        payload_uri: `ipfs://QmX7Y8Z9A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U/${uploadedFile.name}`,
-        taco_capsule_uri: 'taco://capsule-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzab567cde890fgh123',
-        condition: `No check-in for ${checkInInterval} hours`,
+      // Fallback to mock encryption
+      const mockEncryption: EncryptionResult = {
+        messageKit: { isMock: true },
+        encryptedData: new Uint8Array([1, 2, 3, 4, 5]), // Mock data
+        originalFileName: uploadedFile.name,
+        condition: {
+          type: 'no_checkin',
+          duration: `${checkInInterval} HOURS`
+        },
         description: description || `Encrypted file: ${uploadedFile.name}`,
+        capsuleUri: 'taco://mock-capsule-123'
+      };
+      
+      setEncryptedCapsule(mockEncryption);
+      
+      setActivityLog(prev => [
+        { type: 'Capsule encrypted (demo mode)', date: new Date().toLocaleString() },
+        ...prev
+      ]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const commitToCodex = async () => {
+    if (!encryptedCapsule) return;
+    
+    setIsCommitting(true);
+    
+    try {
+      const { commitResult, traceJson: newTraceJson } = await commitEncryptedFile(encryptedCapsule);
+      
+      setTraceJson(newTraceJson);
+      
+      // Add to activity log
+      setActivityLog(prev => [
+        { type: 'Capsule committed to Local Codex', date: new Date().toLocaleString() },
+        ...prev
+      ]);
+      
+    } catch (error) {
+      console.error('Error committing to Codex:', error);
+      
+      // Fallback with mock trace JSON
+      const mockTraceJson: TraceJson = {
+        payload_uri: `ipfs://QmMock${Date.now()}/${encryptedCapsule.originalFileName}`,
+        taco_capsule_uri: encryptedCapsule.capsuleUri,
+        condition: `No check-in for ${checkInInterval} hours`,
+        description: encryptedCapsule.description,
+        storage_type: 'mock',
         created_at: new Date().toISOString()
       };
       
       setTraceJson(mockTraceJson);
       
       setActivityLog(prev => [
-        { type: 'Capsule created (demo mode)', date: new Date().toLocaleString() },
+        { type: 'Capsule committed (fallback)', date: new Date().toLocaleString() },
         ...prev
       ]);
     } finally {
-      setIsProcessing(false);
+      setIsCommitting(false);
     }
   };
 
@@ -495,14 +541,19 @@ export default function Home() {
                 
                 <button
                   onClick={processCanaryTrigger}
-                  disabled={!uploadedFile || isProcessing}
+                  disabled={!uploadedFile || isProcessing || encryptedCapsule}
                   className="editorial-button bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed w-full"
                 >
                   {isProcessing ? (
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Creating Capsule...
+                      Encrypting...
                     </div>
+                  ) : encryptedCapsule ? (
+                    <>
+                      <CheckCircle className="inline mr-2" size={20} />
+                      Capsule Encrypted
+                    </>
                   ) : (
                     <>
                       <Shield className="inline mr-2" size={20} />
@@ -510,6 +561,41 @@ export default function Home() {
                     </>
                   )}
                 </button>
+
+                {/* Commit Button - shown after encryption */}
+                {encryptedCapsule && !traceJson && (
+                  <button
+                    onClick={commitToCodex}
+                    disabled={isCommitting}
+                    className="editorial-button bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full mt-4"
+                  >
+                    {isCommitting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                                  Committing to Local Codex...
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="inline mr-2" size={20} />
+                                                  Commit to Local Codex
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* Reset Button - shown after everything is complete */}
+                {traceJson && (
+                  <button
+                    onClick={() => {
+                      setEncryptedCapsule(null);
+                      setTraceJson(null);
+                      setUploadedFile(null);
+                    }}
+                    className="editorial-button border-2 border-slate-300 text-slate-700 hover:bg-slate-50 w-full mt-4"
+                  >
+                    Create New Capsule
+                  </button>
+                )}
               </div>
             </div>
 
@@ -529,6 +615,54 @@ export default function Home() {
 
           {/* Right Column */}
           <div className="space-y-8">
+            {/* Encrypted Capsule Details - shown after encryption, before commit */}
+            {encryptedCapsule && !traceJson && (
+              <div>
+                <h3 className="editorial-subheader mb-4">Encrypted Capsule</h3>
+                <div className="editorial-card">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="editorial-body font-semibold">Status</span>
+                      <span className="text-orange-600 font-semibold">Ready to Commit</span>
+                    </div>
+                    
+                    <div className="border-t border-gray-200 pt-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="editorial-body text-sm text-gray-600">Original File:</span>
+                        <span className="editorial-body text-sm font-medium">{encryptedCapsule.originalFileName}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="editorial-body text-sm text-gray-600">Encrypted Size:</span>
+                        <span className="editorial-body text-sm font-medium">{encryptedCapsule.encryptedData.length} bytes</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="editorial-body text-sm text-gray-600">Condition:</span>
+                        <span className="editorial-body text-sm font-medium">No check-in for {encryptedCapsule.condition.duration}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="editorial-body text-sm text-gray-600">TACo Capsule:</span>
+                        <span className="editorial-body text-xs font-mono text-blue-600">
+                          {encryptedCapsule.capsuleUri.slice(0, 30)}...
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                      <div className="flex items-center">
+                        <AlertCircle size={16} className="text-yellow-600 mr-2" />
+                        <span className="editorial-body text-sm text-yellow-800">
+                          Click "Commit to Local Codex" to upload your encrypted capsule to your local Codex node
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Trace JSON Display */}
             {traceJson && (
               <div>
@@ -571,16 +705,94 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    <div className="p-3 bg-green-50 border border-green-200 rounded">
+                    <div className={`p-3 border rounded ${
+                      traceJson.payload_uri.startsWith('codex://') 
+                        ? traceJson.payload_uri.includes('Mock') 
+                          ? 'bg-yellow-50 border-yellow-200' 
+                          : 'bg-green-50 border-green-200'
+                        : traceJson.payload_uri.startsWith('ipfs://') 
+                          ? traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/) 
+                            ? 'bg-yellow-50 border-yellow-200'
+                            : 'bg-purple-50 border-purple-200'
+                          : 'bg-red-50 border-red-200'
+                    }`}>
                       <div className="flex items-center">
-                        <Upload size={16} className="text-green-600 mr-2" />
-                        <span className="editorial-body text-sm text-green-800">
+                        <Upload size={16} className={`mr-2 ${
+                          traceJson.payload_uri.startsWith('codex://') 
+                            ? traceJson.payload_uri.includes('Mock') 
+                              ? 'text-yellow-600' 
+                              : 'text-green-600'
+                            : traceJson.payload_uri.startsWith('ipfs://') 
+                              ? traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/)
+                                ? 'text-yellow-600'
+                                : 'text-purple-600'
+                              : 'text-red-600'
+                        }`} />
+                        <span className={`editorial-body text-sm ${
+                          traceJson.payload_uri.startsWith('codex://') 
+                            ? traceJson.payload_uri.includes('Mock') 
+                              ? 'text-yellow-800' 
+                              : 'text-green-800'
+                            : traceJson.payload_uri.startsWith('ipfs://') 
+                              ? traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/)
+                                ? 'text-yellow-800'
+                                : 'text-purple-800'
+                              : 'text-red-800'
+                        }`}>
                           {traceJson.payload_uri.startsWith('codex://') ? 
-                            'Codex Network - Decentralized storage active' : 
-                            'IPFS Fallback - Using traditional storage'
+                            traceJson.payload_uri.includes('Mock') ?
+                              'Mock Codex - Simulated upload (no real Codex node)' :
+                              'Local Codex Node - Stored on localhost:8080' :
+                            traceJson.payload_uri.startsWith('ipfs://') ?
+                              traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/) ?
+                                'Mock IPFS - Simulated fallback storage' :
+                                'Real IPFS Network - Uploaded to ipfs.io gateway!' :
+                              'Unknown Storage - Error in upload process'
                           }
                         </span>
                       </div>
+                      
+                      {/* Show gateway link for real IPFS uploads */}
+                      {traceJson.payload_uri.startsWith('ipfs://') && !traceJson.payload_uri.includes('Mock') && !traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/) && (
+                        <div className="mt-2 space-y-1">
+                          {traceJson.gateway_url && (
+                            <div>
+                              <a 
+                                href={traceJson.gateway_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-purple-600 hover:text-purple-800 underline"
+                              >
+                                🔗 View on {traceJson.gateway_url.includes('mypinata.cloud') ? 'Pinata Gateway (Primary)' : 'IPFS.io Gateway'}
+                              </a>
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <a 
+                              href={`https://purple-certain-guan-605.mypinata.cloud/ipfs/${traceJson.payload_uri.replace('ipfs://', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-purple-600 hover:text-purple-800 underline"
+                            >
+                              📌 Pinata
+                            </a>
+                            <a 
+                              href={`https://ipfs.io/ipfs/${traceJson.payload_uri.replace('ipfs://', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-purple-600 hover:text-purple-800 underline"
+                            >
+                              🌐 IPFS.io
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {(traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/)) && (
+                        <div className="mt-2 text-xs text-yellow-700">
+                          💡 Real uploads will happen automatically when services are available
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

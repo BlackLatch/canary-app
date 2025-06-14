@@ -5,6 +5,7 @@ import { encrypt, decrypt, conditions, domains, initialize } from '@nucypher/tac
 import { EIP4361AuthProvider, USER_ADDRESS_PARAM_DEFAULT } from '@nucypher/taco-auth';
 import { ethers } from 'ethers';
 import { uploadToCodex, downloadFromCodex, CodexUploadResult } from './codex';
+import { uploadToIPFS, downloadFromIPFS, IPFSUploadResult } from './ipfs';
 
 // TACo domain configuration
 const TACO_DOMAIN = domains.DEVNET; // Using lynx devnet for development
@@ -20,11 +21,21 @@ export interface DeadmanCondition {
 
 export interface EncryptionResult {
   messageKit: any; // TACo MessageKit
-  codexCid?: string; // Codex Content ID
-  codexUploadResult?: CodexUploadResult;
-  ipfsHash: string; // Fallback/mock hash
-  payloadUri: string;
+  encryptedData: Uint8Array; // Raw encrypted data for upload
+  originalFileName: string; // Original file name
+  condition: DeadmanCondition; // Condition used for encryption
+  description: string; // User description
   capsuleUri: string;
+}
+
+export interface CommitResult {
+  encryptionResult: EncryptionResult;
+  codexCid?: string; // Codex Content ID  
+  codexUploadResult?: CodexUploadResult;
+  ipfsCid?: string; // IPFS Content ID
+  ipfsUploadResult?: IPFSUploadResult;
+  payloadUri: string;
+  storageType: 'codex' | 'ipfs' | 'mock';
 }
 
 export interface TraceJson {
@@ -32,6 +43,9 @@ export interface TraceJson {
   taco_capsule_uri: string;
   condition: string;
   description: string;
+  storage_type: 'codex' | 'ipfs' | 'mock';
+  gateway_url?: string; // For IPFS uploads
+  gatewayUsed?: 'primary' | 'secondary'; // Which IPFS gateway was used
   created_at: string;
 }
 
@@ -152,19 +166,14 @@ class TacoService {
         
         const result: EncryptionResult = {
           messageKit,
-          codexCid: codexUploadResult.success ? codexUploadResult.cid : undefined,
-          codexUploadResult,
-          ipfsHash,
-          payloadUri: codexUploadResult.success ? `codex://${codexUploadResult.cid}` : `ipfs://${ipfsHash}`,
+          encryptedData,
+          originalFileName: file.name,
+          condition,
+          description,
           capsuleUri: `taco://capsule-${Date.now()}`,
         };
 
-        if (codexUploadResult.success) {
-          console.log('Successfully uploaded encrypted data to Codex:', codexUploadResult.cid);
-        } else {
-          console.warn('Codex upload failed, using fallback storage:', codexUploadResult.error);
-        }
-
+        console.log('TACo encryption completed successfully');
         return result;
 
       } catch (tacoError) {
@@ -198,10 +207,10 @@ class TacoService {
     
     return {
       messageKit: mockMessageKit,
-      codexCid: undefined,
-      codexUploadResult: { cid: '', size: 0, success: false, error: 'Mock mode - no Codex upload' },
-      ipfsHash,
-      payloadUri: `ipfs://${ipfsHash}`,
+      encryptedData: mockMessageKit.encryptedData,
+      originalFileName: file.name,
+      condition,
+      description: 'Mock encryption for demo',
       capsuleUri: `taco://mock-capsule-${Date.now()}`,
     };
   }
@@ -248,18 +257,138 @@ class TacoService {
     }
   }
 
+  async commitToCodex(encryptionResult: EncryptionResult): Promise<CommitResult> {
+    console.log('🔵 STARTING COMMIT TO CODEX');
+    console.log('🔵 File:', encryptionResult.originalFileName);
+    console.log('🔵 Encrypted size:', encryptionResult.encryptedData.length, 'bytes');
+    
+    try {
+      // Upload encrypted data to Codex
+      const codexUploadResult = await uploadToCodex(
+        encryptionResult.encryptedData, 
+        `${encryptionResult.originalFileName}.encrypted`,
+        (loaded, total) => {
+          console.log(`📊 Codex upload progress: ${Math.round((loaded / total) * 100)}%`);
+        }
+      );
+
+      if (codexUploadResult.success) {
+        // Check if it's a real CID or mock
+        const isRealCid = !codexUploadResult.cid.includes('Mock');
+        console.log(isRealCid ? '✅ REAL CODEX UPLOAD SUCCESSFUL!' : '⚠️ MOCK UPLOAD (Codex not available)');
+        console.log('📦 CID:', codexUploadResult.cid);
+        console.log('📦 Size:', codexUploadResult.size, 'bytes');
+        
+        const result: CommitResult = {
+          encryptionResult,
+          codexCid: codexUploadResult.cid,
+          codexUploadResult,
+          payloadUri: `codex://${codexUploadResult.cid}`,
+          storageType: 'codex'
+        };
+
+        return result;
+      } else {
+        // Codex upload failed, try IPFS fallback
+        console.warn('❌ Codex upload failed, trying IPFS fallback:', codexUploadResult.error);
+        
+        try {
+          const ipfsUploadResult = await uploadToIPFS(
+            encryptionResult.encryptedData,
+            `${encryptionResult.originalFileName}.encrypted`,
+            (loaded, total) => {
+              console.log(`📊 IPFS upload progress: ${Math.round((loaded / total) * 100)}%`);
+            }
+          );
+
+          if (ipfsUploadResult.success) {
+            console.log('✅ IPFS FALLBACK SUCCESSFUL!');
+            console.log('📦 IPFS CID:', ipfsUploadResult.cid);
+            console.log('📦 Gateway URL:', ipfsUploadResult.gatewayUrl);
+
+            const result: CommitResult = {
+              encryptionResult,
+              codexUploadResult,
+              ipfsCid: ipfsUploadResult.cid,
+              ipfsUploadResult,
+              payloadUri: `ipfs://${ipfsUploadResult.cid}`,
+              storageType: 'ipfs'
+            };
+
+            return result;
+          } else {
+            throw new Error(`IPFS upload failed: ${ipfsUploadResult.error}`);
+          }
+        } catch (ipfsError) {
+          console.error('❌ IPFS fallback also failed:', ipfsError);
+          
+          // Final fallback to mock
+          const mockHash = this.generateRandomHash();
+          const result: CommitResult = {
+            encryptionResult,
+            codexUploadResult,
+            payloadUri: `ipfs://${mockHash}`,
+            storageType: 'mock'
+          };
+
+          return result;
+        }
+      }
+    } catch (error) {
+      console.error('❌ COMMIT PROCESS FAILED:', error);
+      
+      // Try IPFS as fallback for any errors
+      try {
+        console.log('🟣 Attempting IPFS as emergency fallback...');
+        const ipfsUploadResult = await uploadToIPFS(
+          encryptionResult.encryptedData,
+          `${encryptionResult.originalFileName}.encrypted`
+        );
+
+        if (ipfsUploadResult.success) {
+          console.log('✅ EMERGENCY IPFS FALLBACK SUCCESSFUL!');
+          
+          return {
+            encryptionResult,
+            ipfsCid: ipfsUploadResult.cid,
+            ipfsUploadResult,
+            payloadUri: `ipfs://${ipfsUploadResult.cid}`,
+            storageType: 'ipfs'
+          };
+        }
+      } catch (ipfsError) {
+        console.error('❌ Emergency IPFS fallback failed:', ipfsError);
+      }
+
+      // Final mock fallback
+      const mockHash = this.generateRandomHash();
+      return {
+        encryptionResult,
+        codexUploadResult: { 
+          cid: '', 
+          size: encryptionResult.encryptedData.length, 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown commit error'
+        },
+        payloadUri: `ipfs://${mockHash}`,
+        storageType: 'mock'
+      };
+    }
+  }
+
   createTraceJson(
-    encryptionResult: EncryptionResult,
-    condition: DeadmanCondition,
-    description: string
+    commitResult: CommitResult
   ): TraceJson {
-    const conditionText = this.formatConditionText(condition);
+    const conditionText = this.formatConditionText(commitResult.encryptionResult.condition);
     
     return {
-      payload_uri: encryptionResult.payloadUri,
-      taco_capsule_uri: encryptionResult.capsuleUri,
+      payload_uri: commitResult.payloadUri,
+      taco_capsule_uri: commitResult.encryptionResult.capsuleUri,
       condition: conditionText,
-      description: description || 'Encrypted file with conditional access',
+      description: commitResult.encryptionResult.description || 'Encrypted file with conditional access',
+      storage_type: commitResult.storageType,
+      gateway_url: commitResult.ipfsUploadResult?.gatewayUrl,
+      gatewayUsed: commitResult.ipfsUploadResult?.gatewayUsed,
       created_at: new Date().toISOString(),
     };
   }
@@ -288,14 +417,26 @@ export async function encryptFileWithCondition(
   file: File,
   condition: DeadmanCondition,
   description: string = ''
-): Promise<{ encryptionResult: EncryptionResult; traceJson: TraceJson }> {
+): Promise<EncryptionResult> {
   try {
     const encryptionResult = await tacoService.encryptFile(file, condition, description);
-    const traceJson = tacoService.createTraceJson(encryptionResult, condition, description);
-    
-    return { encryptionResult, traceJson };
+    return encryptionResult;
   } catch (error) {
     console.error('File encryption failed:', error);
+    throw error;
+  }
+}
+
+export async function commitEncryptedFile(
+  encryptionResult: EncryptionResult
+): Promise<{ commitResult: CommitResult; traceJson: TraceJson }> {
+  try {
+    const commitResult = await tacoService.commitToCodex(encryptionResult);
+    const traceJson = tacoService.createTraceJson(commitResult);
+    
+    return { commitResult, traceJson };
+  } catch (error) {
+    console.error('File commit failed:', error);
     throw error;
   }
 }
