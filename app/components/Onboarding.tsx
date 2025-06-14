@@ -112,9 +112,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         ]);
       }, 1000);
     } else {
-      // Move to account creation
+      // Complete onboarding
       setTimeout(() => {
-        setCurrentPhase('account');
+        onComplete(newChoices);
       }, 1000);
     }
   };

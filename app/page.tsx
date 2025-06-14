@@ -8,6 +8,7 @@ import Onboarding from './components/Onboarding';
 
 export default function Home() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   const [userProfile, setUserProfile] = useState<Record<string, string>>({});
   const [isActive, setIsActive] = useState(true);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -205,9 +206,71 @@ export default function Home() {
     }
   };
 
+  const handleSignIn = (method: string) => {
+    console.log('Sign in method:', method);
+    console.log('User profile:', userProfile);
+    setSignedIn(true);
+  };
+
   // Show onboarding if not completed
   if (!onboardingComplete) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  // Show sign-in page if onboarding complete but not signed in
+  if (!signedIn) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8" style={{ zoom: '0.8' }}>
+        <div className="max-w-2xl w-full text-center">
+          {/* Canary wordmark */}
+          <h1 className="editorial-header text-xl md:text-2xl tracking-[0.2em] mb-8 md:mb-12">CANARY</h1>
+
+          {/* Setup summary (if user went through onboarding) */}
+          {Object.keys(userProfile).length > 0 && (
+            <div className="editorial-card mb-6 md:mb-8">
+              <h3 className="editorial-subheader mb-3 md:mb-4">Your Canary Setup:</h3>
+              <p className="editorial-body text-sm md:text-base text-gray-600 leading-relaxed">
+                {Object.entries(userProfile).map(([key, value]) => value).join(' • ')}
+              </p>
+            </div>
+          )}
+
+          {/* Sign in */}
+          <h2 className="editorial-header text-3xl md:text-4xl lg:text-5xl mb-6 md:mb-8 leading-tight">
+            {Object.keys(userProfile).length > 0 ? 'Complete Your Canary Setup' : 'Welcome to Canary'}
+          </h2>
+
+          <div className="space-y-3 md:space-y-4 max-w-md mx-auto">
+            <button
+              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg bg-slate-700 hover:bg-slate-800 text-white font-medium transition-all duration-200 hover:scale-105 transform"
+              onClick={() => handleSignIn('Web3 Wallet')}
+            >
+              Connect Web3 Wallet
+            </button>
+            
+            <button
+              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
+              onClick={() => handleSignIn('Email')}
+            >
+              Sign in with Email
+            </button>
+
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                className="editorial-body text-sm text-gray-500 hover:text-gray-700 underline transition-colors"
+                onClick={() => handleSignIn('Demo')}
+              >
+                Continue with demo mode
+              </button>
+            </div>
+          </div>
+
+          <p className="editorial-body text-gray-600 mt-6 md:mt-8 text-sm md:text-base">
+            Your truth protection starts now.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const intervalOptions = [
