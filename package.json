@@ -9,19 +9,25 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@helia/unixfs": "^5.0.3",
+    "@nucypher/taco": "^0.6.0",
+    "buffer": "^6.0.3",
+    "clsx": "^2.1.1",
+    "helia": "^5.4.2",
+    "lucide-react": "^0.515.0",
+    "next": "15.3.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.3.3"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

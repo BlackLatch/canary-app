@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-playfair: "Playfair Display", serif;
+  --font-crimson: "Crimson Text", serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Custom component styles */
+.editorial-header {
+  font-family: var(--font-playfair);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  color: rgb(31 41 55);
+  letter-spacing: 0.025em;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@media (min-width: 768px) {
+  .editorial-header {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.editorial-subheader {
+  font-family: var(--font-playfair);
+  font-weight: 600;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: rgb(55 65 81);
+}
+
+@media (min-width: 768px) {
+  .editorial-subheader {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+}
+
+.editorial-body {
+  font-family: var(--font-crimson);
+  font-size: 1rem;
+  line-height: 1.625;
+  color: rgb(55 65 81);
+}
+
+@media (min-width: 768px) {
+  .editorial-body {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+}
+
+.editorial-button {
+  font-family: var(--font-crimson);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.editorial-card {
+  background-color: white;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  padding: 1.5rem;
+}
+
+.editorial-input {
+  font-family: var(--font-crimson);
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgb(209 213 219);
+  border-radius: 0.5rem;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.editorial-input:focus {
+  box-shadow: 0 0 0 2px rgb(59 130 246);
+  border-color: transparent;
 }
