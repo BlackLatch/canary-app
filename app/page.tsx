@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Clock, Shield, Download, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { encryptFileWithCondition, DeadmanCondition, TraceJson } from './lib/taco';
@@ -8,17 +8,28 @@ import { encryptFileWithCondition, DeadmanCondition, TraceJson } from './lib/tac
 export default function Home() {
   const [isActive, setIsActive] = useState(true);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [condition, setCondition] = useState<DeadmanCondition>({ type: 'no_activity', duration: '5 DAYS' });
+  const [checkInInterval, setCheckInInterval] = useState('24'); // hours
   const [description, setDescription] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
+  const [lastCheckIn, setLastCheckIn] = useState<Date>(new Date(Date.now() - 2 * 60 * 60 * 1000)); // 2 hours ago
   const [activityLog, setActivityLog] = useState([
     { type: 'Check in confirmed', date: 'Apr 31, 2026, 16:01 AM' },
     { type: 'Pre-registeral nor-contact', date: 'Apr-32, 3093, 26:3 PM' },
     { type: 'Trigger created', date: 'Apr 13, 2021, 18:00 AM' }
   ]);
+  const [currentTime, setCurrentTime] = useState(new Date());
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update current time every second for real-time countdown
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -39,12 +50,17 @@ export default function Home() {
     }
   };
 
-  const processDeadmanSwitch = async () => {
+  const processCanaryTrigger = async () => {
     if (!uploadedFile) return;
     
     setIsProcessing(true);
     
     try {
+      const condition: DeadmanCondition = {
+        type: 'no_checkin',
+        duration: `${checkInInterval} HOURS`
+      };
+
       // Try to use real TACo encryption, fallback to mock data
       const { traceJson: newTraceJson } = await encryptFileWithCondition(
         uploadedFile,
@@ -67,7 +83,7 @@ export default function Home() {
       const mockTraceJson: TraceJson = {
         payload_uri: `ipfs://QmX7Y8Z9A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U/${uploadedFile.name}`,
         taco_capsule_uri: 'taco://capsule-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzab567cde890fgh123',
-        condition: formatConditionText(condition),
+        condition: `No check-in for ${checkInInterval} hours`,
         description: description || `Encrypted file: ${uploadedFile.name}`,
         created_at: new Date().toISOString()
       };
@@ -80,21 +96,6 @@ export default function Home() {
       ]);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const formatConditionText = (condition: DeadmanCondition): string => {
-    switch (condition.type) {
-      case 'no_activity':
-        return `No activity for ${condition.duration || '24 HOURS'}`;
-      case 'no_checkin':
-        return `No check-in from ${condition.timeWindow?.start || '11 AM'} to ${condition.timeWindow?.end || '1 PM'}`;
-      case 'location':
-        return `Location outside the ${condition.location || 'U.S.'} for ${condition.duration || '24 HOURS'}`;
-      case 'keyword':
-        return `Email containing ${condition.keyword || 'KEYWORD'}`;
-      default:
-        return `Conditional access: ${condition.duration || '24 HOURS'}`;
     }
   };
 
@@ -118,19 +119,89 @@ export default function Home() {
     }
   };
 
-  const updateCondition = (field: string, value: string) => {
-    setCondition(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleCheckIn = () => {
+    const now = new Date();
+    setLastCheckIn(now);
+    
+    // Add to activity log
+    setActivityLog(prev => [
+      { type: 'Check in confirmed', date: now.toLocaleString() },
+      ...prev
+    ]);
   };
 
+  const getTimeSinceLastCheckIn = () => {
+    const diffMs = currentTime.getTime() - lastCheckIn.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes}m ago`;
+    } else {
+      return `${diffMinutes}m ago`;
+    }
+  };
+
+  const getRemainingTime = () => {
+    const intervalMs = parseInt(checkInInterval) * 60 * 60 * 1000; // Convert hours to milliseconds
+    const timeSinceLastCheckIn = currentTime.getTime() - lastCheckIn.getTime();
+    const remainingMs = intervalMs - timeSinceLastCheckIn;
+    
+    if (remainingMs <= 0) {
+      return { expired: true, display: 'EXPIRED', color: 'text-red-600' };
+    }
+    
+    const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+    const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+    const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+    
+    // Color coding based on urgency
+    let color = 'text-green-600';
+    if (remainingMs < 60 * 60 * 1000) { // Less than 1 hour
+      color = 'text-red-600';
+    } else if (remainingMs < 6 * 60 * 60 * 1000) { // Less than 6 hours
+      color = 'text-orange-500';
+    } else if (remainingMs < 24 * 60 * 60 * 1000) { // Less than 24 hours
+      color = 'text-yellow-600';
+    }
+    
+    if (remainingHours > 0) {
+      return { 
+        expired: false, 
+        display: `${remainingHours}h ${remainingMinutes}m ${remainingSeconds}s`, 
+        color 
+      };
+    } else if (remainingMinutes > 0) {
+      return { 
+        expired: false, 
+        display: `${remainingMinutes}m ${remainingSeconds}s`, 
+        color 
+      };
+    } else {
+      return { 
+        expired: false, 
+        display: `${remainingSeconds}s`, 
+        color 
+      };
+    }
+  };
+
+  const intervalOptions = [
+    { value: '1', label: '1 Hour' },
+    { value: '6', label: '6 Hours' },
+    { value: '12', label: '12 Hours' },
+    { value: '24', label: '24 Hours' },
+    { value: '48', label: '48 Hours' },
+    { value: '72', label: '72 Hours' },
+    { value: '168', label: '1 Week' }
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" style={{ zoom: '0.8' }}>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="editorial-header text-3xl tracking-[0.2em]">DEAD MAN SWITCH</h1>
+          <h1 className="editorial-header text-3xl tracking-[0.2em]">CANARY</h1>
           <nav className="flex gap-8">
             <a href="#" className="editorial-body font-semibold hover:text-blue-600">Home</a>
             <a href="#" className="editorial-body font-semibold hover:text-blue-600">Triggers</a>
@@ -140,58 +211,78 @@ export default function Home() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Main Title */}
+        {/* Main Controls */}
         <div className="text-center mb-12">
-          <h2 className="editorial-header text-4xl md:text-6xl mb-8 text-gray-800">
-            Sophisticated journalistic<br />
-            dead man switch app
-          </h2>
-          
-          {/* Toggle Switch */}
-          <div className="flex justify-center mb-12">
-            <div className="relative">
-              <button
-                onClick={() => setIsActive(!isActive)}
-                className={clsx(
-                  "relative inline-flex h-20 w-40 items-center rounded-full transition-colors duration-300",
-                  isActive ? "bg-slate-700" : "bg-gray-300"
-                )}
-              >
-                <span
-                  className={clsx(
-                    "inline-block h-16 w-16 transform rounded-full bg-white transition-transform duration-300",
-                    isActive ? "translate-x-20" : "translate-x-2"
-                  )}
-                />
-                <span
-                  className={clsx(
-                    "absolute left-6 text-white font-playfair font-bold text-xl",
-                    isActive ? "opacity-100" : "opacity-0"
-                  )}
-                >
-                  ON
-                </span>
-              </button>
+          {/* Master Switch & Check-in Controls */}
+          <div className="flex justify-center items-stretch gap-12 mb-12">
+            {/* Master Switch */}
+            <div className="flex flex-col items-center">
+              <div className="editorial-card text-center p-8 w-[280px] h-[200px] flex flex-col justify-between">
+                <h3 className="editorial-subheader">Master Switch</h3>
+                <div className="flex flex-col items-center justify-center flex-1">
+                  <button
+                    onClick={() => setIsActive(!isActive)}
+                    className={clsx(
+                      "relative inline-flex h-16 w-32 items-center rounded-full transition-colors duration-300 mb-4",
+                      isActive ? "bg-slate-700" : "bg-gray-300"
+                    )}
+                  >
+                    <span
+                      className={clsx(
+                        "inline-block h-12 w-12 transform rounded-full bg-white transition-transform duration-300 shadow-sm",
+                        isActive ? "translate-x-16" : "translate-x-2"
+                      )}
+                    />
+                    <span
+                      className={clsx(
+                        "absolute left-4 text-white font-playfair font-bold text-lg",
+                        isActive ? "opacity-100" : "opacity-0"
+                      )}
+                    >
+                      ON
+                    </span>
+                  </button>
+                </div>
+                <div className="editorial-body text-sm">
+                  System {isActive ? 'Active' : 'Inactive'}
+                </div>
+              </div>
+            </div>
+
+            {/* Check-in Button */}
+            <div className="flex flex-col items-center">
+              <div className="editorial-card text-center p-8 w-[280px] h-[200px] flex flex-col justify-between">
+                <h3 className="editorial-subheader">Safety Check-in</h3>
+                <div className="flex flex-col items-center justify-center flex-1">
+                  <button
+                    onClick={handleCheckIn}
+                    className="bg-slate-700 text-white hover:bg-slate-800 w-32 h-16 text-sm font-semibold rounded-lg transition-all duration-200 mb-4 flex items-center justify-center shadow-sm"
+                  >
+                    <CheckCircle className="inline mr-2" size={18} />
+                    Check In Now
+                  </button>
+                </div>
+                <div className="editorial-body text-sm">
+                  Last: {getTimeSinceLastCheckIn()}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Condition Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-            <div className="editorial-card text-center">
-              <div className="editorial-body mb-2">No activity</div>
-              <div className="editorial-header text-2xl">for 5 DAYS</div>
-            </div>
-            <div className="editorial-card text-center">
-              <div className="editorial-body mb-2">No check in from</div>
-              <div className="editorial-header text-2xl">11 AM to 1 PM</div>
-            </div>
-            <div className="editorial-card text-center">
-              <div className="editorial-body mb-2">Location outside the</div>
-              <div className="editorial-header text-2xl">U.S. for 24 HOURS</div>
-            </div>
-            <div className="editorial-card text-center">
-              <div className="editorial-body mb-2">Email canaiting</div>
-              <div className="editorial-header text-2xl">KEYWORD</div>
+          {/* Condition Card */}
+          <div className="flex justify-center mb-12">
+            <div className="editorial-card text-center max-w-md">
+              <div className="editorial-body mb-2">Release files if no check-in for</div>
+              <div className="editorial-header text-3xl mb-4">{checkInInterval} HOURS</div>
+              <div className="border-t border-gray-200 pt-4">
+                <div className="editorial-body text-sm mb-1">Time remaining:</div>
+                <div className={`text-2xl font-bold ${getRemainingTime().color}`}>
+                  {getRemainingTime().display}
+                  {getRemainingTime().expired && (
+                    <div className="text-sm mt-1 text-red-600">Trigger would have activated</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -222,50 +313,29 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Condition Setup */}
+            {/* Check-in Settings */}
             <div>
-              <h3 className="editorial-subheader mb-4">Dead Man Switch Condition</h3>
+              <h3 className="editorial-subheader mb-4">Check-in Settings</h3>
               <div className="editorial-card space-y-4">
-                <select 
-                  className="editorial-input"
-                  value={condition.type}
-                  onChange={(e) => setCondition({...condition, type: e.target.value as any})}
-                >
-                  <option value="no_activity">No Activity</option>
-                  <option value="no_checkin">No Check-in</option>
-                  <option value="location">Location-based</option>
-                  <option value="keyword">Keyword Trigger</option>
-                </select>
-                
-                {(condition.type === 'no_activity' || condition.type === 'location') && (
-                  <input
-                    type="text"
-                    placeholder="Duration (e.g., 5 DAYS, 72 HOURS)"
+                <div>
+                  <label className="editorial-body font-semibold mb-2 block">
+                    Check-in Interval
+                  </label>
+                  <select 
                     className="editorial-input"
-                    value={condition.duration || ''}
-                    onChange={(e) => updateCondition('duration', e.target.value)}
-                  />
-                )}
-                
-                {condition.type === 'location' && (
-                  <input
-                    type="text"
-                    placeholder="Location (e.g., U.S., Europe)"
-                    className="editorial-input"
-                    value={condition.location || ''}
-                    onChange={(e) => updateCondition('location', e.target.value)}
-                  />
-                )}
-                
-                {condition.type === 'keyword' && (
-                  <input
-                    type="text"
-                    placeholder="Keyword to trigger release"
-                    className="editorial-input"
-                    value={condition.keyword || ''}
-                    onChange={(e) => updateCondition('keyword', e.target.value)}
-                  />
-                )}
+                    value={checkInInterval}
+                    onChange={(e) => setCheckInInterval(e.target.value)}
+                  >
+                    {intervalOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="editorial-body text-sm text-gray-500 mt-2">
+                    Files will be released if you don't check in within this timeframe
+                  </p>
+                </div>
                 
                 <textarea
                   placeholder="Description (optional)"
@@ -275,7 +345,7 @@ export default function Home() {
                 />
                 
                 <button
-                  onClick={processDeadmanSwitch}
+                  onClick={processCanaryTrigger}
                   disabled={!uploadedFile || isProcessing}
                   className="editorial-button bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed w-full"
                 >
@@ -364,14 +434,14 @@ export default function Home() {
                   <CheckCircle className="text-green-500 mr-3" size={24} />
                   <div>
                     <div className="editorial-body font-semibold">System Active</div>
-                    <div className="editorial-body text-sm text-gray-500">All triggers monitoring</div>
+                    <div className="editorial-body text-sm text-gray-500">Check-in monitoring enabled</div>
                   </div>
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center mb-4">
                   <Clock className="text-blue-500 mr-3" size={24} />
                   <div>
                     <div className="editorial-body font-semibold">Last Check-in</div>
-                    <div className="editorial-body text-sm text-gray-500">2 hours ago</div>
+                    <div className="editorial-body text-sm text-gray-500">{getTimeSinceLastCheckIn()}</div>
                   </div>
                 </div>
               </div>
