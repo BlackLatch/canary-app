@@ -6,6 +6,7 @@ import { EIP4361AuthProvider, USER_ADDRESS_PARAM_DEFAULT } from '@nucypher/taco-
 import { ethers } from 'ethers';
 import { uploadToCodex, downloadFromCodex, CodexUploadResult } from './codex';
 import { uploadToIPFS, downloadFromIPFS, IPFSUploadResult } from './ipfs';
+import { uploadToPinata, PinataUploadResult } from './pinata';
 
 // TACo domain configuration
 const TACO_DOMAIN = domains.DEVNET; // Using lynx devnet for development
@@ -34,8 +35,10 @@ export interface CommitResult {
   codexUploadResult?: CodexUploadResult;
   ipfsCid?: string; // IPFS Content ID
   ipfsUploadResult?: IPFSUploadResult;
+  pinataCid?: string; // Pinata IPFS Content ID
+  pinataUploadResult?: PinataUploadResult;
   payloadUri: string;
-  storageType: 'codex' | 'ipfs' | 'mock';
+  storageType: 'codex' | 'ipfs' | 'pinata' | 'mock';
 }
 
 export interface TraceJson {
@@ -43,7 +46,7 @@ export interface TraceJson {
   taco_capsule_uri: string;
   condition: string;
   description: string;
-  storage_type: 'codex' | 'ipfs' | 'mock';
+  storage_type: 'codex' | 'ipfs' | 'pinata' | 'mock';
   gateway_url?: string; // For IPFS uploads
   gatewayUsed?: 'primary' | 'secondary'; // Which IPFS gateway was used
   created_at: string;
@@ -289,75 +292,130 @@ class TacoService {
 
         return result;
       } else {
-        // Codex upload failed, try IPFS fallback
-        console.warn('❌ Codex upload failed, trying IPFS fallback:', codexUploadResult.error);
+        // Codex upload failed, try Pinata IPFS fallback first
+        console.warn('❌ Codex upload failed, trying Pinata IPFS fallback:', codexUploadResult.error);
         
         try {
-          const ipfsUploadResult = await uploadToIPFS(
+          const pinataUploadResult = await uploadToPinata(
             encryptionResult.encryptedData,
             `${encryptionResult.originalFileName}.encrypted`,
             (loaded, total) => {
-              console.log(`📊 IPFS upload progress: ${Math.round((loaded / total) * 100)}%`);
+              console.log(`📊 Pinata upload progress: ${Math.round((loaded / total) * 100)}%`);
             }
           );
 
-          if (ipfsUploadResult.success) {
-            console.log('✅ IPFS FALLBACK SUCCESSFUL!');
-            console.log('📦 IPFS CID:', ipfsUploadResult.cid);
-            console.log('📦 Gateway URL:', ipfsUploadResult.gatewayUrl);
+          if (pinataUploadResult.success) {
+            console.log('✅ PINATA FALLBACK SUCCESSFUL!');
+            console.log('📦 IPFS Hash:', pinataUploadResult.ipfsHash);
+            console.log('📦 Gateway URL:', pinataUploadResult.gatewayUrl);
 
             const result: CommitResult = {
               encryptionResult,
               codexUploadResult,
-              ipfsCid: ipfsUploadResult.cid,
-              ipfsUploadResult,
-              payloadUri: `ipfs://${ipfsUploadResult.cid}`,
-              storageType: 'ipfs'
+              pinataCid: pinataUploadResult.ipfsHash,
+              pinataUploadResult,
+              payloadUri: `ipfs://${pinataUploadResult.ipfsHash}`,
+              storageType: 'pinata'
             };
 
             return result;
           } else {
-            throw new Error(`IPFS upload failed: ${ipfsUploadResult.error}`);
+            throw new Error(`Pinata upload failed: ${pinataUploadResult.error}`);
           }
-        } catch (ipfsError) {
-          console.error('❌ IPFS fallback also failed:', ipfsError);
+        } catch (pinataError) {
+          console.error('❌ Pinata fallback failed, trying local IPFS:', pinataError);
           
-          // Final fallback to mock
-          const mockHash = this.generateRandomHash();
-          const result: CommitResult = {
-            encryptionResult,
-            codexUploadResult,
-            payloadUri: `ipfs://${mockHash}`,
-            storageType: 'mock'
-          };
+          // Try local IPFS as secondary fallback
+          try {
+            const ipfsUploadResult = await uploadToIPFS(
+              encryptionResult.encryptedData,
+              `${encryptionResult.originalFileName}.encrypted`,
+              (loaded, total) => {
+                console.log(`📊 Local IPFS upload progress: ${Math.round((loaded / total) * 100)}%`);
+              }
+            );
 
-          return result;
+            if (ipfsUploadResult.success) {
+              console.log('✅ LOCAL IPFS FALLBACK SUCCESSFUL!');
+              console.log('📦 IPFS CID:', ipfsUploadResult.cid);
+              console.log('📦 Gateway URL:', ipfsUploadResult.gatewayUrl);
+
+              const result: CommitResult = {
+                encryptionResult,
+                codexUploadResult,
+                ipfsCid: ipfsUploadResult.cid,
+                ipfsUploadResult,
+                payloadUri: `ipfs://${ipfsUploadResult.cid}`,
+                storageType: 'ipfs'
+              };
+
+              return result;
+            } else {
+              throw new Error(`Local IPFS upload failed: ${ipfsUploadResult.error}`);
+            }
+          } catch (ipfsError) {
+            console.error('❌ Both Pinata and local IPFS failed:', ipfsError);
+            
+            // Final fallback to mock
+            const mockHash = this.generateRandomHash();
+            const result: CommitResult = {
+              encryptionResult,
+              codexUploadResult,
+              payloadUri: `ipfs://${mockHash}`,
+              storageType: 'mock'
+            };
+
+            return result;
+          }
         }
       }
     } catch (error) {
       console.error('❌ COMMIT PROCESS FAILED:', error);
       
-      // Try IPFS as fallback for any errors
+      // Try Pinata as emergency fallback first
       try {
-        console.log('🟣 Attempting IPFS as emergency fallback...');
-        const ipfsUploadResult = await uploadToIPFS(
+        console.log('🟣 Attempting Pinata as emergency fallback...');
+        const pinataUploadResult = await uploadToPinata(
           encryptionResult.encryptedData,
           `${encryptionResult.originalFileName}.encrypted`
         );
 
-        if (ipfsUploadResult.success) {
-          console.log('✅ EMERGENCY IPFS FALLBACK SUCCESSFUL!');
+        if (pinataUploadResult.success) {
+          console.log('✅ EMERGENCY PINATA FALLBACK SUCCESSFUL!');
           
           return {
             encryptionResult,
-            ipfsCid: ipfsUploadResult.cid,
-            ipfsUploadResult,
-            payloadUri: `ipfs://${ipfsUploadResult.cid}`,
-            storageType: 'ipfs'
+            pinataCid: pinataUploadResult.ipfsHash,
+            pinataUploadResult,
+            payloadUri: `ipfs://${pinataUploadResult.ipfsHash}`,
+            storageType: 'pinata'
           };
         }
-      } catch (ipfsError) {
-        console.error('❌ Emergency IPFS fallback failed:', ipfsError);
+      } catch (pinataError) {
+        console.error('❌ Emergency Pinata fallback failed:', pinataError);
+        
+        // Try local IPFS as final emergency fallback
+        try {
+          console.log('🟣 Attempting local IPFS as final emergency fallback...');
+          const ipfsUploadResult = await uploadToIPFS(
+            encryptionResult.encryptedData,
+            `${encryptionResult.originalFileName}.encrypted`
+          );
+
+          if (ipfsUploadResult.success) {
+            console.log('✅ EMERGENCY LOCAL IPFS FALLBACK SUCCESSFUL!');
+            
+            return {
+              encryptionResult,
+              ipfsCid: ipfsUploadResult.cid,
+              ipfsUploadResult,
+              payloadUri: `ipfs://${ipfsUploadResult.cid}`,
+              storageType: 'ipfs'
+            };
+          }
+        } catch (ipfsError) {
+          console.error('❌ All emergency fallbacks failed:', ipfsError);
+        }
       }
 
       // Final mock fallback
@@ -381,14 +439,26 @@ class TacoService {
   ): TraceJson {
     const conditionText = this.formatConditionText(commitResult.encryptionResult.condition);
     
+    // Get gateway URL from either Pinata or IPFS upload
+    let gatewayUrl: string | undefined;
+    let gatewayUsed: 'primary' | 'secondary' | undefined;
+    
+    if (commitResult.pinataUploadResult?.success) {
+      gatewayUrl = commitResult.pinataUploadResult.gatewayUrl;
+      gatewayUsed = 'primary'; // Pinata is our primary IPFS option
+    } else if (commitResult.ipfsUploadResult?.success) {
+      gatewayUrl = commitResult.ipfsUploadResult.gatewayUrl;
+      gatewayUsed = commitResult.ipfsUploadResult.gatewayUsed;
+    }
+    
     return {
       payload_uri: commitResult.payloadUri,
       taco_capsule_uri: commitResult.encryptionResult.capsuleUri,
       condition: conditionText,
       description: commitResult.encryptionResult.description || 'Encrypted file with conditional access',
       storage_type: commitResult.storageType,
-      gateway_url: commitResult.ipfsUploadResult?.gatewayUrl,
-      gatewayUsed: commitResult.ipfsUploadResult?.gatewayUsed,
+      gateway_url: gatewayUrl,
+      gatewayUsed: gatewayUsed,
       created_at: new Date().toISOString(),
     };
   }

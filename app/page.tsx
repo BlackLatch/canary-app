@@ -175,6 +175,55 @@ export default function Home() {
     }
   };
 
+  const downloadEncryptedFile = async () => {
+    if (!encryptedCapsule) {
+      alert('No encrypted file available in memory. Please encrypt a file first.');
+      return;
+    }
+    
+    try {
+      console.log('📥 Downloading encrypted file from browser memory');
+      console.log('📦 Original file:', encryptedCapsule.originalFileName);
+      console.log('📦 Encrypted size:', encryptedCapsule.encryptedData.length, 'bytes');
+      
+      // Create filename based on original file name
+      const originalName = encryptedCapsule.originalFileName;
+      const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+      const filename = `${baseName}-encrypted.bin`;
+      
+      // Create blob from encrypted data in memory
+      const blob = new Blob([encryptedCapsule.encryptedData], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up URL
+      URL.revokeObjectURL(url);
+      
+      console.log('🎉 MEMORY DOWNLOAD SUCCESS!');
+      console.log('📦 Downloaded as:', filename);
+      console.log('📦 Size:', encryptedCapsule.encryptedData.length, 'bytes');
+      
+      // Add to activity log
+      setActivityLog(prev => [
+        { type: 'Encrypted file downloaded from memory', date: new Date().toLocaleString() },
+        ...prev
+      ]);
+      
+    } catch (error) {
+      console.error('❌ Memory download failed:', error);
+      alert('Failed to download encrypted file from memory. Check console for details.');
+    }
+  };
+
+
+
   const handleCheckIn = () => {
     const now = new Date();
     setLastCheckIn(now);
@@ -650,12 +699,33 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                      <div className="flex items-center">
-                        <AlertCircle size={16} className="text-yellow-600 mr-2" />
-                        <span className="editorial-body text-sm text-yellow-800">
-                          Click "Commit to Local Codex" to upload your encrypted capsule to your local Codex node
-                        </span>
+                    <div className="mt-4 space-y-3">
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                        <div className="flex items-center">
+                          <AlertCircle size={16} className="text-yellow-600 mr-2" />
+                          <span className="editorial-body text-sm text-yellow-800">
+                            Click "Commit to Local Codex" to upload your encrypted capsule to your local Codex node
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 bg-green-50 border border-green-200 rounded">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Download size={16} className="text-green-600 mr-2" />
+                            <span className="editorial-body text-sm text-green-800">
+                              Your encrypted file is ready to download from memory
+                            </span>
+                          </div>
+                          <button
+                            onClick={downloadEncryptedFile}
+                            className="editorial-button bg-purple-600 text-white hover:bg-purple-700 text-sm px-3 py-1"
+                            title="Download encrypted file from browser memory"
+                          >
+                            <Download size={14} className="inline mr-1" />
+                            Download
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -685,6 +755,19 @@ export default function Home() {
                         <Download size={16} className="inline mr-1" />
                         Download
                       </button>
+                      <button
+                        onClick={downloadEncryptedFile}
+                        disabled={!encryptedCapsule}
+                        className="editorial-button bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm px-4 py-2"
+                        title={
+                          encryptedCapsule 
+                            ? 'Download encrypted file from browser memory'
+                            : 'No encrypted file available - encrypt a file first'
+                        }
+                      >
+                        <Download size={16} className="inline mr-1" />
+                        File
+                      </button>
                     </div>
                   </div>
                   <pre className="bg-gray-100 p-4 rounded font-mono text-sm overflow-x-auto">
@@ -713,7 +796,9 @@ export default function Home() {
                         : traceJson.payload_uri.startsWith('ipfs://') 
                           ? traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/) 
                             ? 'bg-yellow-50 border-yellow-200'
-                            : 'bg-purple-50 border-purple-200'
+                            : traceJson.storage_type === 'pinata'
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-purple-50 border-purple-200'
                           : 'bg-red-50 border-red-200'
                     }`}>
                       <div className="flex items-center">
@@ -725,7 +810,9 @@ export default function Home() {
                             : traceJson.payload_uri.startsWith('ipfs://') 
                               ? traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/)
                                 ? 'text-yellow-600'
-                                : 'text-purple-600'
+                                : traceJson.storage_type === 'pinata'
+                                  ? 'text-blue-600'
+                                  : 'text-purple-600'
                               : 'text-red-600'
                         }`} />
                         <span className={`editorial-body text-sm ${
@@ -736,7 +823,9 @@ export default function Home() {
                             : traceJson.payload_uri.startsWith('ipfs://') 
                               ? traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/)
                                 ? 'text-yellow-800'
-                                : 'text-purple-800'
+                                : traceJson.storage_type === 'pinata'
+                                  ? 'text-blue-800'
+                                  : 'text-purple-800'
                               : 'text-red-800'
                         }`}>
                           {traceJson.payload_uri.startsWith('codex://') ? 
@@ -746,7 +835,9 @@ export default function Home() {
                             traceJson.payload_uri.startsWith('ipfs://') ?
                               traceJson.payload_uri.includes('Mock') || traceJson.payload_uri.match(/^ipfs:\/\/Qm[A-Za-z0-9]{44}$/) ?
                                 'Mock IPFS - Simulated fallback storage' :
-                                'Real IPFS Network - Uploaded to ipfs.io gateway!' :
+                                traceJson.storage_type === 'pinata' ?
+                                  'Pinata IPFS - Professional IPFS pinning service!' :
+                                  'Local IPFS Network - Uploaded via local node!' :
                               'Unknown Storage - Error in upload process'
                           }
                         </span>
@@ -785,6 +876,13 @@ export default function Home() {
                               🌐 IPFS.io
                             </a>
                           </div>
+                        </div>
+                      )}
+                      
+                      {/* Download instructions */}
+                      {encryptedCapsule && (
+                        <div className="mt-2 text-xs text-green-700">
+                          📥 Use the "File" button above to download your encrypted file from browser memory
                         </div>
                       )}
                       
