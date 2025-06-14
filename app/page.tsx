@@ -5,8 +5,14 @@ import { Upload, Clock, Shield, Download, Copy, CheckCircle, AlertCircle } from 
 import { clsx } from 'clsx';
 import { encryptFileWithCondition, DeadmanCondition, TraceJson } from './lib/taco';
 import Onboarding from './components/Onboarding';
+import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { metaMask, coinbaseWallet, walletConnect } from 'wagmi/connectors';
 
 export default function Home() {
+  const { connect, connectors, isPending } = useConnect();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [userProfile, setUserProfile] = useState<Record<string, string>>({});
@@ -209,8 +215,34 @@ export default function Home() {
   const handleSignIn = (method: string) => {
     console.log('Sign in method:', method);
     console.log('User profile:', userProfile);
-    setSignedIn(true);
+    
+    if (method === 'Web3 Wallet') {
+      // Connect to the first available connector (usually MetaMask)
+      const connector = connectors.find(c => c.id === 'metaMask') || connectors[0];
+      if (connector) {
+        connect({ connector });
+      }
+    } else if (method === 'Demo') {
+      setSignedIn(true);
+    } else {
+      // For email sign-in, just simulate for now
+      setSignedIn(true);
+    }
   };
+
+  // Auto sign-in if wallet is already connected
+  useEffect(() => {
+    if (isConnected && !signedIn) {
+      setSignedIn(true);
+    }
+  }, [isConnected, signedIn]);
+
+  // Return to sign-in screen if wallet is disconnected
+  useEffect(() => {
+    if (!isConnected && signedIn) {
+      setSignedIn(false);
+    }
+  }, [isConnected, signedIn]);
 
   // Show onboarding if not completed
   if (!onboardingComplete) {
@@ -242,10 +274,18 @@ export default function Home() {
 
           <div className="space-y-3 md:space-y-4 max-w-md mx-auto">
             <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg bg-slate-700 hover:bg-slate-800 text-white font-medium transition-all duration-200 hover:scale-105 transform"
+              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg bg-slate-700 hover:bg-slate-800 text-white font-medium transition-all duration-200 hover:scale-105 transform disabled:opacity-50 disabled:cursor-not-allowed border-2 border-slate-600 hover:border-slate-700"
               onClick={() => handleSignIn('Web3 Wallet')}
+              disabled={isPending}
             >
-              Connect Web3 Wallet
+              {isPending ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Connecting...
+                </div>
+              ) : (
+                'Connect Web3 Wallet'
+              )}
             </button>
             
             <button
@@ -289,11 +329,33 @@ export default function Home() {
       <header className="bg-white border-b border-gray-200 px-4 py-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="editorial-header text-3xl tracking-[0.2em]">CANARY</h1>
-          <nav className="flex gap-8">
-            <a href="#" className="editorial-body font-semibold hover:text-blue-600">Home</a>
-            <a href="#" className="editorial-body font-semibold hover:text-blue-600">Triggers</a>
-            <a href="#" className="editorial-body font-semibold hover:text-blue-600">Settings</a>
-          </nav>
+          
+          <div className="flex items-center gap-8">
+            <nav className="flex gap-8">
+              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Home</a>
+              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Triggers</a>
+              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Settings</a>
+            </nav>
+            
+            {/* Wallet Status */}
+            {isConnected && address ? (
+              <div className="flex items-center gap-3">
+                <div className="editorial-body text-sm border-2 border-gray-300 px-3 py-2 rounded-lg bg-white">
+                  <span className="text-green-600 font-semibold">●</span> {address.slice(0, 6)}...{address.slice(-4)}
+                </div>
+                <button
+                  onClick={() => disconnect()}
+                  className="editorial-body text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <div className="editorial-body text-sm text-gray-500">
+                Demo Mode
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

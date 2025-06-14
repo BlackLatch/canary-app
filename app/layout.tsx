@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Crimson_Text } from "next/font/google";
 import "./globals.css";
+import { Web3Provider } from './components/Web3Provider';
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${crimson.variable} antialiased bg-gray-50 text-gray-900`}
       >
-        {children}
+        <Web3Provider>
+          {children}
+        </Web3Provider>
       </body>
     </html>
   );

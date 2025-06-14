@@ -73,20 +73,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         setStoryIndex(storyIndex + 1);
         setIsVisible(true);
       }, 800);
-    } else {
-      // Transition to conversation
-      setTimeout(() => {
-        setCurrentPhase('conversation');
-        setMessages([
-          { type: 'system', text: "I'm here to help you protect what matters most. Let's set up your Canary together." }
-        ]);
-        setTimeout(() => {
-          setMessages(prev => [...prev, 
-            { type: 'system', text: CONVERSATION_FLOW[0].question }
-          ]);
-        }, 1000);
-      }, 2000);
-    }
+            } else {
+          // Transition to conversation
+          setTimeout(() => {
+            setCurrentPhase('conversation');
+            setMessages([
+              { type: 'system', text: "I'm here to help you protect what matters most. Let's set up your Canary together." }
+            ]);
+            setTimeout(() => {
+              setMessages(prev => [...prev, 
+                { type: 'system', text: CONVERSATION_FLOW[0].question }
+              ]);
+            }, 1000);
+          }, 2000);
+        }
   };
 
   const handleStoryClick = () => {
@@ -270,59 +270,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     );
   }
 
-  if (currentPhase === 'account') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8">
-        <div className="max-w-2xl w-full text-center opacity-100 transition-opacity duration-500">
-          {/* Canary wordmark */}
-          <h1 className="editorial-header text-xl md:text-2xl tracking-[0.2em] mb-8 md:mb-12">CANARY</h1>
 
-          {/* Skip button */}
-          <div className="absolute top-4 right-4 md:top-8 md:right-8">
-            <button
-              onClick={handleSkip}
-              className="editorial-body text-sm text-gray-500 hover:text-gray-700 underline transition-colors"
-            >
-              Skip to app
-            </button>
-          </div>
-
-          {/* Setup summary */}
-          <div className="editorial-card mb-6 md:mb-8">
-            <h3 className="editorial-subheader mb-3 md:mb-4">Your Canary Setup:</h3>
-            <p className="editorial-body text-sm md:text-base text-gray-600 leading-relaxed">
-              {Object.entries(userChoices).map(([key, value]) => value).join(' • ')}
-            </p>
-          </div>
-
-          {/* Account creation */}
-          <h2 className="editorial-header text-3xl md:text-4xl lg:text-5xl mb-6 md:mb-8 leading-tight">
-            Create your Canary account
-          </h2>
-
-          <div className="space-y-3 md:space-y-4 max-w-md mx-auto">
-            <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg bg-slate-700 hover:bg-slate-800 text-white font-medium transition-all duration-200 hover:scale-105 transform"
-              onClick={() => handleAccountCreation('Web3 Wallet')}
-            >
-              Connect Web3 Wallet
-            </button>
-            
-            <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
-              onClick={() => handleAccountCreation('Email')}
-            >
-              Create with Email
-            </button>
-          </div>
-
-          <p className="editorial-body text-gray-600 mt-6 md:mt-8 text-sm md:text-base">
-            Your truth protection starts now.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return null;
 } 
