@@ -556,6 +556,33 @@ export default function Home() {
                   <pre className="bg-gray-100 p-4 rounded font-mono text-sm overflow-x-auto">
                     {JSON.stringify(traceJson, null, 2)}
                   </pre>
+                  
+                  {/* TACo & Codex Integration Status */}
+                  <div className="mt-4 space-y-3">
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                      <div className="flex items-center">
+                        <Shield size={16} className="text-blue-600 mr-2" />
+                        <span className="editorial-body text-sm text-blue-800">
+                          {traceJson.taco_capsule_uri.includes('mock') ? 
+                            'Demo Mode - Using mock encryption for testing' : 
+                            'TACo Network - Real threshold cryptographic protection'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 bg-green-50 border border-green-200 rounded">
+                      <div className="flex items-center">
+                        <Upload size={16} className="text-green-600 mr-2" />
+                        <span className="editorial-body text-sm text-green-800">
+                          {traceJson.payload_uri.startsWith('codex://') ? 
+                            'Codex Network - Decentralized storage active' : 
+                            'IPFS Fallback - Using traditional storage'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
