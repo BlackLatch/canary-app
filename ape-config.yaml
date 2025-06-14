@@ -1,0 +1,13 @@
+name: canary
+
+contracts_folder: contracts
+
+ethereum:
+  sepolia:
+    default_provider: infura
+  local:
+    default_provider: test
+
+test:
+  mnemonic: test test test test test test test test test test test junk
+  number_of_accounts: 10

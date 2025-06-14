@@ -15,16 +15,25 @@ export default function Home() {
   
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
-  const [userProfile, setUserProfile] = useState<Record<string, string>>({});
+  // Removed userProfile - using dossier-only storage model
   const [isActive, setIsActive] = useState(true);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [checkInInterval, setCheckInInterval] = useState('24'); // hours
+  const [checkInInterval, setCheckInInterval] = useState('1'); // minutes (for testing)
   const [description, setDescription] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
   const [encryptedCapsule, setEncryptedCapsule] = useState<any>(null);
   const [isCommitting, setIsCommitting] = useState(false);
-  const [lastCheckIn, setLastCheckIn] = useState<Date>(new Date(Date.now() - 2 * 60 * 60 * 1000)); // 2 hours ago
+  const [lastCheckIn, setLastCheckIn] = useState<Date>(new Date()); // Start with current time
+  const [uploads, setUploads] = useState<Array<{
+    id: string;
+    filename: string;
+    status: 'encrypted' | 'committed';
+    storageType: 'codex' | 'ipfs' | 'pinata' | 'mock';
+    encryptionType: 'real' | 'mock';
+    payloadUri?: string;
+    createdAt: Date;
+  }>>([]);
   const [activityLog, setActivityLog] = useState([
     { type: 'Check in confirmed', date: 'Apr 31, 2026, 16:01 AM' },
     { type: 'Pre-registeral nor-contact', date: 'Apr-32, 3093, 26:3 PM' },
@@ -70,7 +79,7 @@ export default function Home() {
     try {
       const condition: DeadmanCondition = {
         type: 'no_checkin',
-        duration: `${checkInInterval} HOURS`
+        duration: `${checkInInterval} MINUTES`
       };
 
       // Encrypt the file with TACo (no upload yet)
@@ -81,6 +90,17 @@ export default function Home() {
       );
       
       setEncryptedCapsule(encryptionResult);
+      
+      // Add to uploads table
+      const uploadId = `upload-${Date.now()}`;
+      setUploads(prev => [...prev, {
+        id: uploadId,
+        filename: uploadedFile.name,
+        status: 'encrypted',
+        storageType: 'mock', // Will be updated when committed
+        encryptionType: encryptionResult.capsuleUri.includes('real-capsule') ? 'real' : 'mock',
+        createdAt: new Date()
+      }]);
       
       // Add to activity log
       setActivityLog(prev => [
@@ -98,13 +118,24 @@ export default function Home() {
         originalFileName: uploadedFile.name,
         condition: {
           type: 'no_checkin',
-          duration: `${checkInInterval} HOURS`
+          duration: `${checkInInterval} MINUTES`
         },
         description: description || `Encrypted file: ${uploadedFile.name}`,
         capsuleUri: 'taco://mock-capsule-123'
       };
       
       setEncryptedCapsule(mockEncryption);
+      
+      // Add to uploads table
+      const uploadId = `upload-${Date.now()}`;
+      setUploads(prev => [...prev, {
+        id: uploadId,
+        filename: uploadedFile.name,
+        status: 'encrypted',
+        storageType: 'mock',
+        encryptionType: 'mock',
+        createdAt: new Date()
+      }]);
       
       setActivityLog(prev => [
         { type: 'Capsule encrypted (demo mode)', date: new Date().toLocaleString() },
@@ -124,6 +155,16 @@ export default function Home() {
       const { commitResult, traceJson: newTraceJson } = await commitEncryptedFile(encryptedCapsule);
       
       setTraceJson(newTraceJson);
+      
+      // Update uploads table - mark most recent upload as committed
+      setUploads(prev => prev.map((upload, index) => 
+        index === prev.length - 1 ? {
+          ...upload,
+          status: 'committed' as const,
+          storageType: commitResult.storageType,
+          payloadUri: commitResult.payloadUri
+        } : upload
+      ));
       
       // Add to activity log
       setActivityLog(prev => [
@@ -145,6 +186,16 @@ export default function Home() {
       };
       
       setTraceJson(mockTraceJson);
+      
+      // Update uploads table - mark most recent upload as committed
+      setUploads(prev => prev.map((upload, index) => 
+        index === prev.length - 1 ? {
+          ...upload,
+          status: 'committed' as const,
+          storageType: 'mock',
+          payloadUri: mockTraceJson.payload_uri
+        } : upload
+      ));
       
       setActivityLog(prev => [
         { type: 'Capsule committed (fallback)', date: new Date().toLocaleString() },
@@ -222,6 +273,63 @@ export default function Home() {
     }
   };
 
+  const testDecryption = async () => {
+    if (!encryptedCapsule) {
+      alert('No encrypted file available. Please encrypt a file first.');
+      return;
+    }
+
+    try {
+      console.log('🔓 Testing TACo decryption...');
+      
+      // Import the decryption function
+      const { tacoService } = await import('./lib/taco');
+      
+      // Attempt to decrypt the messageKit
+      const decryptedData = await tacoService.decryptFile(encryptedCapsule.messageKit);
+      
+      console.log('🎉 Decryption test successful!');
+      console.log('📦 Decrypted size:', decryptedData.length, 'bytes');
+      
+      // Download the decrypted file
+      const originalName = encryptedCapsule.originalFileName;
+      const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+      const extension = originalName.substring(originalName.lastIndexOf('.')) || '';
+      const filename = `${baseName}-decrypted${extension}`;
+      
+      const blob = new Blob([decryptedData]);
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+      
+      // Add to activity log
+      setActivityLog(prev => [
+        { type: 'TACo decryption test successful', date: new Date().toLocaleString() },
+        ...prev
+      ]);
+      
+      alert('🎉 TACo decryption successful! Check your downloads for the decrypted file.');
+      
+    } catch (error) {
+      console.error('❌ Decryption test failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Decryption test failed: ${errorMessage}\n\nCheck console for details.`);
+      
+      // Add to activity log
+      setActivityLog(prev => [
+        { type: 'TACo decryption test failed', date: new Date().toLocaleString() },
+        ...prev
+      ]);
+    }
+  };
+
 
 
   const handleCheckIn = () => {
@@ -248,7 +356,7 @@ export default function Home() {
   };
 
   const getRemainingTime = () => {
-    const intervalMs = parseInt(checkInInterval) * 60 * 60 * 1000; // Convert hours to milliseconds
+    const intervalMs = parseInt(checkInInterval) * 60 * 1000; // Convert minutes to milliseconds
     const timeSinceLastCheckIn = currentTime.getTime() - lastCheckIn.getTime();
     const remainingMs = intervalMs - timeSinceLastCheckIn;
     
@@ -256,27 +364,20 @@ export default function Home() {
       return { expired: true, display: 'EXPIRED', color: 'text-red-600' };
     }
     
-    const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-    const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+    const remainingMinutes = Math.floor(remainingMs / (1000 * 60));
     const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
     
-    // Color coding based on urgency
+    // Color coding based on urgency (adapted for minutes)
     let color = 'text-green-600';
-    if (remainingMs < 60 * 60 * 1000) { // Less than 1 hour
+    if (remainingMs < 30 * 1000) { // Less than 30 seconds
       color = 'text-red-600';
-    } else if (remainingMs < 6 * 60 * 60 * 1000) { // Less than 6 hours
+    } else if (remainingMs < 2 * 60 * 1000) { // Less than 2 minutes
       color = 'text-orange-500';
-    } else if (remainingMs < 24 * 60 * 60 * 1000) { // Less than 24 hours
+    } else if (remainingMs < 5 * 60 * 1000) { // Less than 5 minutes
       color = 'text-yellow-600';
     }
     
-    if (remainingHours > 0) {
-      return { 
-        expired: false, 
-        display: `${remainingHours}h ${remainingMinutes}m ${remainingSeconds}s`, 
-        color 
-      };
-    } else if (remainingMinutes > 0) {
+    if (remainingMinutes > 0) {
       return { 
         expired: false, 
         display: `${remainingMinutes}m ${remainingSeconds}s`, 
@@ -292,7 +393,6 @@ export default function Home() {
   };
 
   const handleOnboardingComplete = (userChoices: Record<string, string>) => {
-    setUserProfile(userChoices);
     setOnboardingComplete(true);
     
     // Set default check-in interval based on user's risk level
@@ -302,14 +402,15 @@ export default function Home() {
       setCheckInInterval('6');
     } else if (userChoices.risk === 'Moderate risk') {
       setCheckInInterval('12');
+    } else if (userChoices.risk === 'Low risk') {
+      setCheckInInterval('60'); // 1 hour for low risk
     } else {
-      setCheckInInterval('24');
+      setCheckInInterval('1'); // Default to 1 minute for testing
     }
   };
 
   const handleSignIn = (method: string) => {
     console.log('Sign in method:', method);
-    console.log('User profile:', userProfile);
     
     if (method === 'Web3 Wallet') {
       // Connect to the first available connector (usually MetaMask)
@@ -324,6 +425,15 @@ export default function Home() {
       setSignedIn(true);
     }
   };
+
+  // Clear wallet connection on page refresh/load
+  useEffect(() => {
+    if (isConnected) {
+      console.log('🔌 Disconnecting wallet on page refresh...');
+      disconnect();
+      setSignedIn(false);
+    }
+  }, []); // Run only once on mount
 
   // Auto sign-in if wallet is already connected
   useEffect(() => {
@@ -352,19 +462,9 @@ export default function Home() {
           {/* Canary wordmark */}
           <h1 className="editorial-header text-xl md:text-2xl tracking-[0.2em] mb-8 md:mb-12">CANARY</h1>
 
-          {/* Setup summary (if user went through onboarding) */}
-          {Object.keys(userProfile).length > 0 && (
-            <div className="editorial-card mb-6 md:mb-8">
-              <h3 className="editorial-subheader mb-3 md:mb-4">Your Canary Setup:</h3>
-              <p className="editorial-body text-sm md:text-base text-gray-600 leading-relaxed">
-                {Object.entries(userProfile).map(([key, value]) => value).join(' • ')}
-              </p>
-            </div>
-          )}
-
           {/* Sign in */}
           <h2 className="editorial-header text-3xl md:text-4xl lg:text-5xl mb-6 md:mb-8 leading-tight">
-            {Object.keys(userProfile).length > 0 ? 'Complete Your Canary Setup' : 'Welcome to Canary'}
+            Welcome to Canary
           </h2>
 
           <div className="space-y-3 md:space-y-4 max-w-md mx-auto">
@@ -409,13 +509,13 @@ export default function Home() {
   }
 
   const intervalOptions = [
-    { value: '1', label: '1 Hour' },
-    { value: '6', label: '6 Hours' },
-    { value: '12', label: '12 Hours' },
-    { value: '24', label: '24 Hours' },
-    { value: '48', label: '48 Hours' },
-    { value: '72', label: '72 Hours' },
-    { value: '168', label: '1 Week' }
+    { value: '1', label: '1 Minute (Testing)' },
+    { value: '5', label: '5 Minutes' },
+    { value: '15', label: '15 Minutes' },
+    { value: '60', label: '1 Hour' },
+    { value: '360', label: '6 Hours' },
+    { value: '720', label: '12 Hours' },
+    { value: '1440', label: '24 Hours' }
   ];
 
   return (
@@ -517,7 +617,7 @@ export default function Home() {
           <div className="flex justify-center mb-12">
             <div className="editorial-card text-center max-w-md">
               <div className="editorial-body mb-2">Release files if no check-in for</div>
-              <div className="editorial-header text-3xl mb-4">{checkInInterval} HOURS</div>
+              <div className="editorial-header text-3xl mb-4">{checkInInterval} {checkInInterval === '1' ? 'MINUTE' : 'MINUTES'}</div>
               <div className="border-t border-gray-200 pt-4">
                 <div className="editorial-body text-sm mb-1">Time remaining:</div>
                 <div className={`text-2xl font-bold ${getRemainingTime().color}`}>
@@ -626,7 +726,7 @@ export default function Home() {
                     ) : (
                       <>
                         <Upload className="inline mr-2" size={20} />
-                                                  Commit to Local Codex
+                                                  Upload
                       </>
                     )}
                   </button>
@@ -664,6 +764,68 @@ export default function Home() {
 
           {/* Right Column */}
           <div className="space-y-8">
+            {/* Uploads Table */}
+            {uploads.length > 0 && (
+              <div>
+                <h3 className="editorial-subheader mb-4">Your Dossiers</h3>
+                <div className="editorial-card">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 pr-4 editorial-body font-semibold">File</th>
+                          <th className="text-left py-3 pr-4 editorial-body font-semibold">Status</th>
+                          <th className="text-left py-3 pr-4 editorial-body font-semibold">Storage</th>
+                          <th className="text-left py-3 pr-4 editorial-body font-semibold">Encryption</th>
+                          <th className="text-left py-3 editorial-body font-semibold">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {uploads.map((upload) => (
+                          <tr key={upload.id} className="border-b border-gray-100 last:border-b-0">
+                            <td className="py-3 pr-4 editorial-body font-medium truncate max-w-32" title={upload.filename}>
+                              {upload.filename}
+                            </td>
+                            <td className="py-3 pr-4">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                upload.status === 'committed' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {upload.status === 'committed' ? '✓ Committed' : '⏳ Encrypted'}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4">
+                              <span className={`text-xs font-medium ${
+                                upload.storageType === 'codex' ? 'text-blue-600' :
+                                upload.storageType === 'pinata' ? 'text-purple-600' :
+                                upload.storageType === 'ipfs' ? 'text-orange-600' :
+                                'text-gray-600'
+                              }`}>
+                                {upload.storageType.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4">
+                              <span className={`text-xs font-medium ${
+                                upload.encryptionType === 'real' ? 'text-green-600' : 'text-yellow-600'
+                              }`}>
+                                {upload.encryptionType === 'real' ? '🔒 TACo' : '⚠️ Mock'}
+                              </span>
+                            </td>
+                            <td className="py-3 text-xs text-gray-500">
+                              {upload.createdAt.toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Encrypted Capsule Details - shown after encryption, before commit */}
             {encryptedCapsule && !traceJson && (
               <div>
@@ -673,6 +835,20 @@ export default function Home() {
                     <div className="flex justify-between items-center">
                       <span className="editorial-body font-semibold">Status</span>
                       <span className="text-orange-600 font-semibold">Ready to Commit</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="editorial-body font-semibold">Encryption</span>
+                      <span className={`font-semibold ${
+                        encryptedCapsule.capsuleUri.includes('real-capsule') 
+                          ? 'text-green-600' 
+                          : 'text-yellow-600'
+                      }`}>
+                        {encryptedCapsule.capsuleUri.includes('real-capsule') 
+                          ? '🔒 Real TACo' 
+                          : '⚠️ Mock Demo'
+                        }
+                      </span>
                     </div>
                     
                     <div className="border-t border-gray-200 pt-4 space-y-3">
@@ -704,7 +880,7 @@ export default function Home() {
                         <div className="flex items-center">
                           <AlertCircle size={16} className="text-yellow-600 mr-2" />
                           <span className="editorial-body text-sm text-yellow-800">
-                            Click "Commit to Local Codex" to upload your encrypted capsule to your local Codex node
+                            Click "Upload" to upload your encrypted capsule to your local Codex node
                           </span>
                         </div>
                       </div>
@@ -717,14 +893,24 @@ export default function Home() {
                               Your encrypted file is ready to download from memory
                             </span>
                           </div>
-                          <button
-                            onClick={downloadEncryptedFile}
-                            className="editorial-button bg-purple-600 text-white hover:bg-purple-700 text-sm px-3 py-1"
-                            title="Download encrypted file from browser memory"
-                          >
-                            <Download size={14} className="inline mr-1" />
-                            Download
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={downloadEncryptedFile}
+                              className="editorial-button bg-purple-600 text-white hover:bg-purple-700 text-sm px-3 py-1"
+                              title="Download encrypted file from browser memory"
+                            >
+                              <Download size={14} className="inline mr-1" />
+                              Download
+                            </button>
+                            <button
+                              onClick={testDecryption}
+                              className="editorial-button bg-green-600 text-white hover:bg-green-700 text-sm px-3 py-1"
+                              title="Test TACo decryption and download original file"
+                            >
+                              <Shield size={14} className="inline mr-1" />
+                              Test Decrypt
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -768,6 +954,16 @@ export default function Home() {
                         <Download size={16} className="inline mr-1" />
                         File
                       </button>
+                      {encryptedCapsule && traceJson?.taco_capsule_uri.includes('real-capsule') && (
+                        <button
+                          onClick={testDecryption}
+                          className="editorial-button bg-emerald-600 text-white hover:bg-emerald-700 text-sm px-4 py-2"
+                          title="Test TACo decryption to verify encryption worked"
+                        >
+                          <Shield size={16} className="inline mr-1" />
+                          Test Decrypt
+                        </button>
+                      )}
                     </div>
                   </div>
                   <pre className="bg-gray-100 p-4 rounded font-mono text-sm overflow-x-auto">
@@ -778,11 +974,21 @@ export default function Home() {
                   <div className="mt-4 space-y-3">
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                       <div className="flex items-center">
-                        <Shield size={16} className="text-blue-600 mr-2" />
-                        <span className="editorial-body text-sm text-blue-800">
-                          {traceJson.taco_capsule_uri.includes('mock') ? 
-                            'Demo Mode - Using mock encryption for testing' : 
-                            'TACo Network - Real threshold cryptographic protection'
+                        <Shield size={16} className={`mr-2 ${
+                          traceJson.taco_capsule_uri.includes('real-capsule') 
+                            ? 'text-green-600' 
+                            : 'text-blue-600'
+                        }`} />
+                        <span className={`editorial-body text-sm ${
+                          traceJson.taco_capsule_uri.includes('real-capsule') 
+                            ? 'text-green-800' 
+                            : 'text-blue-800'
+                        }`}>
+                          {traceJson.taco_capsule_uri.includes('real-capsule') ? 
+                            '🔒 Real TACo Encryption - Test condition with actual threshold cryptography on DEVNET!' : 
+                            traceJson.taco_capsule_uri.includes('mock') ? 
+                              '⚠️ Demo Mode - Using mock encryption for testing' : 
+                              'TACo Network - Real threshold cryptographic protection'
                           }
                         </span>
                       </div>
