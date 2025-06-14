@@ -4,8 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Upload, Clock, Shield, Download, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { encryptFileWithCondition, DeadmanCondition, TraceJson } from './lib/taco';
+import Onboarding from './components/Onboarding';
 
 export default function Home() {
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [userProfile, setUserProfile] = useState<Record<string, string>>({});
   const [isActive, setIsActive] = useState(true);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [checkInInterval, setCheckInInterval] = useState('24'); // hours
@@ -185,6 +188,27 @@ export default function Home() {
       };
     }
   };
+
+  const handleOnboardingComplete = (userChoices: Record<string, string>) => {
+    setUserProfile(userChoices);
+    setOnboardingComplete(true);
+    
+    // Set default check-in interval based on user's risk level
+    if (userChoices.risk === 'Immediate danger') {
+      setCheckInInterval('1');
+    } else if (userChoices.risk === 'High risk') {
+      setCheckInInterval('6');
+    } else if (userChoices.risk === 'Moderate risk') {
+      setCheckInInterval('12');
+    } else {
+      setCheckInInterval('24');
+    }
+  };
+
+  // Show onboarding if not completed
+  if (!onboardingComplete) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
 
   const intervalOptions = [
     { value: '1', label: '1 Hour' },
