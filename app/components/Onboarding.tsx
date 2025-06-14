@@ -4,10 +4,18 @@ import { useState, useEffect } from 'react';
 
 const STORY_SEQUENCES = [
   "You're here because...",
-  "You're entering a risky situation as a journalist.",
+  "You're entering a risky situation as a",
   "You're an activist facing potential capture.",
   "You want to secure critical information.",
   "You need truth to survive, even when you can't."
+];
+
+const AUDIENCE_TYPES = [
+  "journalist",
+  "activist", 
+  "whistleblower",
+  "legal professional",
+  "investigator"
 ];
 
 const CONVERSATION_FLOW = [
@@ -54,15 +62,32 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [conversationStep, setConversationStep] = useState(0);
   const [userChoices, setUserChoices] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<Array<{type: string, text: string}>>([]);
+  const [currentAudienceIndex, setCurrentAudienceIndex] = useState(0);
+  const [audienceWordVisible, setAudienceWordVisible] = useState(true);
 
   // Story sequence effect with auto-advance fallback
   useEffect(() => {
     if (currentPhase === 'story') {
       const timer = setTimeout(() => {
         handleNextStorySlide();
-      }, storyIndex === 0 ? 5000 : 6000); // Longer timeout to allow for clicking
+      }, storyIndex === 0 ? 5000 : (storyIndex === 1 ? 8000 : 6000)); // Longer timeout for animated slide
 
       return () => clearTimeout(timer);
+    }
+  }, [currentPhase, storyIndex]);
+
+  // Audience type animation effect for slide 1 (index 1)
+  useEffect(() => {
+    if (currentPhase === 'story' && storyIndex === 1) {
+      const audienceTimer = setInterval(() => {
+        setAudienceWordVisible(false);
+        setTimeout(() => {
+          setCurrentAudienceIndex((prev) => (prev + 1) % AUDIENCE_TYPES.length);
+          setAudienceWordVisible(true);
+        }, 300);
+      }, 1500);
+
+      return () => clearInterval(audienceTimer);
     }
   }, [currentPhase, storyIndex]);
 
@@ -161,7 +186,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
             >
-              {STORY_SEQUENCES[storyIndex]}
+              {storyIndex === 1 ? (
+                <>
+                  {STORY_SEQUENCES[storyIndex]}{' '}
+                  <span 
+                    className={`transition-all duration-300 ${
+                      audienceWordVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                    }`}
+                  >
+                    {AUDIENCE_TYPES[currentAudienceIndex]}.
+                  </span>
+                </>
+              ) : (
+                STORY_SEQUENCES[storyIndex]
+              )}
             </h2>
             <div className="mt-6 md:mt-8 w-24 md:w-32 h-0.5 bg-gradient-to-r from-transparent via-slate-400 to-transparent mx-auto"></div>
             
