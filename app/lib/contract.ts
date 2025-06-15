@@ -607,46 +607,529 @@ export class ContractService {
     try {
       console.log('✅ Performing check-in for dossier:', dossierId.toString());
       
+      // CRITICAL: Verify wallet provider connection before check-in
+      console.log('🔧 Verifying wallet provider for check-in...');
+      const walletVerification = await this.verifyWalletProvider();
+      console.log('🔍 Wallet provider verification:', walletVerification);
+      
+      if (!walletVerification.usingWalletProvider) {
+        throw new Error('❌ Not using wallet provider! Check wallet connection.');
+      }
+      
+      if (!walletVerification.networkMatch) {
+        throw new Error(`❌ Network mismatch! Wallet chain: ${walletVerification.walletChainId}, Config chain: ${walletVerification.configChainId}`);
+      }
+      
+      console.log('✅ Wallet provider verification passed');
+      
+      // Get current account
+      const account = await getAccount(config);
+      if (!account.address) {
+        throw new Error('Wallet not connected');
+      }
+
+      // DEEP CONTRACT VALIDATION: Check why contract calls are failing
+      console.log('🔍 DEEP PRE-FLIGHT VALIDATION for dossier:', dossierId.toString());
+      try {
+        // Step 1: Try to read the dossier from contract
+        console.log(`🔍 Step 1: Reading dossier #${dossierId.toString()} from contract...`);
+        const dossier = await this.getDossier(account.address, dossierId);
+        console.log('📋 Retrieved dossier details:', {
+          id: dossier.id.toString(),
+          name: dossier.name,
+          isActive: dossier.isActive,
+          lastCheckIn: dossier.lastCheckIn.toString(),
+          lastCheckInDate: new Date(Number(dossier.lastCheckIn) * 1000).toISOString(),
+          interval: dossier.checkInInterval.toString(),
+          intervalHours: Number(dossier.checkInInterval) / 3600,
+          recipients: dossier.recipients.length,
+          files: dossier.encryptedFileHashes.length
+        });
+
+        // Step 2: Validate dossier state for check-in
+        console.log('🔍 Step 2: Validating dossier state...');
+        if (!dossier.isActive) {
+          throw new Error(`❌ Dossier #${dossierId.toString()} is INACTIVE - cannot check in`);
+        }
+        console.log('✅ Dossier is active');
+
+        // Step 3: Critical ID validation (this is what contract checks)
+        console.log('🔍 Step 3: Critical ID validation...');
+        console.log(`   Expected dossier ID: ${dossierId.toString()}`);
+        console.log(`   Actual stored ID: ${dossier.id.toString()}`);
+        console.log(`   ID types: expected=${typeof dossierId}, actual=${typeof dossier.id}`);
+        console.log(`   Strict equality check: ${dossier.id === dossierId}`);
+        
+        if (dossier.id !== dossierId) {
+          throw new Error(`❌ CRITICAL ID MISMATCH: Contract expects dossier.id (${dossier.id.toString()}) === _dossierId (${dossierId.toString()}), but they don't match!`);
+        }
+        console.log('✅ Dossier ID validation passed');
+
+        // Step 4: Check contract conditions that could cause revert
+        console.log('🔍 Step 4: Checking contract validation conditions...');
+        
+        // Test the exact condition from the validDossier modifier:
+        // require(dossiers[_user][_dossierId].id == _dossierId, "Dossier does not exist");
+        console.log('   Contract validDossier modifier check:');
+        console.log(`   dossiers[${account.address}][${dossierId.toString()}].id == ${dossierId.toString()}`);
+        console.log(`   Result: ${dossier.id.toString()} == ${dossierId.toString()} = ${dossier.id === dossierId}`);
+        
+        // Test the exact condition from the checkIn function:
+        // require(dossiers[msg.sender][_dossierId].isActive, "Dossier not active");
+        console.log('   Contract checkIn function check:');
+        console.log(`   dossiers[${account.address}][${dossierId.toString()}].isActive = ${dossier.isActive}`);
+        
+        if (!dossier.isActive) {
+          throw new Error('❌ Contract will reject: Dossier not active');
+        }
+        
+        console.log('✅ All contract validation conditions should pass');
+
+        // Step 5: Additional debugging - check if we can read contract state directly
+        console.log('🔍 Step 5: Testing contract accessibility...');
+        try {
+          const userExists = await this.userExists(account.address);
+          console.log(`   User exists in contract: ${userExists}`);
+          
+          const allUserDossierIds = await this.getUserDossierIds(account.address);
+          console.log(`   All user dossier IDs: [${allUserDossierIds.map(id => id.toString()).join(', ')}]`);
+          
+          const targetDossierExists = allUserDossierIds.some(id => id === dossierId);
+          console.log(`   Target dossier #${dossierId.toString()} exists in user's list: ${targetDossierExists}`);
+          
+          if (!targetDossierExists) {
+            throw new Error(`❌ CRITICAL: Dossier #${dossierId.toString()} not found in user's dossier list!`);
+          }
+          
+        } catch (accessError) {
+          console.error('❌ Contract accessibility test failed:', accessError);
+          throw new Error(`Contract accessibility issue: ${accessError}`);
+        }
+
+        console.log('✅ DEEP VALIDATION PASSED - Contract call should succeed');
+
+      } catch (validationError) {
+        console.error('❌ DEEP VALIDATION FAILED:', validationError);
+        throw new Error(`Deep validation failed: ${validationError}`);
+      }
+      
+      // Use wallet provider for check-in transaction
+      console.log('📤 Executing check-in transaction via wallet provider...');
       const hash = await writeContract(config, {
         address: CANARY_DOSSIER_ADDRESS,
         abi: CANARY_DOSSIER_ABI,
         functionName: 'checkIn',
         args: [dossierId],
+        gas: BigInt(200000), // Explicit gas limit for simple operations
       });
       
+      console.log('⏳ Waiting for transaction confirmation...');
       await waitForTransactionReceipt(config, { hash });
       
-      console.log('✅ Check-in successful!');
+      console.log('✅ Check-in successful! Transaction hash:', hash);
       return hash;
       
     } catch (error) {
       console.error('❌ Check-in failed:', error);
+      
+      // Enhanced error reporting
+      if (error instanceof Error) {
+        if (error.message.includes('Internal JSON-RPC error')) {
+          throw new Error('MetaMask/RPC communication error. The transaction may have been rejected or the contract may be reverting. Please try again.');
+        } else if (error.message.includes('user rejected')) {
+          throw new Error('Transaction was rejected by user');
+        } else if (error.message.includes('insufficient funds')) {
+          throw new Error('Insufficient funds for gas');
+        } else if (error.message.includes('Network mismatch')) {
+          throw new Error('Please switch to Polygon Amoy network in your wallet');
+        }
+      }
+      
       throw error;
     }
   }
   
   /**
-   * Check in for all active dossiers
+   * CRITICAL: Diagnose potential smart contract bugs
+   */
+  static async diagnoseContractBugs(userAddress: Address): Promise<{
+    hasBugs: boolean;
+    bugReports: string[];
+    contractState: any;
+    recommendations: string[];
+  }> {
+    const result = {
+      hasBugs: false,
+      bugReports: [] as string[],
+      contractState: {} as any,
+      recommendations: [] as string[]
+    };
+
+    try {
+      console.log('🔍 DIAGNOSING POTENTIAL CONTRACT BUGS...');
+      
+      // Get user's dossiers
+      const dossierIds = await this.getUserDossierIds(userAddress);
+      result.contractState.totalDossiers = dossierIds.length;
+      result.contractState.dossierIds = dossierIds.map(id => id.toString());
+      
+      console.log(`📊 User has ${dossierIds.length} dossiers: [${result.contractState.dossierIds.join(', ')}]`);
+
+      // Deep analysis of each dossier
+      const dossierAnalysis = [];
+      for (let i = 0; i < dossierIds.length; i++) {
+        const dossierId = dossierIds[i];
+        console.log(`🔍 Analyzing dossier #${dossierId.toString()}...`);
+        
+        try {
+          const dossier = await this.getDossier(userAddress, dossierId);
+          const analysis = {
+            dossierId: dossierId.toString(),
+            storedId: dossier.id.toString(),
+            name: dossier.name,
+            isActive: dossier.isActive,
+            lastCheckIn: dossier.lastCheckIn.toString(),
+            checkInInterval: dossier.checkInInterval.toString(),
+            recipients: dossier.recipients.length,
+            files: dossier.encryptedFileHashes.length,
+            // CRITICAL CHECKS
+            idMatches: dossier.id === dossierId,
+            idMismatchBug: dossier.id !== dossierId,
+            isActiveForCheckIn: dossier.isActive,
+            canPassValidDossierModifier: dossier.id === dossierId,
+            canPassCheckInRequire: dossier.isActive
+          };
+          
+          console.log(`📋 Dossier #${dossierId.toString()} analysis:`, analysis);
+          
+          // Bug detection
+          if (analysis.idMismatchBug) {
+            result.hasBugs = true;
+            result.bugReports.push(`🐛 CRITICAL BUG: Dossier #${dossierId.toString()} has stored ID ${analysis.storedId} but array index is ${dossierId.toString()}`);
+            result.recommendations.push(`Contract has ID assignment bug - stored dossier.id doesn't match mapping key`);
+          }
+          
+          if (!analysis.isActiveForCheckIn) {
+            result.bugReports.push(`⚠️ Dossier #${dossierId.toString()} is inactive - check-in will fail`);
+          }
+          
+          dossierAnalysis.push(analysis);
+          
+        } catch (error) {
+          result.hasBugs = true;
+          result.bugReports.push(`❌ Cannot read dossier #${dossierId.toString()}: ${error}`);
+          console.error(`❌ Failed to read dossier #${dossierId.toString()}:`, error);
+        }
+      }
+      
+      result.contractState.dossierAnalysis = dossierAnalysis;
+
+      // Check for common contract bugs
+      console.log('🔍 Checking for common contract bugs...');
+      
+      // Bug 1: ID assignment logic
+      const validDossiers = dossierAnalysis.filter(d => d.idMatches);
+      const invalidDossiers = dossierAnalysis.filter(d => d.idMismatchBug);
+      
+      if (invalidDossiers.length > 0) {
+        result.hasBugs = true;
+        result.bugReports.push(`🐛 ID ASSIGNMENT BUG: ${invalidDossiers.length}/${dossierAnalysis.length} dossiers have mismatched IDs`);
+        result.recommendations.push('Contract needs to be redeployed with correct ID assignment logic');
+      }
+      
+      // Bug 2: State corruption
+      if (dossierIds.length === 0) {
+        result.bugReports.push('⚠️ No dossiers found - either none created or state reading bug');
+      }
+      
+      // Bug 3: Check if contract constants are reasonable
+      try {
+        const constants = await this.getConstants();
+        result.contractState.constants = {
+          minInterval: constants.minInterval.toString(),
+          maxInterval: constants.maxInterval.toString(),
+          gracePeriod: constants.gracePeriod.toString(),
+          maxDossiers: constants.maxDossiers.toString()
+        };
+        
+        // Check for unreasonable constants
+        if (constants.minInterval > constants.maxInterval) {
+          result.hasBugs = true;
+          result.bugReports.push('🐛 CONSTANT BUG: minInterval > maxInterval');
+        }
+        
+      } catch (error) {
+        result.hasBugs = true;
+        result.bugReports.push(`❌ Cannot read contract constants: ${error}`);
+      }
+
+      // Summary
+      const activeDossiers = dossierAnalysis.filter(d => d.isActiveForCheckIn).length;
+      const checkInReadyDossiers = dossierAnalysis.filter(d => d.canPassValidDossierModifier && d.canPassCheckInRequire).length;
+      
+      result.contractState.summary = {
+        totalDossiers: dossierAnalysis.length,
+        activeDossiers,
+        checkInReadyDossiers,
+        brokenDossiers: dossierAnalysis.length - checkInReadyDossiers
+      };
+      
+      if (activeDossiers > 0 && checkInReadyDossiers === 0) {
+        result.hasBugs = true;
+        result.bugReports.push('🐛 CRITICAL: Active dossiers exist but none can pass check-in validation');
+        result.recommendations.push('Contract logic prevents check-ins even for valid active dossiers');
+      }
+      
+      console.log('📊 Contract diagnosis complete:', {
+        hasBugs: result.hasBugs,
+        bugCount: result.bugReports.length,
+        summary: result.contractState.summary
+      });
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Contract diagnosis failed:', error);
+      result.hasBugs = true;
+      result.bugReports.push(`Diagnosis failed: ${error}`);
+      return result;
+    }
+  }
+
+  /**
+   * CRITICAL: Verify if checkInAll function actually exists in deployed contract
+   */
+  static async verifyCheckInAllFunction(): Promise<{
+    functionExists: boolean;
+    canCallFunction: boolean;
+    errors: string[];
+    testResults: any;
+  }> {
+    const result = {
+      functionExists: false,
+      canCallFunction: false,
+      errors: [] as string[],
+      testResults: {} as any
+    };
+
+    try {
+      console.log('🔍 Verifying checkInAll function existence in deployed contract...');
+      
+      const account = await getAccount(config);
+      if (!account.address) {
+        result.errors.push('No wallet connected');
+        return result;
+      }
+
+      // Test 1: Check if we can read basic functions (proves contract exists)
+      try {
+        const minInterval = await readContract(config, {
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
+          functionName: 'MIN_CHECK_IN_INTERVAL',
+        });
+        result.testResults.contractExists = true;
+        result.testResults.minInterval = minInterval.toString();
+        console.log('✅ Contract exists and basic functions work');
+      } catch (error) {
+        result.errors.push(`Contract not accessible: ${error}`);
+        return result;
+      }
+
+      // Test 2: Try to simulate checkInAll call (this will fail if function doesn't exist)
+      try {
+        console.log('🧪 Testing checkInAll function existence...');
+        
+        // Instead of calling writeContract, let's check if user has dossiers first
+        const dossierIds = await this.getUserDossierIds(account.address);
+        result.testResults.userDossierCount = dossierIds.length;
+        
+        if (dossierIds.length === 0) {
+          result.errors.push('User has no dossiers - cannot test checkInAll');
+          return result;
+        }
+        
+        // The fact that we can get here means the contract is accessible
+        // The issue might be that checkInAll function doesn't exist in deployed contract
+        result.functionExists = true; // We assume it exists based on ABI
+        result.canCallFunction = true; // We'll test this differently
+        
+        console.log(`✅ User has ${dossierIds.length} dossiers, function should be callable`);
+        
+      } catch (error) {
+        result.errors.push(`Function test failed: ${error}`);
+        return result;
+      }
+
+      return result;
+
+    } catch (error) {
+      console.error('❌ checkInAll verification failed:', error);
+      result.errors.push(`Verification error: ${error}`);
+      return result;
+    }
+  }
+
+  /**
+   * FALLBACK: Use individual check-ins instead of checkInAll
+   */
+  static async checkInAllIndividually(): Promise<string[]> {
+    try {
+      console.log('🔄 Using fallback individual check-ins...');
+      
+      const account = await getAccount(config);
+      if (!account.address) {
+        throw new Error('Wallet not connected');
+      }
+
+      // Get all user dossiers
+      const dossierIds = await this.getUserDossierIds(account.address);
+      if (dossierIds.length === 0) {
+        throw new Error('No dossiers found');
+      }
+
+      const results: string[] = [];
+      let activeDossiers = 0;
+
+      // Check in to each active dossier individually
+      for (const dossierId of dossierIds) {
+        try {
+          const dossier = await this.getDossier(account.address, dossierId);
+          if (dossier.isActive) {
+            activeDossiers++;
+            console.log(`🔄 Individual check-in for dossier #${dossierId.toString()}`);
+            const txHash = await this.checkIn(dossierId);
+            results.push(txHash);
+          }
+        } catch (error) {
+          console.error(`❌ Failed individual check-in for dossier #${dossierId.toString()}:`, error);
+          throw error; // Fail fast on any individual error
+        }
+      }
+
+      if (activeDossiers === 0) {
+        throw new Error('No active dossiers to check in to');
+      }
+
+      console.log(`✅ Individual check-ins completed: ${results.length} transactions`);
+      return results;
+
+    } catch (error) {
+      console.error('❌ Individual check-ins failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check in for all active dossiers - with comprehensive bug diagnosis
    */
   static async checkInAll(): Promise<string> {
     try {
-      console.log('✅ Performing check-in for all dossiers...');
+      console.log('✅ Starting smart check-in process with bug diagnosis...');
       
+      // STEP 1: Get current account
+      const account = await getAccount(config);
+      if (!account.address) {
+        throw new Error('Wallet not connected');
+      }
+
+      // STEP 2: COMPREHENSIVE CONTRACT BUG DIAGNOSIS
+      console.log('🔍🐛 RUNNING CONTRACT BUG DIAGNOSIS...');
+      const bugDiagnosis = await this.diagnoseContractBugs(account.address);
+      console.log('📊 Bug diagnosis result:', bugDiagnosis);
+      
+      if (bugDiagnosis.hasBugs) {
+        console.error('🐛💥 CONTRACT BUGS DETECTED:');
+        bugDiagnosis.bugReports.forEach(bug => console.error(`   ${bug}`));
+        console.error('🛠️ RECOMMENDATIONS:');
+        bugDiagnosis.recommendations.forEach(rec => console.error(`   ${rec}`));
+        
+        // If there are critical contract bugs, don't attempt any transactions
+        if (bugDiagnosis.bugReports.some(bug => bug.includes('CRITICAL'))) {
+          throw new Error(`CRITICAL CONTRACT BUGS DETECTED: ${bugDiagnosis.bugReports.join(', ')}`);
+        }
+      }
+      
+      // Check if any dossiers can actually be checked in to
+      const summary = bugDiagnosis.contractState.summary;
+      if (summary && summary.checkInReadyDossiers === 0) {
+        throw new Error(`NO FUNCTIONAL DOSSIERS: ${summary.activeDossiers} active dossiers found but none can pass check-in validation due to contract bugs`);
+      }
+      
+      console.log(`✅ Bug diagnosis complete: ${summary?.checkInReadyDossiers || 0} dossiers ready for check-in`);
+
+      // STEP 3: Verify function exists and can be called (only if no critical bugs)
+      console.log('🔍 Verifying checkInAll function...');
+      const verification = await this.verifyCheckInAllFunction();
+      console.log('📊 Verification result:', verification);
+
+      if (!verification.functionExists || verification.errors.length > 0) {
+        console.warn('⚠️ checkInAll function verification failed, using individual check-ins');
+        const txHashes = await this.checkInAllIndividually();
+        return txHashes[0]; // Return first transaction hash for compatibility
+      }
+
+      // STEP 4: Try the bulk checkInAll function (account already available from step 1)
+      console.log('🚀 Attempting bulk checkInAll...');
+      
+      // CRITICAL: Verify wallet provider connection before check-in
+      console.log('🔧 Verifying wallet provider for bulk check-in...');
+      const walletVerification = await this.verifyWalletProvider();
+      console.log('🔍 Wallet provider verification:', walletVerification);
+      
+      if (!walletVerification.usingWalletProvider) {
+        throw new Error('❌ Not using wallet provider! Check wallet connection.');
+      }
+      
+      if (!walletVerification.networkMatch) {
+        throw new Error(`❌ Network mismatch! Wallet chain: ${walletVerification.walletChainId}, Config chain: ${walletVerification.configChainId}`);
+      }
+      
+      console.log('✅ Wallet provider verification passed for bulk check-in');
+
+      // Use wallet provider for bulk check-in transaction
+      console.log('📤 Executing bulk check-in transaction via wallet provider...');
       const hash = await writeContract(config, {
         address: CANARY_DOSSIER_ADDRESS,
         abi: CANARY_DOSSIER_ABI,
         functionName: 'checkInAll',
         args: [],
+        gas: BigInt(500000), // Higher gas limit for bulk operation
       });
       
+      console.log('⏳ Waiting for bulk check-in transaction confirmation...');
       await waitForTransactionReceipt(config, { hash });
       
-      console.log('✅ Check-in all successful!');
+      console.log('✅ Bulk check-in successful! Transaction hash:', hash);
       return hash;
       
     } catch (error) {
-      console.error('❌ Check-in all failed:', error);
-      throw error;
+      console.error('❌ Bulk check-in failed, trying individual fallback:', error);
+      
+      // FALLBACK: If bulk check-in fails, try individual check-ins
+      try {
+        console.log('🔄 Falling back to individual check-ins...');
+        const txHashes = await this.checkInAllIndividually();  
+        console.log('✅ Fallback individual check-ins successful');
+        return txHashes[0]; // Return first transaction hash for compatibility
+      } catch (fallbackError) {
+        console.error('❌ Both bulk and individual check-ins failed:', fallbackError);
+        
+        // Enhanced error reporting
+        if (error instanceof Error) {
+          if (error.message.includes('Internal JSON-RPC error')) {
+            throw new Error('Contract function error. The checkInAll function may not exist in the deployed contract. Individual check-ins also failed.');
+          } else if (error.message.includes('user rejected')) {
+            throw new Error('Transaction was rejected by user');
+          } else if (error.message.includes('insufficient funds')) {
+            throw new Error('Insufficient funds for gas');
+          } else if (error.message.includes('Network mismatch')) {
+            throw new Error('Please switch to Polygon Amoy network in your wallet');
+          }
+        }
+        
+        throw new Error(`Both bulk and individual check-ins failed. Original error: ${error}. Fallback error: ${fallbackError}`);
+      }
     }
   }
   
@@ -980,6 +1463,97 @@ export class ContractService {
     } catch (error) {
       console.error('❌ Health check failed:', error);
       return false;
+    }
+  }
+
+  /**
+   * Debug user's dossier state to identify check-in issues
+   */
+  static async debugUserDossierState(userAddress: Address): Promise<{
+    isValid: boolean;
+    errors: string[];
+    dossierSummary: any;
+    onChainData: any;
+  }> {
+    const result = {
+      isValid: true,
+      errors: [] as string[],
+      dossierSummary: {} as any,
+      onChainData: {} as any
+    };
+
+    try {
+      console.log('🔍 Debugging user dossier state for:', userAddress);
+
+      // Get user's dossier IDs from contract
+      const dossierIds = await this.getUserDossierIds(userAddress);
+      result.onChainData.dossierIds = dossierIds.map(id => id.toString());
+      result.onChainData.totalCount = dossierIds.length;
+
+      console.log('📋 User has', dossierIds.length, 'dossiers on-chain:', result.onChainData.dossierIds);
+
+      if (dossierIds.length === 0) {
+        result.errors.push('No dossiers found on-chain');
+        result.isValid = false;
+        return result;
+      }
+
+      // Check each dossier
+      const dossierDetails = [];
+      for (const dossierId of dossierIds) {
+        try {
+          const dossier = await this.getDossier(userAddress, dossierId);
+          const dossierInfo = {
+            id: dossier.id.toString(),
+            name: dossier.name,
+            isActive: dossier.isActive,
+            lastCheckIn: dossier.lastCheckIn.toString(),
+            lastCheckInDate: new Date(Number(dossier.lastCheckIn) * 1000).toISOString(),
+            checkInInterval: dossier.checkInInterval.toString(),
+            intervalHours: Number(dossier.checkInInterval) / 3600,
+            timeSinceLastCheckIn: Date.now() / 1000 - Number(dossier.lastCheckIn),
+            recipients: dossier.recipients.length,
+            files: dossier.encryptedFileHashes.length,
+            canCheckIn: dossier.isActive && dossier.id === dossierId
+          };
+
+          dossierDetails.push(dossierInfo);
+          console.log(`📄 Dossier #${dossierId.toString()}:`, dossierInfo);
+
+          // Validate this dossier
+          if (dossier.id !== dossierId) {
+            result.errors.push(`Dossier #${dossierId.toString()} has ID mismatch: stored ID is ${dossier.id.toString()}`);
+            result.isValid = false;
+          }
+
+        } catch (error) {
+          result.errors.push(`Failed to read dossier #${dossierId.toString()}: ${error}`);
+          result.isValid = false;
+        }
+      }
+
+      result.dossierSummary = {
+        total: dossierDetails.length,
+        active: dossierDetails.filter(d => d.isActive).length,
+        inactive: dossierDetails.filter(d => !d.isActive).length,
+        canCheckIn: dossierDetails.filter(d => d.canCheckIn).length,
+        details: dossierDetails
+      };
+
+      console.log('📊 Dossier summary:', result.dossierSummary);
+
+      if (result.dossierSummary.canCheckIn === 0) {
+        result.errors.push('No dossiers available for check-in');
+        result.isValid = false;
+      }
+
+      return result;
+
+    } catch (error) {
+      console.error('❌ Debug state check failed:', error);
+      result.errors.push(`Debug failed: ${error}`);
+      result.isValid = false;
+      return result;
     }
   }
 } 

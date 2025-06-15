@@ -58,6 +58,7 @@ export default function Home() {
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>(['']);
   const [releaseMode, setReleaseMode] = useState<'public' | 'contacts'>('public');
   const [currentView, setCurrentView] = useState<'documents' | 'guide'>('documents');
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -520,16 +521,36 @@ export default function Home() {
   };
 
   const handleCheckIn = async () => {
+    if (isCheckingIn) return; // Prevent double-clicks
+    
     const now = new Date();
     
-    // Check in on-chain if wallet connected and dossiers exist
-    if (isConnected && address && currentDossierId !== null) {
+    // Check in on-chain if wallet connected and active dossiers exist
+    if (isConnected && address && userDossiers.length > 0) {
+      const activeDossiers = userDossiers.filter(d => d.isActive);
+      
+      if (activeDossiers.length === 0) {
+        toast.error('No active documents to check in for');
+        return;
+      }
+
+      setIsCheckingIn(true);
+      
       try {
-        console.log('✅ Performing on-chain check-in...');
-        const txHash = await ContractService.checkInAll(); // Check in for all dossiers
+        console.log('✅ Performing bulk on-chain check-in for all active dossiers...');
+        
+        // Show loading state
+        const checkInToast = toast.loading('Checking in to all active documents...');
+        
+        // Use the efficient checkInAll function - single transaction for all dossiers
+        console.log('🚀 Using bulk check-in for efficiency...');
+        const txHash = await ContractService.checkInAll();
+        
+        // Success - all active dossiers checked in with single transaction
+        toast.success(`✅ Successfully checked in to all ${activeDossiers.length} active documents!`, { id: checkInToast });
         
         setActivityLog(prev => [
-          { type: 'On-chain check-in successful', date: now.toLocaleString() },
+          { type: `✅ Bulk check-in successful for ${activeDossiers.length} documents (TX: ${txHash.slice(0, 10)}...)`, date: now.toLocaleString() },
           ...prev
         ]);
         
@@ -537,12 +558,40 @@ export default function Home() {
         await loadUserDossiers();
         
       } catch (error) {
-        console.error('❌ On-chain check-in failed:', error);
+        console.error('❌ Bulk check-in failed:', error);
+        
+        // Enhanced error handling with specific messages
+        let errorMessage = 'Bulk check-in failed. Please try again.';
+        if (error instanceof Error) {
+          if (error.message.includes('No dossiers found')) {
+            errorMessage = 'No documents found to check in to.';
+          } else if (error.message.includes('No active dossiers')) {
+            errorMessage = 'No active documents found to check in to.';
+          } else if (error.message.includes('user rejected')) {
+            errorMessage = 'Transaction was rejected. Check-in cancelled.';
+          } else if (error.message.includes('insufficient funds')) {
+            errorMessage = 'Insufficient funds for transaction fees.';
+          } else if (error.message.includes('Network mismatch')) {
+            errorMessage = 'Please switch to Polygon Amoy network.';
+          } else if (error.message.includes('wallet provider')) {
+            errorMessage = 'Wallet connection issue. Please reconnect your wallet.';
+          }
+        }
+        
+        toast.error(errorMessage);
         setActivityLog(prev => [
-          { type: 'On-chain check-in failed (local check-in recorded)', date: now.toLocaleString() },
+          { type: `❌ Bulk check-in failed: ${errorMessage}`, date: now.toLocaleString() },
           ...prev
         ]);
+      } finally {
+        setIsCheckingIn(false);
       }
+    } else if (!isConnected) {
+      toast.error('Please connect your wallet to check in');
+    } else if (!address) {
+      toast.error('Wallet address not available');
+    } else if (userDossiers.length === 0) {
+      toast.error('No documents created yet. Create a document first.');
     } else {
       // Fallback to local check-in only
       setActivityLog(prev => [
@@ -857,16 +906,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="editorial-body text-sm border-2 border-gray-300 px-3 py-2 rounded-lg bg-white">
                   <span className="text-green-600 font-semibold">●</span> {address.slice(0, 6)}...{address.slice(-4)}
-                </div>
-                <a 
-                  href={`https://amoy.polygonscan.com/address/${CANARY_DOSSIER_ADDRESS}`}
-            target="_blank"
-            rel="noopener noreferrer"
-                  className="editorial-body text-xs px-2 py-1 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
-                  title={`View contract on Polygon Amoy: ${CANARY_DOSSIER_ADDRESS}`}
-                >
-                  📋 Polygon Amoy Contract
-                </a>
+        </div>
                 <button
                   onClick={() => disconnect()}
                   className="editorial-body text-sm text-gray-500 hover:text-gray-700 underline"
@@ -914,10 +954,20 @@ export default function Home() {
                   {/* Check In Button */}
                   <button
                     onClick={handleCheckIn}
-                    className="bg-white text-black border-4 border-black hover:bg-black hover:text-white px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                    disabled={isCheckingIn || !isConnected || userDossiers.filter(d => d.isActive).length === 0}
+                    className="bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
                   >
-                    <CheckCircle className="inline mr-4" size={28} />
-                    CHECK IN NOW
+                    {isCheckingIn ? (
+                      <>
+                        <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-current mr-4"></div>
+                        CHECKING IN...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="inline mr-4" size={28} />
+                        CHECK IN NOW
+                      </>
+                    )}
                   </button>
                   
                   {/* Document Summary */}
