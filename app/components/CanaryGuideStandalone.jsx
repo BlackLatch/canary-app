@@ -12,66 +12,66 @@ const CanaryGuideStandalone = () => {
     designCard: {
       position: 'absolute',
       background: '#ffffff',
-      borderRadius: '4px',
-      padding: '16px',
+      borderRadius: '5px',
+      padding: '18px',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-      fontSize: '13px',
+      fontSize: '15px',
       lineHeight: '1.4',
       color: '#333',
-      maxWidth: '280px',
+      maxWidth: '322px',
       zIndex: 3,
     },
 
     // Sidebar styles
     sidebar: {
       position: 'absolute',
-      top: '60px',
-      right: '60px',
-      width: '320px',
+      top: '69px',
+      right: '69px',
+      width: '368px',
       background: 'rgba(245, 245, 245, 0.95)',
-      padding: '24px',
-      borderRadius: '4px',
+      padding: '28px',
+      borderRadius: '5px',
       zIndex: 10,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     },
 
     sidebarH2: {
-      fontSize: '24px',
+      fontSize: '28px',
       fontWeight: '600',
-      margin: '0 0 16px 0',
+      margin: '0 0 18px 0',
       color: '#000',
     },
 
     sidebarP: {
-      fontSize: '16px',
+      fontSize: '18px',
       lineHeight: '1.5',
-      margin: '0 0 16px 0',
+      margin: '0 0 18px 0',
       color: '#333',
     },
 
     tagline: {
-      fontSize: '16px',
+      fontSize: '18px',
       lineHeight: '1.5',
-      margin: '0 0 16px 0',
+      margin: '0 0 18px 0',
       color: '#000',
       fontWeight: '600',
     },
 
     section: {
-      marginBottom: '24px',
+      marginBottom: '28px',
     },
 
     sectionH3: {
-      fontSize: '14px',
+      fontSize: '16px',
       fontWeight: '600',
-      margin: '0 0 12px 0',
+      margin: '0 0 14px 0',
       color: '#000',
     },
 
     sectionP: {
-      fontSize: '13px',
+      fontSize: '15px',
       color: '#666',
-      margin: '0 0 8px 0',
+      margin: '0 0 9px 0',
     },
 
 
@@ -79,33 +79,33 @@ const CanaryGuideStandalone = () => {
     // Step blocks container
     stepBlocks: {
       position: 'absolute',
-      top: '650px',
+      top: '748px',
       left: '40%',
       transform: 'translateX(-50%)',
       display: 'flex',
-      gap: '120px',
+      gap: '138px',
       alignItems: 'center',
       zIndex: 10,
     },
 
     stepBlock: {
-      width: '220px',
-      height: '140px',
+      width: '253px',
+      height: '161px',
       position: 'relative',
       background: '#ffffff',
-      borderRadius: '4px',
-      padding: '16px',
+      borderRadius: '5px',
+      padding: '18px',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-      fontSize: '13px',
+      fontSize: '15px',
       lineHeight: '1.4',
       color: '#333',
       zIndex: 3,
     },
 
     stepBlockH3: {
-      fontSize: '16px',
+      fontSize: '18px',
       fontWeight: '600',
-      margin: '0 0 8px 0',
+      margin: '0 0 9px 0',
       color: '#000',
     },
 
@@ -116,80 +116,80 @@ const CanaryGuideStandalone = () => {
 
     tag: {
       position: 'absolute',
-      bottom: '12px',
-      left: '12px',
+      bottom: '14px',
+      left: '14px',
       display: 'inline-flex',
       alignItems: 'center',
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#666',
-      gap: '4px',
+      gap: '5px',
     },
 
     // Feature blocks positioning
     featureDecentralized: {
       ...this?.designCard,
-      top: '50px',
-      left: '590px',
-      width: '180px',
+      top: '58px',
+      left: '679px',
+      width: '207px',
     },
 
     featureFlexible: {
       ...this?.designCard,
-      top: '330px',
-      left: '890px',
-      width: '180px',
+      top: '380px',
+      left: '1024px',
+      width: '207px',
     },
 
     featureDeadman: {
       ...this?.designCard,
-      top: '330px',
-      left: '290px',
-      width: '180px',
+      top: '380px',
+      left: '334px',
+      width: '207px',
     },
 
     featureBlockTitle: {
-      fontSize: '14px',
+      fontSize: '16px',
       fontWeight: '600',
-      margin: '0 0 8px 0',
+      margin: '0 0 9px 0',
       color: '#000',
     },
 
     featureBlockDesc: {
-      fontSize: '13px',
-      margin: '0 0 8px 0',
+      fontSize: '15px',
+      margin: '0 0 9px 0',
       color: '#333',
     },
 
     featureTag: {
       display: 'inline-flex',
       alignItems: 'center',
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#666',
-      marginTop: '12px',
-      gap: '4px',
+      marginTop: '14px',
+      gap: '5px',
     },
   };
 
   // Fix the circular reference in styles
   styles.featureDecentralized = {
     ...styles.designCard,
-    top: '50px',
-    left: '590px',
-    width: '180px',
+    top: '58px',
+    left: '679px',
+    width: '207px',
   };
 
   styles.featureFlexible = {
     ...styles.designCard,
-    top: '330px',
-    left: '890px',
-    width: '180px',
+    top: '380px',
+    left: '1024px',
+    width: '207px',
   };
 
   styles.featureDeadman = {
     ...styles.designCard,
-    top: '330px',
-    left: '290px',
-    width: '180px',
+    top: '380px',
+    left: '334px',
+    width: '207px',
   };
 
   return (
@@ -220,20 +220,20 @@ const CanaryGuideStandalone = () => {
         }}>
           {/* Perfect circular line */}
           <circle
-            cx="680"
-            cy="400"
-            r="300"
+            cx="782"
+            cy="460"
+            r="345"
             style={{
               stroke: 'rgba(0, 0, 0, 0.15)',
-              strokeWidth: '1.5',
+              strokeWidth: '1.7',
               fill: 'none'
             }}
           />
           
           {/* Connection points on the perfect circular line */}
-          <circle cx="380" cy="400" r="3" fill="rgba(0, 0, 0, 0.4)" />
-          <circle cx="680" cy="100" r="3" fill="rgba(0, 0, 0, 0.4)" />
-          <circle cx="980" cy="400" r="3" fill="rgba(0, 0, 0, 0.4)" />
+          <circle cx="437" cy="460" r="3.5" fill="rgba(0, 0, 0, 0.4)" />
+          <circle cx="782" cy="115" r="3.5" fill="rgba(0, 0, 0, 0.4)" />
+          <circle cx="1127" cy="460" r="3.5" fill="rgba(0, 0, 0, 0.4)" />
         </svg>
 
 
