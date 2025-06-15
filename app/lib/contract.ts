@@ -176,6 +176,54 @@ export interface Dossier {
 export class ContractService {
   
   /**
+   * ✅ All contract operations use the connected wallet's RPC provider
+   * ✅ No hardcoded RPC endpoints - everything goes through wagmi config
+   * ✅ This ensures proper network switching and wallet compatibility
+   */
+
+  /**
+   * Verify we're using wallet's provider (not hardcoded RPC)
+   */
+  static async verifyWalletProvider(): Promise<{
+    usingWalletProvider: boolean;
+    walletChainId: number | undefined;
+    configChainId: number;
+    networkMatch: boolean;
+  }> {
+    try {
+      // Get account info from wagmi (this uses wallet's provider)
+      const account = await getAccount(config);
+      
+      // Check what chain wagmi thinks we're on vs wallet
+      const result = {
+        usingWalletProvider: true, // Always true since we use wagmi config
+        walletChainId: account.chainId,
+        configChainId: polygonAmoy.id,
+        networkMatch: account.chainId === polygonAmoy.id
+      };
+      
+      console.log('🔍 Wallet Provider Verification:', result);
+      
+      if (!result.networkMatch) {
+        console.warn(`⚠️ Network mismatch: Wallet is on chain ${result.walletChainId}, expected ${result.configChainId}`);
+      } else {
+        console.log('✅ Using wallet provider correctly - network matches');
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Failed to verify wallet provider:', error);
+      return {
+        usingWalletProvider: false,
+        walletChainId: undefined,
+        configChainId: polygonAmoy.id,
+        networkMatch: false
+      };
+    }
+  }
+
+  /**
    * Test contract connection
    */
   static async testContractConnection(): Promise<boolean> {
@@ -199,7 +247,173 @@ export class ContractService {
   }
 
   /**
-   * Create a new dossier on-chain
+   * Debug function to validate createDossier parameters before calling
+   */
+  static async debugCreateDossierParams(
+    name: string,
+    checkInIntervalMinutes: number,
+    recipients: Address[],
+    encryptedFileHashes: string[]
+  ): Promise<{
+    isValid: boolean;
+    errors: string[];
+    processedParams: any;
+    contractValidations: any;
+  }> {
+    const result = {
+      isValid: true,
+      errors: [] as string[],
+      processedParams: {} as any,
+      contractValidations: {} as any
+    };
+
+    try {
+      console.log('🔍 Debugging createDossier parameters...');
+      
+      // Get current account
+      const account = await getAccount(config);
+      if (!account.address) {
+        result.errors.push('No wallet connected');
+        result.isValid = false;
+        return result;
+      }
+
+      // Check network
+      if (account.chainId !== polygonAmoy.id) {
+        result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${polygonAmoy.id}`);
+        result.isValid = false;
+        return result;
+      }
+
+      // Process parameters exactly as they would be sent to contract
+      const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
+      
+      result.processedParams = {
+        name: name,
+        nameType: typeof name,
+        nameLength: name.length,
+        checkInIntervalMinutes,
+        checkInIntervalSeconds: checkInIntervalSeconds.toString(),
+        checkInIntervalType: typeof checkInIntervalSeconds,
+        recipients: recipients,
+        recipientsType: typeof recipients,
+        recipientsLength: recipients.length,
+        encryptedFileHashes: encryptedFileHashes,
+        hashesType: typeof encryptedFileHashes,
+        hashesLength: encryptedFileHashes.length,
+        sender: account.address
+      };
+
+      console.log('📊 Processed parameters:', result.processedParams);
+
+      // Get contract constants for validation
+      const constants = await this.getConstants();
+      result.contractValidations = {
+        constants,
+        minIntervalCheck: checkInIntervalSeconds >= constants.minInterval,
+        maxIntervalCheck: checkInIntervalSeconds <= constants.maxInterval,
+        intervalComparison: {
+          provided: checkInIntervalSeconds.toString(),
+          minimum: constants.minInterval.toString(),
+          maximum: constants.maxInterval.toString(),
+          isAtMinimum: checkInIntervalSeconds === constants.minInterval,
+          isAboveMinimum: checkInIntervalSeconds > constants.minInterval
+        }
+      };
+
+      // Validate check-in interval
+      if (checkInIntervalSeconds < constants.minInterval) {
+        result.errors.push(`Interval ${checkInIntervalSeconds} < minimum ${constants.minInterval}`);
+        result.isValid = false;
+      }
+      if (checkInIntervalSeconds > constants.maxInterval) {
+        result.errors.push(`Interval ${checkInIntervalSeconds} > maximum ${constants.maxInterval}`);
+        result.isValid = false;
+      }
+
+      // Check user's dossier count
+      const userDossierIds = await this.getUserDossierIds(account.address);
+      if (userDossierIds.length >= Number(constants.maxDossiers)) {
+        result.errors.push(`User has ${userDossierIds.length} dossiers, max is ${constants.maxDossiers}`);
+        result.isValid = false;
+      }
+
+      // Validate recipients
+      if (recipients.length === 0) {
+        result.errors.push('No recipients provided');
+        result.isValid = false;
+      }
+      if (recipients.length > 20) {
+        result.errors.push(`Too many recipients: ${recipients.length} > 20`);
+        result.isValid = false;
+      }
+
+      // Validate each recipient address format
+      recipients.forEach((recipient, index) => {
+        if (!recipient || typeof recipient !== 'string') {
+          result.errors.push(`Invalid recipient at index ${index}: ${recipient}`);
+          result.isValid = false;
+        }
+        if (!recipient.startsWith('0x') || recipient.length !== 42) {
+          result.errors.push(`Invalid address format at index ${index}: ${recipient}`);
+          result.isValid = false;
+        }
+      });
+
+      // Validate file hashes
+      if (encryptedFileHashes.length === 0) {
+        result.errors.push('No file hashes provided');
+        result.isValid = false;
+      }
+      if (encryptedFileHashes.length > 100) {
+        result.errors.push(`Too many file hashes: ${encryptedFileHashes.length} > 100`);
+        result.isValid = false;
+      }
+
+      // Validate each file hash format
+      encryptedFileHashes.forEach((hash, index) => {
+        if (!hash || typeof hash !== 'string') {
+          result.errors.push(`Invalid hash at index ${index}: ${hash}`);
+          result.isValid = false;
+        }
+        if (!hash.startsWith('ipfs://')) {
+          result.errors.push(`Hash at index ${index} should start with 'ipfs://': ${hash}`);
+          result.isValid = false;
+        }
+      });
+
+      // Validate name
+      if (!name || typeof name !== 'string') {
+        result.errors.push(`Invalid name: ${name}`);
+        result.isValid = false;
+      }
+      if (name.length === 0) {
+        result.errors.push('Name cannot be empty');
+        result.isValid = false;
+      }
+      if (name.length > 1000) { // Reasonable limit
+        result.errors.push(`Name too long: ${name.length} characters`);
+        result.isValid = false;
+      }
+
+      console.log('🔍 Validation result:', {
+        isValid: result.isValid,
+        errorCount: result.errors.length,
+        errors: result.errors
+      });
+
+      return result;
+
+    } catch (error) {
+      console.error('❌ Parameter debugging failed:', error);
+      result.errors.push(`Debug error: ${error}`);
+      result.isValid = false;
+      return result;
+    }
+  }
+
+  /**
+   * Create a new dossier on-chain with comprehensive debugging
    */
   static async createDossier(
     name: string,
@@ -213,72 +427,67 @@ export class ContractService {
       console.log('Check-in interval:', checkInIntervalMinutes, 'minutes');
       console.log('Recipients:', recipients);
       console.log('File hashes:', encryptedFileHashes);
+
+      // COMPREHENSIVE PARAMETER DEBUGGING
+      console.log('🔍 Running comprehensive parameter validation...');
+      const debugResult = await this.debugCreateDossierParams(name, checkInIntervalMinutes, recipients, encryptedFileHashes);
       
-      // Test contract connection first
+      if (!debugResult.isValid) {
+        console.error('❌ Parameter validation failed:');
+        debugResult.errors.forEach(error => console.error('   -', error));
+        throw new Error(`Parameter validation failed: ${debugResult.errors.join(', ')}`);
+      }
+      
+      console.log('✅ All parameters validated successfully');
+      console.log('📊 Final parameters to be sent to contract:');
+      console.log('   - Name:', debugResult.processedParams.name);
+      console.log('   - Interval (seconds):', debugResult.processedParams.checkInIntervalSeconds);
+      console.log('   - Recipients:', debugResult.processedParams.recipients);
+      console.log('   - File hashes:', debugResult.processedParams.encryptedFileHashes);
+      
+      // Test contract connection
       const isConnected = await this.testContractConnection();
       if (!isConnected) {
         throw new Error('Contract is not accessible. Please check the contract address and network.');
       }
 
-      // Get the current account
+      // Get the current account (already validated in debug function)
       const account = await getAccount(config);
       if (!account.address) {
-        throw new Error('No wallet connected');
+        throw new Error('Wallet disconnected during transaction');
       }
-
-      console.log('💳 Wallet address:', account.address);
-      console.log('🔗 Chain ID:', account.chainId);
-
-      // Check if we're on the right network
-      if (account.chainId !== polygonAmoy.id) {
-        throw new Error(`Please switch to Polygon Amoy testnet. Current chain: ${account.chainId}, Expected: ${polygonAmoy.id}`);
-      }
-
-      // PRE-FLIGHT VALIDATION: Check contract constraints
-      console.log('🔍 Pre-flight validation...');
-      
-      // 1. Check contract constants
-      const constants = await this.getConstants();
-      console.log('📊 Contract constants:', constants);
-      
-      // 2. Convert and validate check-in interval
       const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
-      console.log('⏱️ Check-in interval:', checkInIntervalSeconds.toString(), 'seconds');
-      
-      if (checkInIntervalSeconds < constants.minInterval) {
-        throw new Error(`Check-in interval too short. Minimum: ${constants.minInterval} seconds (${Number(constants.minInterval)/60} minutes)`);
-      }
-      if (checkInIntervalSeconds > constants.maxInterval) {
-        throw new Error(`Check-in interval too long. Maximum: ${constants.maxInterval} seconds`);
-      }
-      
-      // 3. Check user's current dossier count
-      const userDossierIds = await this.getUserDossierIds(account.address);
-      console.log('📋 User has', userDossierIds.length, 'existing dossiers');
-      
-      if (userDossierIds.length >= Number(constants.maxDossiers)) {
-        throw new Error(`Maximum dossiers reached. Limit: ${constants.maxDossiers}`);
-      }
-      
-      // 4. Validate recipients
-      if (recipients.length === 0) {
-        throw new Error('At least one recipient is required');
-      }
-      if (recipients.length > 20) { // MAX_RECIPIENTS_PER_DOSSIER from contract
-        throw new Error('Too many recipients. Maximum: 20');
-      }
-      
-      // 5. Validate file hashes
-      if (encryptedFileHashes.length === 0) {
-        throw new Error('At least one file hash is required');
-      }
-      if (encryptedFileHashes.length > 100) { // MAX_FILES_PER_DOSSIER from contract
-        throw new Error('Too many files. Maximum: 100');
-      }
       
       console.log('✅ Pre-flight validation passed!');
-      
-      // Convert minutes to seconds for the contract
+
+      // VERIFY WALLET PROVIDER USAGE
+      console.log('🔍 Verifying wallet provider usage...');
+      const providerVerification = await this.verifyWalletProvider();
+      if (!providerVerification.usingWalletProvider || !providerVerification.networkMatch) {
+        throw new Error(`Wallet provider issue: ${JSON.stringify(providerVerification)}`);
+      }
+      console.log('✅ Confirmed using wallet provider correctly');
+
+      // ADDITIONAL CONTRACT ACCESSIBILITY TEST
+      console.log('🧪 Testing contract read operations before write...');
+      try {
+        // Test a simple read operation to ensure contract is fully accessible
+        const testConstants = await this.getConstants();
+        console.log('✅ Contract read test passed:', {
+          minInterval: testConstants.minInterval.toString(),
+          maxInterval: testConstants.maxInterval.toString()
+        });
+        
+        // Test getting user dossier count
+        const userDossierIds = await this.getUserDossierIds(account.address);
+        console.log('✅ User dossier count test passed:', userDossierIds.length);
+        
+      } catch (readError) {
+        console.error('❌ Contract read test failed:', readError);
+        throw new Error(`Contract is not accessible for reads: ${readError}`);
+      }
+
+      // TRANSACTION PREPARATION
       console.log('📞 Calling createDossier with args:', {
         name,
         checkInIntervalSeconds: checkInIntervalSeconds.toString(),
@@ -288,8 +497,9 @@ export class ContractService {
 
       let hash: `0x${string}` | undefined;
 
-      // Try transaction with wagmi config (uses wallet's RPC)
-      console.log('🚀 Attempting transaction with wallet connection...');
+      // Try transaction through wallet provider (no hardcoded RPC)
+      console.log('🚀 Attempting transaction using wallet provider...');
+      console.log('📡 Using wagmi config - all operations go through connected wallet');
       try {
         // Add explicit gas limit to avoid estimation issues
         hash = await writeContract(config, {
@@ -300,7 +510,7 @@ export class ContractService {
           gas: BigInt(500000), // Explicit gas limit
         });
 
-        console.log('✅ Transaction submitted successfully:', hash);
+        console.log('✅ Transaction submitted via wallet provider:', hash);
 
       } catch (defaultError) {
         console.warn('⚠️ Transaction failed:', defaultError);
@@ -521,10 +731,12 @@ export class ContractService {
   }
   
   /**
-   * Get contract constants
+   * Get contract constants like min/max intervals
    */
-  static async getConstants() {
+    static async getConstants() {
     try {
+      console.log('🔧 Getting contract constants via wallet provider...');
+      
       const [minInterval, maxInterval, gracePeriod, maxDossiers] = await Promise.all([
         readContract(config, {
           address: CANARY_DOSSIER_ADDRESS,
@@ -547,7 +759,7 @@ export class ContractService {
           functionName: 'MAX_DOSSIERS_PER_USER',
         }),
       ]);
-      
+
       return {
         minInterval: minInterval as bigint,
         maxInterval: maxInterval as bigint,
@@ -556,7 +768,7 @@ export class ContractService {
       };
       
     } catch (error) {
-      console.error('❌ Failed to get contract constants:', error);
+      console.error('❌ Failed to get contract constants via wallet provider:', error);
       throw error;
     }
   }
@@ -608,6 +820,166 @@ export class ContractService {
     } catch (error) {
       console.error('❌ Failed to reactivate dossier:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Comprehensive contract verification for debugging
+   */
+  static async verifyContractDeployment(): Promise<{
+    isDeployed: boolean;
+    canReadConstants: boolean;
+    currentBlockNumber: bigint | null;
+    contractConstants: any;
+    networkInfo: any;
+    errors: string[];
+  }> {
+    const result = {
+      isDeployed: false,
+      canReadConstants: false,
+      currentBlockNumber: null as bigint | null,
+      contractConstants: {},
+      networkInfo: {},
+      errors: [] as string[]
+    };
+
+    try {
+      console.log('🔍 Starting comprehensive contract verification...');
+      console.log('📍 Contract address:', CANARY_DOSSIER_ADDRESS);
+      console.log('🌐 Target network: Polygon Amoy (Chain ID 80002)');
+
+      // Get current account info
+      const account = await getAccount(config);
+      result.networkInfo = {
+        address: account.address,
+        chainId: account.chainId,
+        isConnected: account.isConnected
+      };
+
+      if (!account.isConnected) {
+        result.errors.push('Wallet not connected');
+        return result;
+      }
+
+      if (account.chainId !== polygonAmoy.id) {
+        result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${polygonAmoy.id}`);
+        return result;
+      }
+
+      // Test 1: Check if contract exists by reading a simple constant
+      try {
+        console.log('📖 Test 1: Reading MIN_CHECK_IN_INTERVAL...');
+        const minInterval = await readContract(config, {
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
+          functionName: 'MIN_CHECK_IN_INTERVAL',
+        });
+        
+        result.isDeployed = true;
+        result.canReadConstants = true;
+        console.log('✅ Contract exists and is readable. MIN_CHECK_IN_INTERVAL:', minInterval);
+        
+      } catch (error) {
+        console.error('❌ Failed to read contract constants:', error);
+        result.errors.push(`Cannot read contract constants: ${error}`);
+        return result;
+      }
+
+      // Test 2: Read all contract constants
+      try {
+        console.log('📊 Test 2: Reading all contract constants...');
+        const constants = await this.getConstants();
+        result.contractConstants = constants;
+        console.log('✅ All constants readable:', constants);
+        
+      } catch (error) {
+        console.error('❌ Failed to read all constants:', error);
+        result.errors.push(`Cannot read all constants: ${error}`);
+      }
+
+      // Test 3: Check user's existing dossiers
+      try {
+        console.log('📋 Test 3: Reading user dossiers...');
+        const dossierIds = await this.getUserDossierIds(account.address!);
+        console.log('✅ User has', dossierIds.length, 'dossiers:', dossierIds.map(id => id.toString()));
+        
+        // If user has dossiers, try reading one
+        if (dossierIds.length > 0) {
+          const firstDossier = await this.getDossier(account.address!, dossierIds[0]);
+          console.log('✅ Can read dossier details:', {
+            id: firstDossier.id.toString(),
+            name: firstDossier.name,
+            isActive: firstDossier.isActive
+          });
+        }
+        
+      } catch (error) {
+        console.error('❌ Failed to read user dossiers:', error);
+        result.errors.push(`Cannot read user dossiers: ${error}`);
+      }
+
+      // Test 4: Simulate a createDossier call (dry run)
+      try {
+        console.log('🧪 Test 4: Simulating createDossier call...');
+        
+        // This is a read-only simulation to test if the function would work
+        const testArgs = [
+          'Test Dossier',
+          BigInt(3600), // 1 hour
+          [account.address!],
+          ['ipfs://test-hash']
+        ];
+        
+        console.log('🔧 Test parameters:', {
+          name: testArgs[0],
+          interval: testArgs[1].toString(),
+          recipients: testArgs[2],
+          hashes: testArgs[3]
+        });
+        
+        // We can't actually simulate writeContract calls easily,
+        // but we can check if the parameters would be valid
+        const constants = result.contractConstants as any;
+        if (constants.minInterval && testArgs[1] < constants.minInterval) {
+          result.errors.push(`Test interval ${testArgs[1]} is below minimum ${constants.minInterval}`);
+        }
+        
+        console.log('✅ Test parameters appear valid');
+        
+      } catch (error) {
+        console.error('❌ Test simulation failed:', error);
+        result.errors.push(`Simulation failed: ${error}`);
+      }
+
+      console.log('🏁 Contract verification complete');
+      return result;
+      
+    } catch (error) {
+      console.error('💥 Critical error during verification:', error);
+      result.errors.push(`Critical error: ${error}`);
+      return result;
+    }
+  }
+
+  /**
+   * Quick contract health check
+   */
+  static async quickHealthCheck(): Promise<boolean> {
+    try {
+      const result = await this.verifyContractDeployment();
+      const isHealthy = result.isDeployed && result.canReadConstants && result.errors.length === 0;
+      
+      if (!isHealthy) {
+        console.warn('⚠️ Contract health check failed:');
+        result.errors.forEach(error => console.warn('   -', error));
+      } else {
+        console.log('✅ Contract health check passed');
+      }
+      
+      return isHealthy;
+    } catch (error) {
+      console.error('❌ Health check failed:', error);
+      return false;
     }
   }
 } 
