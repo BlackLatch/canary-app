@@ -382,13 +382,39 @@ export default function SharedDossierView() {
                             <div className="editorial-body text-xs text-gray-500 font-bold">
                               SHARED DOCUMENT
                             </div>
-                            <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
-                              dossier.isActive 
-                                ? 'border-green-600 text-green-700 bg-green-50' 
-                                : 'border-gray-400 text-gray-600 bg-gray-100'
-                            }`}>
-                              {dossier.isActive ? 'Active' : 'Deactivated'}
-                            </div>
+                                                            <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
+                                  (() => {
+                                    // Check if expired by time calculation
+                                    const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                    const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                    const timeSinceLastCheckIn = Date.now() - lastCheckInMs;
+                                    const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                    const isTimeExpired = remainingMs <= 0;
+                                    
+                                    if (isTimeExpired) {
+                                      return 'border-red-600 text-red-700 bg-red-50';
+                                    } else if (dossier.isActive) {
+                                      return 'border-green-600 text-green-700 bg-green-50';
+                                    } else {
+                                      return 'border-gray-400 text-gray-600 bg-gray-100';
+                                    }
+                                  })()
+                                }`}>
+                                  {(() => {
+                                    // Check if expired by time calculation
+                                    const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                    const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                    const timeSinceLastCheckIn = Date.now() - lastCheckInMs;
+                                    const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                    const isTimeExpired = remainingMs <= 0;
+                                    
+                                    if (isTimeExpired) {
+                                      return 'Expired';
+                                    } else {
+                                      return dossier.isActive ? 'Active' : 'Deactivated';
+                                    }
+                                  })()}
+                                </div>
                           </div>
                         </div>
                         

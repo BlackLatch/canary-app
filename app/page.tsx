@@ -9,7 +9,7 @@ import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { polygonAmoy } from 'wagmi/chains';
 import { Address } from 'viem';
 import { ContractService, CANARY_DOSSIER_ADDRESS, Dossier } from './lib/contract';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 // Extended dossier interface with accurate decryptable status
 interface DossierWithStatus extends Dossier {
@@ -527,6 +527,7 @@ export default function Home() {
           const timeSinceLastCheckIn = Date.now() / 1000 - Number(dossier.lastCheckIn);
           const gracePeriod = 3600; // 1 hour grace period (should match contract)
           isDecryptable = !dossier.isActive || timeSinceLastCheckIn > (Number(dossier.checkInInterval) + gracePeriod);
+          console.log(`⚠️ Using fallback calculation for dossier #${id.toString()}: timeSince=${Math.floor(timeSinceLastCheckIn)}s, interval=${dossier.checkInInterval}s, gracePeriod=${gracePeriod}s, isExpired=${timeSinceLastCheckIn > (Number(dossier.checkInInterval) + gracePeriod)}`);
         }
         
         // Add accurate decryptable status to dossier object
@@ -538,7 +539,7 @@ export default function Home() {
         dossiers.push(dossierWithStatus);
         
         // Log the true status for debugging
-        console.log(`📄 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}`);
+        console.log(`📄 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}`);
       }
       
       setUserDossiers(dossiers);
@@ -1144,11 +1145,37 @@ export default function Home() {
                                 </h3>
                                 <div className="flex justify-end items-start">
                                   <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
-                                    dossier.isActive 
-                                      ? 'border-green-600 text-green-700 bg-green-50' 
-                                      : 'border-gray-400 text-gray-600 bg-gray-100'
+                                    (() => {
+                                      // Check if expired by time calculation
+                                      const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                      const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                      const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                      const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                      const isTimeExpired = remainingMs <= 0;
+                                      
+                                      if (isTimeExpired) {
+                                        return 'border-red-600 text-red-700 bg-red-50';
+                                      } else if (dossier.isActive) {
+                                        return 'border-green-600 text-green-700 bg-green-50';
+                                      } else {
+                                        return 'border-gray-400 text-gray-600 bg-gray-100';
+                                      }
+                                    })()
                                   }`}>
-                                    {dossier.isActive ? 'Active' : 'Deactivated'}
+                                    {(() => {
+                                      // Check if expired by time calculation
+                                      const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                      const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                      const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                      const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                      const isTimeExpired = remainingMs <= 0;
+                                      
+                                      if (isTimeExpired) {
+                                        return 'Expired';
+                                      } else {
+                                        return dossier.isActive ? 'Active' : 'Deactivated';
+                                      }
+                                    })()}
                                   </div>
                                 </div>
                               </div>
@@ -1247,7 +1274,20 @@ export default function Home() {
                                   </div>
                                   
                                   {/* Bottom Row - Decrypt (Full Width) */}
-                                  {dossier.isDecryptable && dossier.encryptedFileHashes.length > 0 ? (
+                                  {(() => {
+                                    // Check if document is expired based on time calculation
+                                    const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                    const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                    const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                    const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                    const isTimeExpired = remainingMs <= 0;
+                                    
+                                    // Show decrypt button if document is expired OR contract says it's decryptable, AND has files
+                                    const shouldShowButton = (isTimeExpired || dossier.isDecryptable) && dossier.encryptedFileHashes.length > 0;
+                                    
+                                    console.log(`🔍 Decrypt button check for dossier #${dossier.id.toString()}: isTimeExpired=${isTimeExpired}, isDecryptable=${dossier.isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}, showButton=${shouldShowButton}`);
+                                    return shouldShowButton;
+                                  })() ? (
                                     <button
                                       onClick={async () => {
                                         let decryptToast: any;
@@ -1385,13 +1425,24 @@ export default function Home() {
                                       }}
                                       className="w-full editorial-body text-xs px-3 py-2 border-2 border-red-600 text-red-700 hover:bg-red-600 hover:text-white font-bold transition-colors"
                                     >
-                                      🔓 DECRYPT EXPIRED DOCUMENT
+                                      DECRYPT
                                     </button>
                                   ) : (
                                     <div className="w-full text-center py-2 editorial-body text-xs text-gray-500">
-                                      {!dossier.isActive ? 'Document deactivated' : 
-                                       !dossier.isDecryptable ? 'Not yet expired' : 
-                                       'No files available'}
+                                      {(() => {
+                                        if (!dossier.isActive) return 'Document deactivated';
+                                        if (dossier.encryptedFileHashes.length === 0) return 'No files available';
+                                        
+                                        // Check if expired by time
+                                        const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                        const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                        const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                        const isTimeExpired = remainingMs <= 0;
+                                        
+                                        if (isTimeExpired || dossier.isDecryptable) return null; // Button will show instead
+                                        return `Not yet expired (${dossier.encryptedFileHashes.length} files)`;
+                                      })()}
                                     </div>
                                   )}
                                 </div>
@@ -1774,7 +1825,7 @@ export default function Home() {
                             <button
                               onClick={commitToCodex}
                               disabled={isCommitting}
-                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:text-white hover:[&>*]:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
                             >
                               {isCommitting ? (
                                 <div className="flex items-center justify-center">
@@ -1839,7 +1890,7 @@ export default function Home() {
                         }
                         setCurrentStep(Math.min(5, currentStep + 1));
                       }}
-                      className="px-6 py-2 bg-gray-900 text-white hover:bg-gray-800 editorial-body font-semibold transition-colors rounded"
+                      className="px-6 py-2 bg-gray-900 text-white hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white editorial-body font-semibold transition-colors rounded"
                     >
                       {currentStep === 4 ? 'Review' : 'Next'}
                     </button>
@@ -1851,8 +1902,7 @@ export default function Home() {
         </div>
       )}
 
-        {/* Toaster for notifications */}
-        <Toaster position="top-right" />
+        
       </div>
     </>
   );
