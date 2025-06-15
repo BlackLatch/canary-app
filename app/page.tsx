@@ -20,9 +20,7 @@ export default function Home() {
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [checkInInterval, setCheckInInterval] = useState('60'); // Default to 1 hour in minutes
-  const [documentName, setDocumentName] = useState('');
-  const [releaseType, setReleaseType] = useState<'contacts' | 'public'>('contacts');
-  const [emergencyContacts, setEmergencyContacts] = useState<string[]>(['']);
+  const [description, setDescription] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
   const [encryptedCapsule, setEncryptedCapsule] = useState<any>(null);
@@ -54,45 +52,9 @@ export default function Home() {
   ]);
   const [showActivityLog, setShowActivityLog] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showCreateForm, setShowCreateForm] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Emergency contact management
-  const addEmergencyContact = () => {
-    setEmergencyContacts(prev => [...prev, '']);
-  };
-
-  const removeEmergencyContact = (index: number) => {
-    if (emergencyContacts.length > 1) {
-      setEmergencyContacts(prev => prev.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateEmergencyContact = (index: number, value: string) => {
-    setEmergencyContacts(prev => prev.map((contact, i) => i === index ? value : contact));
-  };
-
-  // Validation helper for form completion
-  const isFormValid = () => {
-    if (!uploadedFile) return false;
-    
-    if (releaseType === 'contacts') {
-      const validContacts = emergencyContacts.filter(contact => contact.trim() !== '');
-      if (validContacts.length === 0) return false;
-      
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
-      
-      const invalidContacts = validContacts.filter(contact => {
-        const trimmed = contact.trim();
-        return !emailRegex.test(trimmed) && !ethAddressRegex.test(trimmed);
-      });
-      
-      if (invalidContacts.length > 0) return false;
-    }
-    
-    return true;
-  };
 
   // Update current time every second for real-time countdown
   useEffect(() => {
@@ -125,29 +87,6 @@ export default function Home() {
   const processCanaryTrigger = async () => {
     if (!uploadedFile) return;
     
-    // Validate emergency contacts if using contact mode
-    if (releaseType === 'contacts') {
-      const validContacts = emergencyContacts.filter(contact => contact.trim() !== '');
-      if (validContacts.length === 0) {
-        toast.error('Please add at least one emergency contact or switch to public release mode.');
-        return;
-      }
-      
-      // Validate email or Ethereum address format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
-      
-      const invalidContacts = validContacts.filter(contact => {
-        const trimmed = contact.trim();
-        return !emailRegex.test(trimmed) && !ethAddressRegex.test(trimmed);
-      });
-      
-      if (invalidContacts.length > 0) {
-        toast.error('Please enter valid email addresses or Ethereum addresses for all emergency contacts.');
-        return;
-      }
-    }
-    
     setIsProcessing(true);
     
     const encryptionToast = toast.loading('Encrypting file with TACo...');
@@ -158,33 +97,11 @@ export default function Home() {
         duration: `${checkInInterval} MINUTES`
       };
 
-      // Prepare description with release information  
-      let fullDescription = '';
-      if (releaseType === 'contacts') {
-        const validContacts = emergencyContacts.filter(contact => contact.trim() !== '');
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
-        
-        const contactsWithTypes = validContacts.map(contact => {
-          const trimmed = contact.trim();
-          if (emailRegex.test(trimmed)) {
-            return `${trimmed} (email)`;
-          } else if (ethAddressRegex.test(trimmed)) {
-            return `${trimmed} (ethereum)`;
-          }
-          return trimmed;
-        });
-        
-        fullDescription += (fullDescription ? '\n\n' : '') + `Emergency Contacts: ${contactsWithTypes.join(', ')}`;
-      } else {
-        fullDescription += (fullDescription ? '\n\n' : '') + 'Release Mode: Public';
-      }
-
       // Encrypt the file with TACo (no upload yet)
       const encryptionResult = await encryptFileWithCondition(
         uploadedFile,
         condition,
-        fullDescription
+        description
       );
       
       setEncryptedCapsule(encryptionResult);
@@ -265,7 +182,7 @@ export default function Home() {
           return;
         }
         
-        const dossierName = documentName.trim() || `Encrypted file: ${encryptedCapsule.originalFileName}`;
+        const dossierName = `Encrypted file: ${encryptedCapsule.originalFileName}`;
         const checkInMinutes = parseInt(checkInInterval);
         const recipients = [address]; // For now, only the creator is a recipient
         const fileHashes = [newTraceJson.payload_uri];
@@ -815,10 +732,13 @@ export default function Home() {
   }
 
   const intervalOptions = [
+    { value: '1', label: '1 Minute (Testing)' },
+    { value: '5', label: '5 Minutes' },
+    { value: '15', label: '15 Minutes' },
     { value: '60', label: '1 Hour' },
-    { value: '1440', label: '1 Day' },
-    { value: '10080', label: '1 Week' },
-    { value: '43200', label: '30 Days' }
+    { value: '360', label: '6 Hours' },
+    { value: '720', label: '12 Hours' },
+    { value: '1440', label: '24 Hours' }
   ];
 
   return (
@@ -843,8 +763,8 @@ export default function Home() {
                 </div>
                 <a 
                   href={`https://amoy.polygonscan.com/address/${CANARY_DOSSIER_ADDRESS}`}
-            target="_blank"
-            rel="noopener noreferrer"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="editorial-body text-xs px-2 py-1 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
                   title={`View contract on Polygon Amoy: ${CANARY_DOSSIER_ADDRESS}`}
                 >
@@ -866,248 +786,184 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Safety Check-in with Status */}
-        <div className="text-center mb-16 space-y-6">
-          {/* Status Info Above Button */}
-          <div className="space-y-2">
-            <div className="editorial-body text-xs text-gray-500">
-              {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Countdown:'}
-            </div>
-            <div className={`editorial-header text-4xl ${getRemainingTime().color} font-bold`}>
-              {getRemainingTime().display}
-            </div>
-            {getRemainingTime().expired && (
-              <div className="editorial-body text-sm text-red-600 font-semibold">
-                ⚠ Release condition met
-              </div>
-            )}
-          </div>
-
-          {/* Check-in Button */}
-          <button
-            onClick={handleCheckIn}
-            className="bg-white text-black border-4 border-black hover:bg-black hover:text-white px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-          >
-            <CheckCircle className="inline mr-4" size={28} />
-            CHECK IN NOW
-          </button>
-
-          {/* Status Metadata Below Button */}
-          <div className="editorial-body text-sm text-gray-600">
-            {isConnected && userDossiers.length > 0 ? (
-              `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
-            ) : (
-              isConnected ? 'No documents created yet' : 'Wallet not connected'
-            )}
-          </div>
-        </div>
-
-        {/* Your Documents */}
-        {isConnected && (
-          <div className="border-2 border-gray-800 mb-12">
-            <div className="bg-gray-800 p-3">
-              <div className="flex justify-between items-center">
-                <h2 style={{color: '#ffffff'}} className="editorial-header text-lg tracking-[0.2em] font-bold">Your Documents</h2>
-                <div className="flex items-center gap-4">
-                  <span style={{color: '#ffffff'}} className="editorial-body text-xs">
-                    {userDossiers.length > 0 
-                      ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
-                      : 'No documents created yet'
-                    }
-                  </span>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await ContractService.checkInAll();
-                        await loadUserDossiers();
-                        setActivityLog(prev => [
-                          { 
-                            type: `Check-in performed for all active documents`, 
-                            date: new Date().toLocaleString() 
-                          },
-                          ...prev
-                        ]);
-                      } catch (error) {
-                        console.error('Failed to perform group check-in:', error);
-                        toast.error('Failed to perform group check-in. Please try again.');
-                      }
-                    }}
-                    disabled={userDossiers.length === 0 || userDossiers.filter(d => d.isActive).length === 0}
-                    className={`px-4 py-2 editorial-body text-xs font-bold border-2 transition-all duration-200 ${
-                      userDossiers.length === 0 || userDossiers.filter(d => d.isActive).length === 0
-                        ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
-                        : 'bg-white text-black hover:bg-black hover:text-white border-white'
-                    }`}
-                  >
-                    ✓ CHECK IN ALL
-                  </button>
+            <div className="max-w-7xl mx-auto px-4 py-12">
+        {!showCreateForm ? (
+          <>
+            {/* Safety Check-in with Countdown */}
+            <div className="text-center mb-16">
+              <div className="space-y-6">
+                {/* Countdown Display */}
+                <div className="space-y-2">
+                  <div className="editorial-body text-sm text-gray-500">
+                    {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
+                  </div>
+                  <div className={`editorial-header text-5xl ${getRemainingTime().color} font-bold font-mono tracking-wide`}>
+                    {getRemainingTime().display}
+                  </div>
+                  {getRemainingTime().expired && (
+                    <div className="editorial-body text-sm text-red-600 font-semibold">
+                      ⚠ Release condition met
+                    </div>
+                  )}
+                </div>
+                
+                {/* Check In Button */}
+                <button
+                  onClick={handleCheckIn}
+                  className="bg-white text-black border-4 border-black hover:bg-black hover:text-white px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                >
+                  <CheckCircle className="inline mr-4" size={28} />
+                  CHECK IN NOW
+                </button>
+                
+                {/* Document Summary */}
+                <div className="editorial-body text-sm text-gray-600">
+                  {isConnected && userDossiers.length > 0 ? (
+                    `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
+                  ) : (
+                    isConnected ? 'No documents created yet' : 'Wallet not connected'
+                  )}
                 </div>
               </div>
             </div>
-            <div className="bg-white">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b-2 border-black bg-gray-50">
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">ID</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">Name</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">Status</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">Time Remaining</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">Interval</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">Files</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">Recipients</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black border-r border-gray-300">Last Check-in</th>
-                      <th className="text-left py-4 px-4 editorial-body font-bold text-xs text-black">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {userDossiers.length > 0 ? (
-                      userDossiers.map((dossier, index) => (
-                      <tr key={dossier.id.toString()} className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          <div className="editorial-body font-bold text-black text-sm">#{dossier.id.toString()}</div>
-                        </td>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          <div className="editorial-body font-semibold text-black text-sm" title={dossier.name}>
-                            {dossier.name}
+
+            {/* Your Documents */}
+            {isConnected && (
+              <div className="border-2 border-gray-800 mb-12">
+                <div className="bg-gray-800 p-3">
+                  <div className="flex justify-between items-center">
+                    <h2 style={{color: '#ffffff'}} className="editorial-header text-lg tracking-[0.2em] font-bold">Your Documents</h2>
+                    <span style={{color: '#ffffff'}} className="editorial-body text-xs">
+                      {userDossiers.length > 0 
+                        ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
+                        : 'No documents created yet'
+                      }
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white p-6">
+                  {userDossiers.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {/* Add New Document Card */}
+                      <div 
+                        onClick={() => setShowCreateForm(true)}
+                        className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-black hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
+                      >
+                        <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
+                          <div className="text-gray-400 group-hover:text-black transition-colors mb-4">
+                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
                           </div>
-                        </td>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          <div className={`editorial-body text-xs font-semibold px-2 py-1 border text-center ${
-                            dossier.isActive 
-                              ? 'border-green-600 text-green-700 bg-green-50' 
-                              : 'border-gray-400 text-gray-600 bg-gray-100'
-                          }`}>
-                            {dossier.isActive ? 'Active' : 'Paused'}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          {dossier.isActive ? (
-                            <div className="editorial-body text-sm font-bold">
-                              {(() => {
-                                const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
-                                const intervalMs = Number(dossier.checkInInterval) * 1000;
-                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                                const remainingMs = intervalMs - timeSinceLastCheckIn;
-                                
-                                if (remainingMs <= 0) {
-                                  return <span className="text-red-600 font-semibold">⚠ Expired</span>;
-                                }
-                                
-                                const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-                                const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-                                const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
-                                
-                                let color = 'text-green-600';
-                                if (remainingMs < 5 * 60 * 1000) {
-                                  color = 'text-red-600';
-                                } else if (remainingMs < 30 * 60 * 1000) {
-                                  color = 'text-orange-500';
-                                } else if (remainingMs < 2 * 60 * 60 * 1000) {
-                                  color = 'text-yellow-600';
-                                }
-                                
-                                let display = '';
-                                if (remainingHours > 0) {
-                                  display = `${remainingHours}H ${remainingMinutes}M`;
-                                } else if (remainingMinutes > 0) {
-                                  display = `${remainingMinutes}M ${remainingSeconds}S`;
-                                } else {
-                                  display = `${remainingSeconds}S`;
-                                }
-                                
-                                return <span className={`${color} font-mono tracking-wide`}>{display}</span>;
-                              })()}
+                          <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-black transition-colors text-center">
+                            CREATE NEW DOCUMENT
+                          </h3>
+                          <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
+                            Encrypt and upload a new file to the deadman switch
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {userDossiers.map((dossier, index) => {
+                        const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                        const intervalMs = Number(dossier.checkInInterval) * 1000;
+                        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                        const remainingMs = intervalMs - timeSinceLastCheckIn;
+                        const isExpired = remainingMs <= 0;
+                        
+                        let timeColor = 'text-green-600';
+                        if (remainingMs < 5 * 60 * 1000) {
+                          timeColor = 'text-red-600';
+                        } else if (remainingMs < 30 * 60 * 1000) {
+                          timeColor = 'text-orange-500';
+                        } else if (remainingMs < 2 * 60 * 60 * 1000) {
+                          timeColor = 'text-yellow-600';
+                        }
+                        
+                        let timeDisplay = '';
+                        if (!dossier.isActive) {
+                          timeDisplay = 'Deactivated';
+                          timeColor = 'text-gray-400';
+                        } else if (isExpired) {
+                          timeDisplay = '⚠ EXPIRED';
+                          timeColor = 'text-red-600';
+                        } else {
+                          const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+                          const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                          const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+                          
+                          if (remainingHours > 0) {
+                            timeDisplay = `${remainingHours}H ${remainingMinutes}M`;
+                          } else if (remainingMinutes > 0) {
+                            timeDisplay = `${remainingMinutes}M ${remainingSeconds}S`;
+                          } else {
+                            timeDisplay = `${remainingSeconds}S`;
+                          }
+                        }
+                        
+                        return (
+                          <div
+                            key={dossier.id.toString()}
+                            className="border-2 border-gray-300 bg-white hover:border-gray-800 hover:shadow-lg transition-all duration-200"
+                          >
+                            {/* Card Header */}
+                            <div className="border-b border-gray-200 p-4">
+                              <h3 className="editorial-header text-base font-bold text-black leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
+                                {(() => {
+                                  const displayName = dossier.name.replace('Encrypted file: ', '');
+                                  return displayName.length > 40 ? `${displayName.substring(0, 40)}...` : displayName;
+                                })()}
+                              </h3>
+                              <div className="flex justify-end items-start">
+                                <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
+                                  dossier.isActive 
+                                    ? 'border-green-600 text-green-700 bg-green-50' 
+                                    : 'border-gray-400 text-gray-600 bg-gray-100'
+                                }`}>
+                                  {dossier.isActive ? 'Active' : 'Deactivated'}
+                                </div>
+                              </div>
                             </div>
-                          ) : (
-                            <div className="editorial-body text-sm text-gray-400 font-semibold">Paused</div>
-                          )}
-                        </td>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          <div className="editorial-body text-sm font-mono text-black">
-                            {Number(dossier.checkInInterval / BigInt(60))}M
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          <div className="editorial-body text-sm font-bold text-black">
-                            {dossier.encryptedFileHashes.length}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          <div className="editorial-body text-sm font-bold text-black">
-                            {dossier.recipients.length}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 border-r border-gray-300">
-                          <div className="editorial-body text-xs font-mono text-gray-600">
-                            {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })} {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex gap-1 flex-wrap">
-                            {(() => {
-                              const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
-                              const intervalMs = Number(dossier.checkInInterval) * 1000;
-                              const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                              const remainingMs = intervalMs - timeSinceLastCheckIn;
-                              const isExpired = remainingMs <= 0;
+                            
+                            {/* Card Body */}
+                            <div className="p-4">
+                              {/* Time Remaining - Most Prominent */}
+                              <div className="text-center mb-4">
+                                <div className="editorial-body text-xs text-gray-500 mb-1">TIME REMAINING</div>
+                                <div className={`editorial-header text-2xl font-bold ${timeColor} font-mono tracking-wide`}>
+                                  {timeDisplay}
+                                </div>
+                              </div>
                               
-                              return (
-                                <>
-                                  {isExpired && dossier.isActive && (
-                                    <button
-                                                                             onClick={async () => {
-                                         try {
-                                           console.log('🔓 Attempting decryption for dossier:', dossier.id.toString());
-                                           console.log('📄 Dossier details:', {
-                                             id: dossier.id.toString(),
-                                             name: dossier.name,
-                                             fileHashes: dossier.encryptedFileHashes.length,
-                                             recipients: dossier.recipients.length,
-                                             isActive: dossier.isActive
-                                           });
-                                           
-                                           // Use dossier's encrypted file data directly
-                                           if (dossier.encryptedFileHashes.length > 0) {
-                                             // Perform real decryption from stored file hash
-                                             const fileHash = dossier.encryptedFileHashes[0];
-                                               if (!fileHash) {
-                                                 throw new Error('No encrypted file hash found in dossier');
-                                               }
-                                               
-                                               console.log('🔓 Attempting to decrypt expired document...');
-                                               const decryptToast = toast.loading('Decrypting expired document...');
-                                               
-                                               // TODO: Implement real decryption from stored hash
-                                               // This would involve:
-                                               // 1. Fetching the encrypted data from IPFS/Codex using the hash
-                                               // 2. Using TACo to decrypt the data (condition should be satisfied)
-                                               // 3. Downloading the decrypted file
-                                               
-                                               toast.error('Real decryption not yet implemented. Document hash: ' + fileHash, { id: decryptToast });
-                                               
-                                               setActivityLog(prev => [
-                                                 { 
-                                                   type: `🔓 Decryption attempted for document #${dossier.id.toString()}`, 
-                                                   date: new Date().toLocaleString() 
-                                                 },
-                                                 ...prev
-                                               ]);
-                                           } else {
-                                             toast.error(`No encrypted files found in this dossier. Dossier #${dossier.id.toString()} appears to be empty or corrupted.`);
-                                           }
-                                         } catch (error) {
-                                           console.error('❌ Failed to decrypt:', error);
-                                           toast.error('Failed to decrypt document. Please try again.');
-                                         }
-                                       }}
-                                      className="editorial-body text-xs px-2 py-1 border border-red-600 text-red-700 hover:bg-red-600 hover:text-white font-semibold transition-colors"
-                                    >
-                                      Decrypt
-                                    </button>
-                                  )}
-                                  
+                              {/* Details Grid */}
+                              <div className="grid grid-cols-2 gap-4 text-center border-t border-gray-200 pt-4">
+                                <div>
+                                  <div className="editorial-body text-xs text-gray-500">INTERVAL</div>
+                                  <div className="editorial-body text-sm font-bold text-black font-mono">
+                                    {Number(dossier.checkInInterval / BigInt(60))}M
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="editorial-body text-xs text-gray-500">RECIPIENTS</div>
+                                  <div className="editorial-body text-sm font-bold text-black">
+                                    {dossier.recipients.length}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="text-center mt-4 pt-4 border-t border-gray-200">
+                                <div className="editorial-body text-xs text-gray-500">LAST CHECK-IN</div>
+                                <div className="editorial-body text-xs font-mono text-gray-600">
+                                  {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })} {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Card Footer - Action Buttons */}
+                            <div className="border-t border-gray-200 p-4">
+                              <div className="space-y-2">
+                                {/* Top Row - Check In and Deactivate */}
+                                <div className="flex gap-2">
                                   <button
                                     onClick={async () => {
                                       try {
@@ -1126,7 +982,7 @@ export default function Home() {
                                       }
                                     }}
                                     disabled={!dossier.isActive}
-                                    className={`editorial-body text-xs px-3 py-2 border-2 font-bold transition-colors ${
+                                    className={`flex-1 editorial-body text-xs px-3 py-2 border-2 font-bold transition-colors ${
                                       dossier.isActive 
                                         ? 'border-black text-black bg-white hover:bg-black hover:text-white' 
                                         : 'border-gray-300 text-gray-500 bg-gray-100 cursor-not-allowed'
@@ -1146,7 +1002,7 @@ export default function Home() {
                                         await loadUserDossiers();
                                         setActivityLog(prev => [
                                           { 
-                                            type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'paused' : 'resumed'}`, 
+                                            type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'deactivated' : 'resumed'}`, 
                                             date: new Date().toLocaleString() 
                                           },
                                           ...prev
@@ -1156,67 +1012,211 @@ export default function Home() {
                                         toast.error('Failed to update document status. Please try again.');
                                       }
                                     }}
-                                    className="editorial-body text-xs px-2 py-1 border border-gray-400 text-gray-600 hover:border-gray-600 hover:text-gray-700 font-semibold transition-colors"
+                                    className="flex-1 editorial-body text-xs px-3 py-2 border-2 border-gray-400 text-gray-600 hover:border-gray-600 hover:text-gray-700 font-bold transition-colors"
                                   >
-                                    {dossier.isActive ? 'Pause' : 'Resume'}
+                                    {dossier.isActive ? 'DEACTIVATE' : 'RESUME'}
                                   </button>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </td>
-                      </tr>
-                    ))) : (
-                      <tr>
-                        <td colSpan={9} className="py-12 px-4 text-center">
-                          <div className="flex flex-col items-center justify-center space-y-4">
-                            <Shield className="text-gray-400" size={48} />
-                            <div className="space-y-2">
-                              <h3 className="editorial-body font-semibold text-lg text-gray-600">No Documents Yet</h3>
-                              <p className="editorial-body text-sm text-gray-500">
-                                Create your first encrypted document using the form on the left.
-                              </p>
-                              <p className="editorial-body text-xs text-gray-400">
-                                Documents will appear here once you encrypt and upload files to the blockchain.
-                              </p>
+                                </div>
+                                
+                                {/* Bottom Row - Decrypt (Full Width) */}
+                                {isExpired && dossier.isActive && (
+                                  <button
+                                    onClick={async () => {
+                                      let decryptToast: any;
+                                      try {
+                                        console.log('🔓 Attempting decryption for dossier:', dossier.id.toString());
+                                        console.log('📄 Dossier details:', {
+                                          id: dossier.id.toString(),
+                                          name: dossier.name,
+                                          fileHashes: dossier.encryptedFileHashes.length,
+                                          recipients: dossier.recipients.length,
+                                          isActive: dossier.isActive
+                                        });
+                                        
+                                        // Use dossier's encrypted file data directly
+                                        if (dossier.encryptedFileHashes.length > 0) {
+                                          // Perform real decryption from stored file hash
+                                          const fileHash = dossier.encryptedFileHashes[0];
+                                            if (!fileHash) {
+                                              throw new Error('No encrypted file hash found in dossier');
+                                            }
+                                            
+                                            console.log('🔓 Attempting to decrypt expired document...');
+                                            decryptToast = toast.loading('Decrypting expired document...');
+                                            
+                                            // Step 1: Fetch encrypted data from IPFS
+                                            const ipfsHash = fileHash.replace('ipfs://', '');
+                                            const ipfsGateways = [
+                                              `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+                                              `https://ipfs.io/ipfs/${ipfsHash}`,
+                                              `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+                                            ];
+                                            
+                                            let retrievedData: Uint8Array | null = null;
+                                            let gatewayUsed = '';
+                                            
+                                            for (const gateway of ipfsGateways) {
+                                              try {
+                                                console.log(`🌐 Trying IPFS gateway: ${gateway}`);
+                                                const response = await fetch(gateway);
+                                                if (response.ok) {
+                                                  const arrayBuffer = await response.arrayBuffer();
+                                                  retrievedData = new Uint8Array(arrayBuffer);
+                                                  gatewayUsed = gateway;
+                                                  console.log(`✅ Retrieved ${retrievedData.length} bytes from ${gateway}`);
+                                                  console.log(`🔍 First 50 bytes:`, Array.from(retrievedData.slice(0, 50)));
+                                                  break;
+                                                }
+                                              } catch (error) {
+                                                console.log(`❌ Gateway ${gateway} failed:`, error);
+                                                continue;
+                                              }
+                                            }
+                                            
+                                            if (!retrievedData) {
+                                              throw new Error('Failed to fetch encrypted data from all IPFS gateways');
+                                            }
+                                            
+                                            // Step 2: Verify and reconstruct messageKit
+                                            console.log(`🔍 Data verification:`);
+                                            console.log(`   - File hash: ${fileHash}`);
+                                            console.log(`   - IPFS hash: ${ipfsHash}`);
+                                            console.log(`   - Gateway used: ${gatewayUsed}`);
+                                            console.log(`   - Data length: ${retrievedData.length} bytes`);
+                                            console.log(`   - Data type: ${Object.prototype.toString.call(retrievedData)}`);
+                                            
+                                                                                           // Step 2a: Initialize TACo before reconstruction
+                                            console.log(`🔧 Initializing TACo...`);
+                                            const { tacoService } = await import('./lib/taco');
+                                            await tacoService.initialize();
+                                            console.log(`✅ TACo initialized`);
+                                            
+                                            // Step 2b: Import and reconstruct MessageKit  
+                                            const { ThresholdMessageKit } = await import('@nucypher/taco');
+                                            console.log(`🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`);
+                                            
+                                            const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
+                                            console.log(`✅ MessageKit reconstructed successfully`);
+                                            
+                                            // Step 3: Decrypt using TACo  
+                                            const decryptedData = await tacoService.decryptFile(messageKit);
+                                            
+                                            // Step 4: Download the decrypted file
+                                            const originalFileName = dossier.name.replace('Encrypted file: ', '') || 'decrypted-document';
+                                            const blob = new Blob([decryptedData]);
+                                            const url = URL.createObjectURL(blob);
+                                            
+                                            const link = document.createElement('a');
+                                            link.href = url;
+                                            link.download = originalFileName;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            URL.revokeObjectURL(url);
+                                            
+                                            toast.success('🎉 Document decrypted and downloaded successfully!', { id: decryptToast });
+                                            
+                                            setActivityLog(prev => [
+                                              { 
+                                                type: `🔓 Document #${dossier.id.toString()} decrypted and downloaded`, 
+                                                date: new Date().toLocaleString() 
+                                              },
+                                              ...prev
+                                            ]);
+                                        } else {
+                                          toast.error(`No encrypted files found in this dossier. Dossier #${dossier.id.toString()} appears to be empty or corrupted.`);
+                                        }
+                                      } catch (error) {
+                                        console.error('❌ Failed to decrypt:', error);
+                                        
+                                        let errorMessage = 'Failed to decrypt document. ';
+                                        if (error instanceof Error) {
+                                          if (error.message.includes('Failed to fetch encrypted data')) {
+                                            errorMessage += 'Could not retrieve file from IPFS. The file may be unavailable.';
+                                          } else if (error.message.includes('fromBytes')) {
+                                            errorMessage += 'Invalid encrypted file format.';
+                                          } else if (error.message.includes('decrypt')) {
+                                            errorMessage += 'Decryption failed. The time condition may not be met yet.';
+                                          } else {
+                                            errorMessage += error.message;
+                                          }
+                                        } else {
+                                          errorMessage += 'Unknown error occurred.';
+                                        }
+                                        
+                                        toast.error(errorMessage, { id: decryptToast });
+                                        
+                                        setActivityLog(prev => [
+                                          { 
+                                            type: `❌ Decryption failed for document #${dossier.id.toString()}`, 
+                                            date: new Date().toLocaleString() 
+                                          },
+                                          ...prev
+                                        ]);
+                                      }
+                                    }}
+                                    className="w-full editorial-body text-xs px-3 py-2 border-2 border-red-600 text-red-700 hover:bg-red-600 hover:text-white font-bold transition-colors"
+                                  >
+                                    🔓 DECRYPT EXPIRED DOCUMENT
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Document Creation */}
-        <div className="mb-12">
-          <div className="border-2 border-gray-800">
-            <div className="bg-gray-800 p-3">
-              <h3 style={{color: '#ffffff'}} className="editorial-header text-sm tracking-[0.2em] font-bold text-center">Document Creation</h3>
-            </div>
-            <div className="bg-white p-6 space-y-6">
-              {/* Document Name */}
-              <div>
-                <div className="border-b-2 border-black pb-3 mb-6">
-                  <label className="editorial-header text-lg font-bold tracking-[0.2em] text-black mb-4 block uppercase">
-                    Document Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter official document title..."
-                    className="w-full border-2 border-gray-800 p-4 editorial-body text-lg font-semibold focus:border-black focus:outline-none bg-gray-50"
-                    value={documentName}
-                    onChange={(e) => setDocumentName(e.target.value)}
-                  />
-                  <p className="editorial-body text-xs text-gray-700 mt-3 font-semibold uppercase tracking-wider">
-                    This name will appear in the blockchain dossier registry
-                  </p>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-16 px-4 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="text-gray-400 mb-4">
+                          <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="editorial-header text-xl font-bold text-gray-600">No Documents Yet</h3>
+                          <p className="editorial-body text-base text-gray-500">
+                            You haven't created any deadman switch documents yet.
+                          </p>
+                          <button
+                            onClick={() => setShowCreateForm(true)}
+                            className="mt-4 px-6 py-3 bg-black text-white hover:bg-gray-800 editorial-body font-bold transition-colors"
+                          >
+                            CREATE FIRST DOCUMENT
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-
+            )}
+          </>
+        ) : (
+          // Document Creation Flow - Full Screen
+          <div className="border-2 border-gray-800 mb-12">
+            <div className="bg-gray-800 p-3">
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    // Reset form when going back
+                    setEncryptedCapsule(null);
+                    setTraceJson(null);
+                    setUploadedFile(null);
+                    setDescription('');
+                  }}
+                  style={{color: '#ffffff'}}
+                  className="editorial-body text-xs font-bold hover:text-gray-300 transition-colors"
+                >
+                  ← BACK TO DOCUMENTS
+                </button>
+                <h3 style={{color: '#ffffff'}} className="editorial-header text-sm tracking-[0.2em] font-bold">Document Creation</h3>
+                <div className="w-24"></div> {/* Spacer for center alignment */}
+              </div>
+            </div>
+            <div className="bg-white p-6 space-y-6">
               {/* File Upload */}
               <div>
                 <div className="border-b border-gray-300 pb-2 mb-4">
@@ -1254,164 +1254,77 @@ export default function Home() {
                     <label className="editorial-body font-semibold text-sm text-black mb-3 block">
                       Check-in Frequency
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <select 
+                      className="w-full border-2 border-gray-300 p-3 editorial-body text-sm focus:border-black focus:outline-none font-mono"
+                      value={checkInInterval}
+                      onChange={(e) => setCheckInInterval(e.target.value)}
+                    >
                       {intervalOptions.map(option => (
-                        <button
-                          key={option.value}
-                          onClick={() => setCheckInInterval(option.value)}
-                          className={`p-3 border-2 editorial-body text-sm font-semibold transition-all duration-200 ${
-                            checkInInterval === option.value
-                              ? 'bg-black text-white border-black'
-                              : 'bg-white text-black border-gray-300 hover:border-black hover:bg-gray-50'
-                          }`}
-                        >
+                        <option key={option.value} value={option.value}>
                           {option.label}
-                        </button>
+                        </option>
                       ))}
-                    </div>
-                    <p className="editorial-body text-xs text-gray-500 mt-3">
+                    </select>
+                    <p className="editorial-body text-xs text-gray-500 mt-2">
                       Documents will be released automatically if no check-in is received within this timeframe
                     </p>
                   </div>
                   
                   <div>
                     <label className="editorial-body font-semibold text-sm text-black mb-3 block">
-                      Document Release
+                      Description (Optional)
                     </label>
-                    
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <button
-                        onClick={() => setReleaseType('contacts')}
-                        className={`p-3 border-2 editorial-body text-sm font-semibold transition-all duration-200 ${
-                          releaseType === 'contacts'
-                            ? 'bg-black text-white border-black'
-                            : 'bg-white text-black border-gray-300 hover:border-black hover:bg-gray-50'
-                        }`}
-                      >
-                        Emergency Contacts
-                      </button>
-                      <button
-                        onClick={() => setReleaseType('public')}
-                        className={`p-3 border-2 editorial-body text-sm font-semibold transition-all duration-200 ${
-                          releaseType === 'public'
-                            ? 'bg-black text-white border-black'
-                            : 'bg-white text-black border-gray-300 hover:border-black hover:bg-gray-50'
-                        }`}
-                      >
-                        Public Release
-                      </button>
-                    </div>
-
-                    {releaseType === 'contacts' ? (
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <p className="editorial-body text-xs text-gray-600">
-                            Add email addresses or Ethereum addresses of people who should receive the document
-                          </p>
-                          <button
-                            onClick={addEmergencyContact}
-                            className="editorial-body text-xs px-3 py-1 border border-gray-400 text-gray-600 hover:border-black hover:text-black font-semibold transition-colors"
-                          >
-                            + Add Contact
-                          </button>
-                        </div>
-                        
-                        {emergencyContacts.map((contact, index) => (
-                          <div key={index} className="flex gap-2">
-                            <input
-                              type="text"
-                              placeholder="emergency@example.com or 0x742d3..."
-                              value={contact}
-                              onChange={(e) => updateEmergencyContact(index, e.target.value)}
-                              className="flex-1 border-2 border-gray-300 p-3 editorial-body text-sm focus:border-black focus:outline-none"
-                            />
-                            {emergencyContacts.length > 1 && (
-                              <button
-                                onClick={() => removeEmergencyContact(index)}
-                                className="px-3 py-2 border-2 border-red-300 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="border-2 border-black bg-white">
-                        <div className="bg-gray-800 p-3">
-                          <p style={{color: '#ffffff'}} className="editorial-header text-sm font-bold tracking-[0.2em]">
-                            ⚠ PUBLIC RELEASE MODE
-                          </p>
-                        </div>
-                        <div className="p-4">
-                          <p className="editorial-body text-sm text-black font-bold leading-relaxed">
-                            When the deadman switch activates, this document will become publicly accessible to anyone possessing the decryption key.
-                          </p>
-                          <p className="editorial-body text-xs text-black mt-3 font-bold uppercase tracking-wider">
-                            No Emergency Contacts • Full Public Access
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    <textarea
+                      placeholder="Enter description or notes..."
+                      className="w-full border-2 border-gray-300 p-3 h-20 resize-none editorial-body text-sm focus:border-black focus:outline-none"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
                   </div>
                   
                   <button
-                    onClick={encryptedCapsule ? commitToCodex : processCanaryTrigger}
-                    disabled={!isFormValid() || isProcessing || isCommitting || !!traceJson}
-                    className="w-full bg-white text-black border-4 border-black hover:bg-black hover:text-white px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                    onClick={processCanaryTrigger}
+                    disabled={!uploadedFile || isProcessing || encryptedCapsule}
+                    className="w-full bg-black text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed py-4 editorial-body font-semibold border-2 border-black transition-all duration-200"
                   >
                     {isProcessing ? (
                       <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black mr-3"></div>
-                        Encrypting...
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                        Encrypting file...
                       </div>
-                    ) : isCommitting ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black mr-3"></div>
-                        {isConnected ? 'Creating...' : 'Uploading...'}
-                      </div>
-                    ) : traceJson ? (
-                      <>
-                        <CheckCircle className="inline mr-3" size={28} />
-                        Document Created Successfully
-                      </>
                     ) : encryptedCapsule ? (
                       <>
-                        <Upload className="inline mr-3" size={28} />
-                        Upload
+                        <CheckCircle className="inline mr-3" size={20} />
+                        File encrypted
                       </>
                     ) : (
                       <>
-                        <Shield className="inline mr-3" size={28} />
-                        Encrypt
+                        <Shield className="inline mr-3" size={20} />
+                        Encrypt file
                       </>
                     )}
                   </button>
 
-                  {/* Step indicator */}
-                  <div className="flex items-center justify-center mt-4 space-x-4">
-                    <div className={`flex items-center space-x-2 ${encryptedCapsule ? 'text-green-600' : 'text-gray-400'}`}>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${encryptedCapsule ? 'bg-green-600 border-green-600' : 'border-gray-400'}`}>
-                        {encryptedCapsule ? (
-                          <CheckCircle className="text-white" size={16} />
-                        ) : (
-                          <span className="text-xs font-bold">1</span>
-                        )}
-                      </div>
-                      <span className="editorial-body text-sm font-semibold">Encrypt</span>
-                    </div>
-                    <div className={`h-0.5 w-8 ${encryptedCapsule ? 'bg-green-600' : 'bg-gray-300'}`}></div>
-                    <div className={`flex items-center space-x-2 ${traceJson ? 'text-green-600' : encryptedCapsule ? 'text-black' : 'text-gray-400'}`}>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${traceJson ? 'bg-green-600 border-green-600' : encryptedCapsule ? 'border-black' : 'border-gray-400'}`}>
-                        {traceJson ? (
-                          <CheckCircle className="text-white" size={16} />
-                        ) : (
-                          <span className="text-xs font-bold">2</span>
-                        )}
-                      </div>
-                      <span className="editorial-body text-sm font-semibold">Upload</span>
-                    </div>
-                  </div>
+                  {/* Commit Button - shown after encryption */}
+                  {encryptedCapsule && !traceJson && (
+                    <button
+                      onClick={commitToCodex}
+                      disabled={isCommitting}
+                      className="w-full bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed py-4 editorial-body font-semibold border-2 border-gray-800 transition-all duration-200"
+                    >
+                      {isCommitting ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                          {isConnected ? 'Creating document...' : 'Uploading file...'}
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="inline mr-3" size={20} />
+                          {isConnected ? 'Create document' : 'Upload file'}
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   {/* Reset Button - shown after everything is complete */}
                   {traceJson && (
@@ -1420,9 +1333,6 @@ export default function Home() {
                         setEncryptedCapsule(null);
                         setTraceJson(null);
                         setUploadedFile(null);
-                        setDocumentName(''); 
-                        setReleaseType('contacts');
-                        setEmergencyContacts(['']);
                       }}
                       className="w-full border-2 border-gray-400 text-gray-600 hover:border-black hover:text-black py-4 editorial-body font-semibold transition-all duration-200"
                     >
@@ -1460,7 +1370,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
