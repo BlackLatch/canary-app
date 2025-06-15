@@ -176,7 +176,7 @@ export default function SharedDossierView() {
         
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-black mb-4"></div>
+                            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900 mb-4"></div>
             <h1 className="editorial-header text-2xl mb-2">Loading Shared Dossiers</h1>
             <p className="editorial-body text-gray-600">Loading dossiers for {sharedAddress?.slice(0, 6)}...{sharedAddress?.slice(-4)}</p>
           </div>
@@ -203,7 +203,7 @@ export default function SharedDossierView() {
             <p className="editorial-body text-gray-600 mb-6">{error}</p>
             <button
               onClick={() => window.location.href = '/'}
-              className="editorial-body px-6 py-3 bg-black text-white hover:bg-gray-800 transition-colors"
+                              className="editorial-body px-6 py-3 bg-gray-900 text-white hover:bg-gray-800 transition-colors"
             >
               ← Back to Home
             </button>
@@ -372,7 +372,7 @@ export default function SharedDossierView() {
                       >
                         {/* Card Header */}
                         <div className="border-b border-gray-200 p-4">
-                          <h3 className="editorial-header text-base font-bold text-black leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
+                          <h3 className="editorial-header text-base font-bold text-gray-900 leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
                             {(() => {
                               const displayName = dossier.name.replace('Encrypted file: ', '');
                               return displayName.length > 40 ? `${displayName.substring(0, 40)}...` : displayName;
@@ -406,7 +406,7 @@ export default function SharedDossierView() {
                           <div className="grid grid-cols-2 gap-4 text-center border-t border-gray-200 pt-4">
                             <div>
                               <div className="editorial-body text-xs text-gray-500">INTERVAL</div>
-                              <div className="editorial-body text-sm font-bold text-black font-mono">
+                                                              <div className="editorial-body text-sm font-bold text-gray-900 font-mono">
                                 {Number(dossier.checkInInterval / BigInt(60))}M
                               </div>
                             </div>

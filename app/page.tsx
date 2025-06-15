@@ -11,6 +11,11 @@ import { Address } from 'viem';
 import { ContractService, CANARY_DOSSIER_ADDRESS, Dossier } from './lib/contract';
 import toast, { Toaster } from 'react-hot-toast';
 
+// Extended dossier interface with accurate decryptable status
+interface DossierWithStatus extends Dossier {
+  isDecryptable: boolean;
+}
+
 export default function Home() {
   const { connectors, connect, isPending } = useConnect();
   const { address, isConnected, chainId } = useAccount();
@@ -27,7 +32,7 @@ export default function Home() {
   const [encryptedCapsule, setEncryptedCapsule] = useState<any>(null);
   const [isCommitting, setIsCommitting] = useState(false);
 
-  const [userDossiers, setUserDossiers] = useState<Dossier[]>([]);
+  const [userDossiers, setUserDossiers] = useState<DossierWithStatus[]>([]);
   const [currentDossierId, setCurrentDossierId] = useState<bigint | null>(null);
   const [contractConstants, setContractConstants] = useState<{
     minInterval: bigint;
@@ -57,7 +62,7 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>(['']);
   const [releaseMode, setReleaseMode] = useState<'public' | 'contacts'>('public');
-  const [currentView, setCurrentView] = useState<'documents' | 'guide'>('documents');
+  const [currentView, setCurrentView] = useState<'checkin' | 'documents' | 'guide'>('checkin');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -498,7 +503,7 @@ export default function Home() {
     }
   };
 
-  // Load user's dossiers from contract
+  // Load user's dossiers from contract with accurate decryptable status
   const loadUserDossiers = async () => {
     if (!isConnected || !address) return;
     
@@ -506,14 +511,38 @@ export default function Home() {
       console.log('📋 Loading user dossiers from contract...');
       const dossierIds = await ContractService.getUserDossierIds(address as Address);
       
-      const dossiers: Dossier[] = [];
+      const dossiers: DossierWithStatus[] = [];
       for (const id of dossierIds) {
         const dossier = await ContractService.getDossier(address as Address, id);
-        dossiers.push(dossier);
+        
+        // Check the actual decryptable status according to contract
+        let shouldStayEncrypted = true;
+        let isDecryptable = false;
+        try {
+          shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(address as Address, id);
+          isDecryptable = !shouldStayEncrypted;
+        } catch (error) {
+          console.warn(`Could not check encryption status for dossier #${id.toString()}:`, error);
+          // Fallback to time-based calculation if contract call fails
+          const timeSinceLastCheckIn = Date.now() / 1000 - Number(dossier.lastCheckIn);
+          const gracePeriod = 3600; // 1 hour grace period (should match contract)
+          isDecryptable = !dossier.isActive || timeSinceLastCheckIn > (Number(dossier.checkInInterval) + gracePeriod);
+        }
+        
+        // Add accurate decryptable status to dossier object
+        const dossierWithStatus: DossierWithStatus = {
+          ...dossier,
+          isDecryptable: isDecryptable
+        };
+        
+        dossiers.push(dossierWithStatus);
+        
+        // Log the true status for debugging
+        console.log(`📄 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}`);
       }
       
       setUserDossiers(dossiers);
-      console.log(`✅ Loaded ${dossiers.length} dossiers`);
+      console.log(`✅ Loaded ${dossiers.length} dossiers with accurate decryptable status`);
       
     } catch (error) {
       console.error('❌ Failed to load dossiers:', error);
@@ -884,9 +913,17 @@ export default function Home() {
             <div className="flex items-center gap-8">
             <nav className="flex gap-8">
               <button 
+                onClick={() => setCurrentView('checkin')}
+                className={`editorial-body font-semibold transition-colors ${
+                                      currentView === 'checkin' ? 'text-gray-900 border-b-2 border-gray-900 pb-1' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Check In
+              </button>
+              <button 
                 onClick={() => setCurrentView('documents')}
                 className={`editorial-body font-semibold transition-colors ${
-                  currentView === 'documents' ? 'text-black border-b-2 border-black pb-1' : 'text-gray-600 hover:text-black'
+                                      currentView === 'documents' ? 'text-gray-900 border-b-2 border-gray-900 pb-1' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Documents
@@ -894,7 +931,7 @@ export default function Home() {
               <button 
                 onClick={() => setCurrentView('guide')}
                 className={`editorial-body font-semibold transition-colors ${
-                  currentView === 'guide' ? 'text-black border-b-2 border-black pb-1' : 'text-gray-600 hover:text-black'
+                                      currentView === 'guide' ? 'text-gray-900 border-b-2 border-gray-900 pb-1' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Guide
@@ -928,92 +965,95 @@ export default function Home() {
         <div className="w-full">
           <CanaryGuideStandalone />
         </div>
+      ) : currentView === 'checkin' ? (
+        // Check In View - Normal Container
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          {/* Safety Check-in with Countdown */}
+          <div className="text-center mb-16">
+            <div className="space-y-6">
+              {/* Countdown Display */}
+              <div className="space-y-2">
+                <div className="editorial-body text-sm text-gray-500">
+                  {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
+                </div>
+                <div className={`editorial-header text-5xl ${getRemainingTime().color} font-bold font-mono tracking-wide`}>
+                  {getRemainingTime().display}
+                </div>
+                {getRemainingTime().expired && (
+                  <div className="editorial-body text-sm text-red-600 font-semibold">
+                    ⚠ Release condition met
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col items-center gap-4">
+                {/* Check In Button */}
+                <button
+                  onClick={handleCheckIn}
+                  disabled={isCheckingIn || !isConnected || userDossiers.filter(d => d.isActive).length === 0}
+                  className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
+                >
+                  {isCheckingIn ? (
+                    <>
+                      <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-current mr-4"></div>
+                      CHECKING IN...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="inline mr-4" size={28} />
+                      CHECK IN NOW
+                    </>
+                  )}
+                </button>
+                
+                {/* Share Button */}
+                {isConnected && address && (
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/share/${address}`;
+                      navigator.clipboard.writeText(shareUrl).then(() => {
+                        toast.success('📋 Share link copied to clipboard!', {
+                          duration: 3000,
+                          style: {
+                            background: '#10B981',
+                            color: 'white',
+                          },
+                        });
+                        setActivityLog(prev => [
+                          { type: `📤 Share link copied: ${shareUrl}`, date: new Date().toLocaleString() },
+                          ...prev
+                        ]);
+                      }).catch(() => {
+                        toast.error('Failed to copy share link');
+                      });
+                    }}
+                    className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white px-6 py-4 editorial-header text-sm font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
+                    title={`Copy shareable link: ${window.location.origin}/share/${address?.slice(0,6)}...${address?.slice(-4)}`}
+                  >
+                    <svg className="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                    </svg>
+                    SHARE
+                  </button>
+                )}
+              </div>
+              
+              {/* Document Summary */}
+              <div className="editorial-body text-sm text-gray-600">
+                {isConnected && userDossiers.length > 0 ? (
+                  `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
+                ) : (
+                  isConnected ? 'No documents created yet' : 'Wallet not connected'
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         // Documents View - Normal Container
         <div className="max-w-7xl mx-auto px-4 py-12">
           {!showCreateForm ? (
             <>
-              {/* Safety Check-in with Countdown */}
-              <div className="text-center mb-16">
-                <div className="space-y-6">
-                  {/* Countdown Display */}
-                  <div className="space-y-2">
-                    <div className="editorial-body text-sm text-gray-500">
-                      {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
-                    </div>
-                    <div className={`editorial-header text-5xl ${getRemainingTime().color} font-bold font-mono tracking-wide`}>
-                      {getRemainingTime().display}
-                    </div>
-                    {getRemainingTime().expired && (
-                      <div className="editorial-body text-sm text-red-600 font-semibold">
-                        ⚠ Release condition met
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-col items-center gap-4">
-                    {/* Check In Button */}
-                    <button
-                      onClick={handleCheckIn}
-                      disabled={isCheckingIn || !isConnected || userDossiers.filter(d => d.isActive).length === 0}
-                      className="bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                    >
-                      {isCheckingIn ? (
-                        <>
-                          <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-current mr-4"></div>
-                          CHECKING IN...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="inline mr-4" size={28} />
-                          CHECK IN NOW
-                        </>
-                      )}
-                    </button>
-                    
-                    {/* Share Button */}
-                    {isConnected && address && (
-                      <button
-                        onClick={() => {
-                          const shareUrl = `${window.location.origin}/share/${address}`;
-                          navigator.clipboard.writeText(shareUrl).then(() => {
-                            toast.success('📋 Share link copied to clipboard!', {
-                              duration: 3000,
-                              style: {
-                                background: '#10B981',
-                                color: 'white',
-                              },
-                            });
-                            setActivityLog(prev => [
-                              { type: `📤 Share link copied: ${shareUrl}`, date: new Date().toLocaleString() },
-                              ...prev
-                            ]);
-                          }).catch(() => {
-                            toast.error('Failed to copy share link');
-                          });
-                        }}
-                        className="bg-white text-black border-4 border-black hover:bg-black hover:text-white px-6 py-4 editorial-header text-sm font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                        title={`Copy shareable link: ${window.location.origin}/share/${address?.slice(0,6)}...${address?.slice(-4)}`}
-                      >
-                        <svg className="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                        </svg>
-                        SHARE
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Document Summary */}
-                  <div className="editorial-body text-sm text-gray-600">
-                    {isConnected && userDossiers.length > 0 ? (
-                      `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
-                    ) : (
-                      isConnected ? 'No documents created yet' : 'Wallet not connected'
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* Your Documents */}
               {isConnected && (
                 <div className="border-2 border-gray-800 mb-12">
@@ -1034,15 +1074,15 @@ export default function Home() {
                         {/* Add New Document Card */}
                         <div 
                           onClick={() => setShowCreateForm(true)}
-                          className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-black hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
+                          className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-gray-900 hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
                         >
                           <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
-                            <div className="text-gray-400 group-hover:text-black transition-colors mb-4">
+                            <div className="text-gray-400 group-hover:text-gray-900 transition-colors mb-4">
                               <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                               </svg>
                             </div>
-                            <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-black transition-colors text-center">
+                            <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors text-center">
                               CREATE NEW DOCUMENT
                             </h3>
                             <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
@@ -1095,7 +1135,7 @@ export default function Home() {
                             >
                               {/* Card Header */}
                               <div className="border-b border-gray-200 p-4">
-                                <h3 className="editorial-header text-base font-bold text-black leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
+                                <h3 className="editorial-header text-base font-bold text-gray-900 leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
                                   {(() => {
                                     const displayName = dossier.name.replace('Encrypted file: ', '');
                                     return displayName.length > 40 ? `${displayName.substring(0, 40)}...` : displayName;
@@ -1126,13 +1166,13 @@ export default function Home() {
                                 <div className="grid grid-cols-2 gap-4 text-center border-t border-gray-200 pt-4">
                                   <div>
                                     <div className="editorial-body text-xs text-gray-500">INTERVAL</div>
-                                    <div className="editorial-body text-sm font-bold text-black font-mono">
+                                    <div className="editorial-body text-sm font-bold text-gray-900 font-mono">
                                       {Number(dossier.checkInInterval / BigInt(60))}M
                                     </div>
                                   </div>
                                   <div>
                                     <div className="editorial-body text-xs text-gray-500">RECIPIENTS</div>
-                                    <div className="editorial-body text-sm font-bold text-black">
+                                    <div className="editorial-body text-sm font-bold text-gray-900">
                                       {dossier.recipients.length}
                                     </div>
                                   </div>
@@ -1171,7 +1211,7 @@ export default function Home() {
                                       disabled={!dossier.isActive}
                                       className={`flex-1 editorial-body text-xs px-3 py-2 border-2 font-bold transition-colors ${
                                         dossier.isActive 
-                                          ? 'border-black text-black bg-white hover:bg-black hover:text-white' 
+                                          ? 'border-gray-900 text-gray-900 bg-white hover:bg-gray-900 hover:text-white' 
                                           : 'border-gray-300 text-gray-500 bg-gray-100 cursor-not-allowed'
                                       }`}
                                     >
@@ -1206,7 +1246,7 @@ export default function Home() {
                                   </div>
                                   
                                   {/* Bottom Row - Decrypt (Full Width) */}
-                                  {isExpired && dossier.isActive && (
+                                  {dossier.isDecryptable && dossier.encryptedFileHashes.length > 0 ? (
                                     <button
                                       onClick={async () => {
                                         let decryptToast: any;
@@ -1346,6 +1386,12 @@ export default function Home() {
                                     >
                                       🔓 DECRYPT EXPIRED DOCUMENT
                                     </button>
+                                  ) : (
+                                    <div className="w-full text-center py-2 editorial-body text-xs text-gray-500">
+                                      {!dossier.isActive ? 'Document deactivated' : 
+                                       !dossier.isDecryptable ? 'Not yet expired' : 
+                                       'No files available'}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1368,7 +1414,7 @@ export default function Home() {
                             </p>
                             <button
                               onClick={() => setShowCreateForm(true)}
-                              className="mt-4 px-6 py-3 bg-black text-white hover:bg-gray-800 editorial-body font-bold transition-colors"
+                              className="mt-4 px-6 py-3 bg-gray-900 text-white hover:bg-gray-800 editorial-body font-bold transition-colors"
                             >
                               CREATE FIRST DOCUMENT
                             </button>
@@ -1414,7 +1460,7 @@ export default function Home() {
                     <div className="mb-4">
                       <button
                         onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                        className="flex items-center text-gray-600 hover:text-black editorial-body text-sm font-semibold transition-colors"
+                        className="flex items-center text-gray-600 hover:text-gray-900 editorial-body text-sm font-semibold transition-colors"
                       >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1435,7 +1481,7 @@ export default function Home() {
                           <div key={segment} className="flex-1 relative">
                             <div className={`h-1 absolute top-0 left-0 transition-all duration-500 ${
                               segment < currentStep ? 'w-full bg-green-600' :
-                              segment === currentStep ? 'w-1/2 bg-black' :
+                              segment === currentStep ? 'w-1/2 bg-gray-900' :
                               'w-0 bg-gray-300'
                             }`}></div>
                           </div>
@@ -1447,7 +1493,7 @@ export default function Home() {
                         {[1, 2, 3, 4, 5].map((step) => (
                           <div key={step} className="flex flex-col items-center">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
-                              step === currentStep ? 'bg-black text-white border-black shadow-lg scale-110' :
+                              step === currentStep ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-110' :
                               step < currentStep ? 'bg-green-600 text-white border-green-600 shadow-md' :
                               'bg-white text-gray-600 border-gray-300 shadow-sm'
                             }`}>
@@ -1493,7 +1539,7 @@ export default function Home() {
                         <input
                           type="text"
                           placeholder="Enter document name..."
-                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-black focus:outline-none rounded"
+                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-gray-900 focus:outline-none rounded"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           autoFocus
@@ -1516,7 +1562,7 @@ export default function Home() {
                       </div>
                       <div className="max-w-lg mx-auto">
                         <div
-                          className="border-2 border-dashed border-gray-400 text-center py-12 cursor-pointer hover:border-black transition-colors bg-gray-50 rounded"
+                          className="border-2 border-dashed border-gray-400 text-center py-12 cursor-pointer hover:border-gray-900 transition-colors bg-gray-50 rounded"
                           onDragOver={handleDragOver}
                           onDrop={handleDrop}
                           onClick={() => fileInputRef.current?.click()}
@@ -1550,7 +1596,7 @@ export default function Home() {
                       </div>
                       <div className="max-w-md mx-auto">
                         <select 
-                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-black focus:outline-none font-mono rounded"
+                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-gray-900 focus:outline-none font-mono rounded"
                           value={checkInInterval}
                           onChange={(e) => setCheckInInterval(e.target.value)}
                         >
@@ -1579,13 +1625,13 @@ export default function Home() {
                       <div className="max-w-lg mx-auto space-y-4">
                         <div 
                           className={`border-2 p-4 rounded cursor-pointer transition-all ${
-                            releaseMode === 'public' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50' : 'border-gray-300 hover:border-gray-400'
                           }`}
                           onClick={() => setReleaseMode('public')}
                         >
                           <div className="flex items-start">
                             <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
-                              releaseMode === 'public' ? 'border-black bg-black' : 'border-gray-300'
+                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900' : 'border-gray-300'
                             }`}>
                               {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
                             </div>
@@ -1600,13 +1646,13 @@ export default function Home() {
                         
                         <div 
                           className={`border-2 p-4 rounded cursor-pointer transition-all ${
-                            releaseMode === 'contacts' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50' : 'border-gray-300 hover:border-gray-400'
                           }`}
                           onClick={() => setReleaseMode('contacts')}
                         >
                           <div className="flex items-start">
                             <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
-                              releaseMode === 'contacts' ? 'border-black bg-black' : 'border-gray-300'
+                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900' : 'border-gray-300'
                             }`}>
                               {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
                             </div>
@@ -1622,7 +1668,7 @@ export default function Home() {
                                       <input
                                         type="text"
                                         placeholder="Email address or Ethereum address"
-                                        className="flex-1 border border-gray-300 p-2 editorial-body text-sm focus:border-black focus:outline-none rounded"
+                                        className="flex-1 border border-gray-300 p-2 editorial-body text-sm focus:border-gray-900 focus:outline-none rounded"
                                         value={contact}
                                         onChange={(e) => {
                                           const newContacts = [...emergencyContacts];
@@ -1645,7 +1691,7 @@ export default function Home() {
                                   ))}
                                   <button
                                     onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
-                                    className="text-sm editorial-body text-gray-600 hover:text-black"
+                                    className="text-sm editorial-body text-gray-600 hover:text-gray-900"
                                   >
                                     + Add another contact
                                   </button>
@@ -1707,7 +1753,7 @@ export default function Home() {
                             <button
                               onClick={processCanaryTrigger}
                               disabled={!uploadedFile || isProcessing || !name.trim()}
-                              className="w-full bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
                             >
                               {isProcessing ? (
                                 <div className="flex items-center justify-center">
@@ -1727,7 +1773,7 @@ export default function Home() {
                             <button
                               onClick={commitToCodex}
                               disabled={isCommitting}
-                              className="w-full bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
                             >
                               {isCommitting ? (
                                 <div className="flex items-center justify-center">
@@ -1755,7 +1801,7 @@ export default function Home() {
                                 setEmergencyContacts(['']);
                                 setReleaseMode('public');
                               }}
-                              className="w-full border-2 border-gray-400 text-gray-600 hover:border-black hover:text-black py-4 editorial-body font-semibold transition-all duration-200 rounded"
+                              className="w-full border-2 border-gray-400 text-gray-600 hover:border-gray-900 hover:text-gray-900 py-4 editorial-body font-semibold transition-all duration-200 rounded"
                             >
                               Create New Document
                             </button>
@@ -1792,7 +1838,7 @@ export default function Home() {
                         }
                         setCurrentStep(Math.min(5, currentStep + 1));
                       }}
-                      className="px-6 py-2 bg-black text-white hover:bg-gray-800 editorial-body font-semibold transition-colors rounded"
+                      className="px-6 py-2 bg-gray-900 text-white hover:bg-gray-800 editorial-body font-semibold transition-colors rounded"
                     >
                       {currentStep === 4 ? 'Review' : 'Next'}
                     </button>
