@@ -460,6 +460,42 @@ export class ContractService {
       
       console.log('✅ Pre-flight validation passed!');
 
+      // COMPREHENSIVE CONTRACT BUG DIAGNOSIS FOR CREATE DOSSIER
+      console.log('🔍🐛 RUNNING CREATE DOSSIER BUG DIAGNOSIS...');
+      const bugDiagnosis = await this.diagnoseContractBugs(account.address);
+      console.log('📊 Create dossier bug diagnosis:', bugDiagnosis);
+      
+      if (bugDiagnosis.hasBugs) {
+        console.error('🐛💥 CONTRACT BUGS DETECTED BEFORE CREATE:');
+        bugDiagnosis.bugReports.forEach(bug => console.error(`   ${bug}`));
+        
+        // Check if the bugs would prevent creating new dossiers
+        if (bugDiagnosis.bugReports.some(bug => bug.includes('ID ASSIGNMENT'))) {
+          console.error('⚠️ ID assignment bugs detected - this may affect dossier creation');
+        }
+      }
+      
+      // Check user's current dossier state for ID conflicts
+      const currentCount = bugDiagnosis.contractState.totalDossiers;
+      const nextExpectedId = currentCount; // Contract uses count as next ID
+      console.log(`🔍 Current dossier count: ${currentCount}, next expected ID: ${nextExpectedId}`);
+      
+      // Check if there would be ID conflicts
+      const existingIds = bugDiagnosis.contractState.dossierIds || [];
+      console.log(`📋 Existing dossier IDs: [${existingIds.join(', ')}]`);
+      
+      if (existingIds.includes(nextExpectedId.toString())) {
+        throw new Error(`ID CONFLICT: Next dossier would get ID ${nextExpectedId} but that ID already exists!`);
+      }
+      
+      // Check dossier count limit
+      const constants = await this.getConstants();
+      if (currentCount >= Number(constants.maxDossiers)) {
+        throw new Error(`DOSSIER LIMIT REACHED: User has ${currentCount}/${constants.maxDossiers} dossiers`);
+      }
+      
+      console.log(`✅ Create dossier diagnosis passed: Ready to create dossier #${nextExpectedId}`);
+
       // VERIFY WALLET PROVIDER USAGE
       console.log('🔍 Verifying wallet provider usage...');
       const providerVerification = await this.verifyWalletProvider();
@@ -1069,39 +1105,98 @@ export class ContractService {
         return txHashes[0]; // Return first transaction hash for compatibility
       }
 
-      // STEP 4: Try the bulk checkInAll function (account already available from step 1)
-      console.log('🚀 Attempting bulk checkInAll...');
+      // STEP 4: Try the bulk checkInAll with retry logic for intermittent issues
+      console.log('🚀 Attempting bulk checkInAll with retry logic...');
       
-      // CRITICAL: Verify wallet provider connection before check-in
-      console.log('🔧 Verifying wallet provider for bulk check-in...');
-      const walletVerification = await this.verifyWalletProvider();
-      console.log('🔍 Wallet provider verification:', walletVerification);
+      const MAX_RETRIES = 3;
+      let lastError: any = null;
       
-      if (!walletVerification.usingWalletProvider) {
-        throw new Error('❌ Not using wallet provider! Check wallet connection.');
-      }
-      
-      if (!walletVerification.networkMatch) {
-        throw new Error(`❌ Network mismatch! Wallet chain: ${walletVerification.walletChainId}, Config chain: ${walletVerification.configChainId}`);
-      }
-      
-      console.log('✅ Wallet provider verification passed for bulk check-in');
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          console.log(`🔄 Attempt ${attempt}/${MAX_RETRIES} for bulk check-in`);
+          
+          // Add small delay between attempts to help with timing issues
+          if (attempt > 1) {
+            console.log('⏳ Waiting 2 seconds before retry to allow network sync...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+          
+          // TIMING: Record state before transaction
+          const preTransactionTime = Date.now();
+          console.log(`🕐 Pre-transaction timestamp: ${preTransactionTime}`);
+          
+          // Re-verify wallet state for each attempt
+          console.log(`🔧 Attempt ${attempt}: Verifying wallet provider...`);
+          const walletVerification = await this.verifyWalletProvider();
+          console.log('🔍 Wallet provider verification:', walletVerification);
+          
+          if (!walletVerification.usingWalletProvider) {
+            throw new Error('❌ Not using wallet provider! Check wallet connection.');
+          }
+          
+          if (!walletVerification.networkMatch) {
+            throw new Error(`❌ Network mismatch! Wallet chain: ${walletVerification.walletChainId}, Config chain: ${walletVerification.configChainId}`);
+          }
+          
+          console.log(`✅ Attempt ${attempt}: Wallet provider verification passed`);
 
-      // Use wallet provider for bulk check-in transaction
-      console.log('📤 Executing bulk check-in transaction via wallet provider...');
-      const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_ADDRESS,
-        abi: CANARY_DOSSIER_ABI,
-        functionName: 'checkInAll',
-        args: [],
-        gas: BigInt(500000), // Higher gas limit for bulk operation
-      });
+          // Quick state check before transaction
+          console.log(`🔍 Attempt ${attempt}: Quick state verification...`);
+          const quickCheck = await this.getUserDossierIds(account.address);
+          console.log(`📋 User still has ${quickCheck.length} dossiers: [${quickCheck.map(id => id.toString()).join(', ')}]`);
+          
+          // Use wallet provider for bulk check-in transaction
+          console.log(`📤 Attempt ${attempt}: Executing bulk check-in transaction...`);
+          const hash = await writeContract(config, {
+            address: CANARY_DOSSIER_ADDRESS,
+            abi: CANARY_DOSSIER_ABI,
+            functionName: 'checkInAll',
+            args: [],
+            gas: BigInt(500000), // Higher gas limit for bulk operation
+          });
+          
+          console.log(`⏳ Attempt ${attempt}: Waiting for transaction confirmation...`);
+          await waitForTransactionReceipt(config, { hash });
+          
+          // TIMING: Record success
+          const postTransactionTime = Date.now();
+          const duration = postTransactionTime - preTransactionTime;
+          console.log(`✅ Bulk check-in successful on attempt ${attempt}! Duration: ${duration}ms`);
+          console.log(`✅ Transaction hash: ${hash}`);
+          return hash;
+          
+        } catch (error) {
+          lastError = error;
+          console.error(`❌ Attempt ${attempt}/${MAX_RETRIES} failed:`, error);
+          
+          // Analyze the error for retry strategy
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          if (errorMessage.includes('user rejected')) {
+            console.log('🛑 User rejected transaction - not retrying');
+            throw error;
+          }
+          
+          if (errorMessage.includes('insufficient funds')) {
+            console.log('🛑 Insufficient funds - not retrying');
+            throw error;
+          }
+          
+          if (attempt < MAX_RETRIES) {
+            console.log(`🔄 Will retry attempt ${attempt + 1} after delay...`);
+            
+            // Progressive delay: 2s, 4s, 6s
+            const delay = attempt * 2000;
+            console.log(`⏳ Waiting ${delay}ms before next attempt...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            console.error(`💥 All ${MAX_RETRIES} attempts failed. Last error:`, lastError);
+          }
+        }
+      }
       
-      console.log('⏳ Waiting for bulk check-in transaction confirmation...');
-      await waitForTransactionReceipt(config, { hash });
-      
-      console.log('✅ Bulk check-in successful! Transaction hash:', hash);
-      return hash;
+      // If we get here, all retries failed
+      throw new Error(`Bulk check-in failed after ${MAX_RETRIES} attempts. Last error: ${lastError}`);
       
     } catch (error) {
       console.error('❌ Bulk check-in failed, trying individual fallback:', error);
