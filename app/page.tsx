@@ -951,24 +951,57 @@ export default function Home() {
                     )}
                   </div>
                   
-                  {/* Check In Button */}
-                  <button
-                    onClick={handleCheckIn}
-                    disabled={isCheckingIn || !isConnected || userDossiers.filter(d => d.isActive).length === 0}
-                    className="bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                  >
-                    {isCheckingIn ? (
-                      <>
-                        <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-current mr-4"></div>
-                        CHECKING IN...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="inline mr-4" size={28} />
-                        CHECK IN NOW
-                      </>
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Check In Button */}
+                    <button
+                      onClick={handleCheckIn}
+                      disabled={isCheckingIn || !isConnected || userDossiers.filter(d => d.isActive).length === 0}
+                      className="bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                    >
+                      {isCheckingIn ? (
+                        <>
+                          <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-current mr-4"></div>
+                          CHECKING IN...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="inline mr-4" size={28} />
+                          CHECK IN NOW
+                        </>
+                      )}
+                    </button>
+                    
+                    {/* Share Button */}
+                    {isConnected && address && (
+                      <button
+                        onClick={() => {
+                          const shareUrl = `${window.location.origin}/share/${address}`;
+                          navigator.clipboard.writeText(shareUrl).then(() => {
+                            toast.success('📋 Share link copied to clipboard!', {
+                              duration: 3000,
+                              style: {
+                                background: '#10B981',
+                                color: 'white',
+                              },
+                            });
+                            setActivityLog(prev => [
+                              { type: `📤 Share link copied: ${shareUrl}`, date: new Date().toLocaleString() },
+                              ...prev
+                            ]);
+                          }).catch(() => {
+                            toast.error('Failed to copy share link');
+                          });
+                        }}
+                        className="bg-white text-black border-4 border-black hover:bg-black hover:text-white px-6 py-4 editorial-header text-sm font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                        title={`Copy shareable link: ${window.location.origin}/share/${address?.slice(0,6)}...${address?.slice(-4)}`}
+                      >
+                        <svg className="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                        </svg>
+                        SHARE
+                      </button>
                     )}
-                  </button>
+                  </div>
                   
                   {/* Document Summary */}
                   <div className="editorial-body text-sm text-gray-600">
