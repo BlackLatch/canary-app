@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { encryptFileWithCondition, commitEncryptedFileToPinata, DeadmanCondition, TraceJson } from './lib/taco';
 import Onboarding from './components/Onboarding';
+import CanaryGuideStandalone from './components/CanaryGuideStandalone';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { polygonAmoy } from 'wagmi/chains';
 import { Address } from 'viem';
@@ -56,6 +57,7 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>(['']);
   const [releaseMode, setReleaseMode] = useState<'public' | 'contacts'>('public');
+  const [currentView, setCurrentView] = useState<'documents' | 'guide'>('documents');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -738,7 +740,7 @@ export default function Home() {
 
   // Show sign-in page if onboarding complete but not signed in
   if (!signedIn) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8" style={{ zoom: '0.8' }}>
         <div className="max-w-2xl w-full text-center">
           {/* Canary wordmark */}
@@ -792,17 +794,62 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ zoom: '0.8' }}>
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="editorial-header text-3xl tracking-[0.2em]">CANARY</h1>
+    <>
+      {/* Global Grid Animation Styles */}
+      <style>
+        {`
+          @keyframes gridMove {
+            0% { background-position: 0px 0px; }
+            100% { background-position: 80px -80px; }
+          }
           
-          <div className="flex items-center gap-8">
+          .canary-grid-background {
+            background-color: #f8f9fa;
+            background-image: 
+              linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+            background-size: 80px 80px;
+            animation: gridMove 12s linear infinite;
+          }
+        `}
+      </style>
+      
+             <div className="min-h-screen canary-grid-background relative" style={{ zoom: '0.8' }}>
+        {/* Logo - Fixed Top Left */}
+        <div className="absolute top-6 left-6 z-50">
+          <img 
+            src="/canary.png" 
+            alt="Canary" 
+            className="h-20 w-auto"
+            style={{
+              filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
+            }}
+          />
+        </div>
+
+        {/* Header */}
+        <header className="border-b border-gray-200/30 px-4 py-6">
+                  <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div></div> {/* Spacer for layout balance */}
+            
+            <div className="flex items-center gap-8">
             <nav className="flex gap-8">
-              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Home</a>
-              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Triggers</a>
-              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Settings</a>
+              <button 
+                onClick={() => setCurrentView('documents')}
+                className={`editorial-body font-semibold transition-colors ${
+                  currentView === 'documents' ? 'text-black border-b-2 border-black pb-1' : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                Documents
+              </button>
+              <button 
+                onClick={() => setCurrentView('guide')}
+                className={`editorial-body font-semibold transition-colors ${
+                  currentView === 'guide' ? 'text-black border-b-2 border-black pb-1' : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                Guide
+              </button>
             </nav>
             
             {/* Wallet Status */}
@@ -813,8 +860,8 @@ export default function Home() {
                 </div>
                 <a 
                   href={`https://amoy.polygonscan.com/address/${CANARY_DOSSIER_ADDRESS}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
                   className="editorial-body text-xs px-2 py-1 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
                   title={`View contract on Polygon Amoy: ${CANARY_DOSSIER_ADDRESS}`}
                 >
@@ -826,7 +873,7 @@ export default function Home() {
                 >
                   Log out
                 </button>
-              </div>
+        </div>
             ) : (
               <div className="editorial-body text-sm text-gray-500">
                 Not Connected
@@ -836,835 +883,847 @@ export default function Home() {
         </div>
       </header>
 
-            <div className="max-w-7xl mx-auto px-4 py-12">
-        {!showCreateForm ? (
-          <>
-            {/* Safety Check-in with Countdown */}
-            <div className="text-center mb-16">
-              <div className="space-y-6">
-                {/* Countdown Display */}
-                <div className="space-y-2">
-                  <div className="editorial-body text-sm text-gray-500">
-                    {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
-                  </div>
-                  <div className={`editorial-header text-5xl ${getRemainingTime().color} font-bold font-mono tracking-wide`}>
-                    {getRemainingTime().display}
-                  </div>
-                  {getRemainingTime().expired && (
-                    <div className="editorial-body text-sm text-red-600 font-semibold">
-                      ⚠ Release condition met
+      {currentView === 'guide' ? (
+        // Guide View - Full Content Area
+        <div className="w-full">
+          <CanaryGuideStandalone />
+        </div>
+      ) : (
+        // Documents View - Normal Container
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          {!showCreateForm ? (
+            <>
+              {/* Safety Check-in with Countdown */}
+              <div className="text-center mb-16">
+                <div className="space-y-6">
+                  {/* Countdown Display */}
+                  <div className="space-y-2">
+                    <div className="editorial-body text-sm text-gray-500">
+                      {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
                     </div>
-                  )}
-                </div>
-                
-                {/* Check In Button */}
-                <button
-                  onClick={handleCheckIn}
-                  className="bg-white text-black border-4 border-black hover:bg-black hover:text-white px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                >
-                  <CheckCircle className="inline mr-4" size={28} />
-                  CHECK IN NOW
-                </button>
-                
-                {/* Document Summary */}
-                <div className="editorial-body text-sm text-gray-600">
-                  {isConnected && userDossiers.length > 0 ? (
-                    `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
-                  ) : (
-                    isConnected ? 'No documents created yet' : 'Wallet not connected'
-                  )}
+                    <div className={`editorial-header text-5xl ${getRemainingTime().color} font-bold font-mono tracking-wide`}>
+                      {getRemainingTime().display}
+                    </div>
+                    {getRemainingTime().expired && (
+                      <div className="editorial-body text-sm text-red-600 font-semibold">
+                        ⚠ Release condition met
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Check In Button */}
+                  <button
+                    onClick={handleCheckIn}
+                    className="bg-white text-black border-4 border-black hover:bg-black hover:text-white px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                  >
+                    <CheckCircle className="inline mr-4" size={28} />
+                    CHECK IN NOW
+                  </button>
+                  
+                  {/* Document Summary */}
+                  <div className="editorial-body text-sm text-gray-600">
+                    {isConnected && userDossiers.length > 0 ? (
+                      `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
+                    ) : (
+                      isConnected ? 'No documents created yet' : 'Wallet not connected'
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Your Documents */}
-            {isConnected && (
-              <div className="border-2 border-gray-800 mb-12">
-                <div className="bg-gray-800 p-3">
-                  <div className="flex justify-between items-center">
-                    <h2 style={{color: '#ffffff'}} className="editorial-header text-lg tracking-[0.2em] font-bold">Your Documents</h2>
-                    <span style={{color: '#ffffff'}} className="editorial-body text-xs">
-                      {userDossiers.length > 0 
-                        ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
-                        : 'No documents created yet'
-                      }
-                    </span>
+              {/* Your Documents */}
+              {isConnected && (
+                <div className="border-2 border-gray-800 mb-12">
+                  <div className="bg-gray-800 p-3">
+                    <div className="flex justify-between items-center">
+                      <h2 style={{color: '#ffffff'}} className="editorial-header text-lg tracking-[0.2em] font-bold">Your Documents</h2>
+                      <span style={{color: '#ffffff'}} className="editorial-body text-xs">
+                        {userDossiers.length > 0 
+                          ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
+                          : 'No documents created yet'
+                        }
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="bg-white p-6">
-                  {userDossiers.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {/* Add New Document Card */}
-                      <div 
-                        onClick={() => setShowCreateForm(true)}
-                        className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-black hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
-                      >
-                        <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
-                          <div className="text-gray-400 group-hover:text-black transition-colors mb-4">
-                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
+                  <div className="bg-white/90 backdrop-blur-sm p-6">
+                    {userDossiers.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {/* Add New Document Card */}
+                        <div 
+                          onClick={() => setShowCreateForm(true)}
+                          className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-black hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
+                        >
+                          <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
+                            <div className="text-gray-400 group-hover:text-black transition-colors mb-4">
+                              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                            </div>
+                            <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-black transition-colors text-center">
+                              CREATE NEW DOCUMENT
+                            </h3>
+                            <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
+                              Encrypt and upload a new file to the deadman switch
+                            </p>
                           </div>
-                          <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-black transition-colors text-center">
-                            CREATE NEW DOCUMENT
-                          </h3>
-                          <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
-                            Encrypt and upload a new file to the deadman switch
-                          </p>
                         </div>
-                      </div>
-                      
-                      {userDossiers.map((dossier, index) => {
-                        const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
-                        const intervalMs = Number(dossier.checkInInterval) * 1000;
-                        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                        const remainingMs = intervalMs - timeSinceLastCheckIn;
-                        const isExpired = remainingMs <= 0;
                         
-                        let timeColor = 'text-green-600';
-                        if (remainingMs < 5 * 60 * 1000) {
-                          timeColor = 'text-red-600';
-                        } else if (remainingMs < 30 * 60 * 1000) {
-                          timeColor = 'text-orange-500';
-                        } else if (remainingMs < 2 * 60 * 60 * 1000) {
-                          timeColor = 'text-yellow-600';
-                        }
-                        
-                        let timeDisplay = '';
-                        if (!dossier.isActive) {
-                          timeDisplay = 'Deactivated';
-                          timeColor = 'text-gray-400';
-                        } else if (isExpired) {
-                          timeDisplay = '⚠ EXPIRED';
-                          timeColor = 'text-red-600';
-                        } else {
-                          const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-                          const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-                          const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+                        {userDossiers.map((dossier, index) => {
+                          const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                          const intervalMs = Number(dossier.checkInInterval) * 1000;
+                          const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                          const remainingMs = intervalMs - timeSinceLastCheckIn;
+                          const isExpired = remainingMs <= 0;
                           
-                          if (remainingHours > 0) {
-                            timeDisplay = `${remainingHours}H ${remainingMinutes}M`;
-                          } else if (remainingMinutes > 0) {
-                            timeDisplay = `${remainingMinutes}M ${remainingSeconds}S`;
-                          } else {
-                            timeDisplay = `${remainingSeconds}S`;
+                          let timeColor = 'text-green-600';
+                          if (remainingMs < 5 * 60 * 1000) {
+                            timeColor = 'text-red-600';
+                          } else if (remainingMs < 30 * 60 * 1000) {
+                            timeColor = 'text-orange-500';
+                          } else if (remainingMs < 2 * 60 * 60 * 1000) {
+                            timeColor = 'text-yellow-600';
                           }
-                        }
-                        
-                        return (
-                          <div
-                            key={dossier.id.toString()}
-                            className="border-2 border-gray-300 bg-white hover:border-gray-800 hover:shadow-lg transition-all duration-200"
-                          >
-                            {/* Card Header */}
-                            <div className="border-b border-gray-200 p-4">
-                              <h3 className="editorial-header text-base font-bold text-black leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
-                                {(() => {
-                                  const displayName = dossier.name.replace('Encrypted file: ', '');
-                                  return displayName.length > 40 ? `${displayName.substring(0, 40)}...` : displayName;
-                                })()}
-                              </h3>
-                              <div className="flex justify-end items-start">
-                                <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
-                                  dossier.isActive 
-                                    ? 'border-green-600 text-green-700 bg-green-50' 
-                                    : 'border-gray-400 text-gray-600 bg-gray-100'
-                                }`}>
-                                  {dossier.isActive ? 'Active' : 'Deactivated'}
-                                </div>
-                              </div>
-                            </div>
+                          
+                          let timeDisplay = '';
+                          if (!dossier.isActive) {
+                            timeDisplay = 'Deactivated';
+                            timeColor = 'text-gray-400';
+                          } else if (isExpired) {
+                            timeDisplay = '⚠ EXPIRED';
+                            timeColor = 'text-red-600';
+                          } else {
+                            const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+                            const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                            const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
                             
-                            {/* Card Body */}
-                            <div className="p-4">
-                              {/* Time Remaining - Most Prominent */}
-                              <div className="text-center mb-4">
-                                <div className="editorial-body text-xs text-gray-500 mb-1">TIME REMAINING</div>
-                                <div className={`editorial-header text-2xl font-bold ${timeColor} font-mono tracking-wide`}>
-                                  {timeDisplay}
-                                </div>
-                              </div>
-                              
-                              {/* Details Grid */}
-                              <div className="grid grid-cols-2 gap-4 text-center border-t border-gray-200 pt-4">
-                                <div>
-                                  <div className="editorial-body text-xs text-gray-500">INTERVAL</div>
-                                  <div className="editorial-body text-sm font-bold text-black font-mono">
-                                    {Number(dossier.checkInInterval / BigInt(60))}M
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="editorial-body text-xs text-gray-500">RECIPIENTS</div>
-                                  <div className="editorial-body text-sm font-bold text-black">
-                                    {dossier.recipients.length}
+                            if (remainingHours > 0) {
+                              timeDisplay = `${remainingHours}H ${remainingMinutes}M`;
+                            } else if (remainingMinutes > 0) {
+                              timeDisplay = `${remainingMinutes}M ${remainingSeconds}S`;
+                            } else {
+                              timeDisplay = `${remainingSeconds}S`;
+                            }
+                          }
+                          
+                          return (
+                            <div
+                              key={dossier.id.toString()}
+                              className="border-2 border-gray-300 bg-white hover:border-gray-800 hover:shadow-lg transition-all duration-200"
+                            >
+                              {/* Card Header */}
+                              <div className="border-b border-gray-200 p-4">
+                                <h3 className="editorial-header text-base font-bold text-black leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
+                                  {(() => {
+                                    const displayName = dossier.name.replace('Encrypted file: ', '');
+                                    return displayName.length > 40 ? `${displayName.substring(0, 40)}...` : displayName;
+                                  })()}
+                                </h3>
+                                <div className="flex justify-end items-start">
+                                  <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
+                                    dossier.isActive 
+                                      ? 'border-green-600 text-green-700 bg-green-50' 
+                                      : 'border-gray-400 text-gray-600 bg-gray-100'
+                                  }`}>
+                                    {dossier.isActive ? 'Active' : 'Deactivated'}
                                   </div>
                                 </div>
                               </div>
                               
-                              <div className="text-center mt-4 pt-4 border-t border-gray-200">
-                                <div className="editorial-body text-xs text-gray-500">LAST CHECK-IN</div>
-                                <div className="editorial-body text-xs font-mono text-gray-600">
-                                  {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })} {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Card Footer - Action Buttons */}
-                            <div className="border-t border-gray-200 p-4">
-                              <div className="space-y-2">
-                                {/* Top Row - Check In and Deactivate */}
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        await ContractService.checkIn(dossier.id);
-                                        await loadUserDossiers();
-                                        setActivityLog(prev => [
-                                          { 
-                                            type: `Check-in performed for document #${dossier.id.toString()}`, 
-                                            date: new Date().toLocaleString() 
-                                          },
-                                          ...prev
-                                        ]);
-                                      } catch (error) {
-                                        console.error('Failed to check in:', error);
-                                        toast.error('Failed to check in. Please try again.');
-                                      }
-                                    }}
-                                    disabled={!dossier.isActive}
-                                    className={`flex-1 editorial-body text-xs px-3 py-2 border-2 font-bold transition-colors ${
-                                      dossier.isActive 
-                                        ? 'border-black text-black bg-white hover:bg-black hover:text-white' 
-                                        : 'border-gray-300 text-gray-500 bg-gray-100 cursor-not-allowed'
-                                    }`}
-                                  >
-                                    CHECK IN
-                                  </button>
-                                  
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        if (dossier.isActive) {
-                                          await ContractService.deactivateDossier(dossier.id);
-                                        } else {
-                                          await ContractService.reactivateDossier(dossier.id);
-                                        }
-                                        await loadUserDossiers();
-                                        setActivityLog(prev => [
-                                          { 
-                                            type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'deactivated' : 'resumed'}`, 
-                                            date: new Date().toLocaleString() 
-                                          },
-                                          ...prev
-                                        ]);
-                                      } catch (error) {
-                                        console.error('Failed to toggle document status:', error);
-                                        toast.error('Failed to update document status. Please try again.');
-                                      }
-                                    }}
-                                    className="flex-1 editorial-body text-xs px-3 py-2 border-2 border-gray-400 text-gray-600 hover:border-gray-600 hover:text-gray-700 font-bold transition-colors"
-                                  >
-                                    {dossier.isActive ? 'DEACTIVATE' : 'RESUME'}
-                                  </button>
+                              {/* Card Body */}
+                              <div className="p-4">
+                                {/* Time Remaining - Most Prominent */}
+                                <div className="text-center mb-4">
+                                  <div className="editorial-body text-xs text-gray-500 mb-1">TIME REMAINING</div>
+                                  <div className={`editorial-header text-2xl font-bold ${timeColor} font-mono tracking-wide`}>
+                                    {timeDisplay}
+                                  </div>
                                 </div>
                                 
-                                {/* Bottom Row - Decrypt (Full Width) */}
-                                {isExpired && dossier.isActive && (
-                                  <button
-                                    onClick={async () => {
-                                      let decryptToast: any;
-                                      try {
-                                        console.log('🔓 Attempting decryption for dossier:', dossier.id.toString());
-                                        console.log('📄 Dossier details:', {
-                                          id: dossier.id.toString(),
-                                          name: dossier.name,
-                                          fileHashes: dossier.encryptedFileHashes.length,
-                                          recipients: dossier.recipients.length,
-                                          isActive: dossier.isActive
-                                        });
-                                        
-                                        // Use dossier's encrypted file data directly
-                                        if (dossier.encryptedFileHashes.length > 0) {
-                                          // Perform real decryption from stored file hash
-                                          const fileHash = dossier.encryptedFileHashes[0];
-                                            if (!fileHash) {
-                                              throw new Error('No encrypted file hash found in dossier');
-                                            }
-                                            
-                                            console.log('🔓 Attempting to decrypt expired document...');
-                                            decryptToast = toast.loading('Decrypting expired document...');
-                                            
-                                            // Step 1: Fetch encrypted data from IPFS
-                                            const ipfsHash = fileHash.replace('ipfs://', '');
-                                            const ipfsGateways = [
-                                              `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-                                              `https://ipfs.io/ipfs/${ipfsHash}`,
-                                              `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
-                                            ];
-                                            
-                                            let retrievedData: Uint8Array | null = null;
-                                            let gatewayUsed = '';
-                                            
-                                            for (const gateway of ipfsGateways) {
-                                              try {
-                                                console.log(`🌐 Trying IPFS gateway: ${gateway}`);
-                                                const response = await fetch(gateway);
-                                                if (response.ok) {
-                                                  const arrayBuffer = await response.arrayBuffer();
-                                                  retrievedData = new Uint8Array(arrayBuffer);
-                                                  gatewayUsed = gateway;
-                                                  console.log(`✅ Retrieved ${retrievedData.length} bytes from ${gateway}`);
-                                                  console.log(`🔍 First 50 bytes:`, Array.from(retrievedData.slice(0, 50)));
-                                                  break;
-                                                }
-                                              } catch (error) {
-                                                console.log(`❌ Gateway ${gateway} failed:`, error);
-                                                continue;
-                                              }
-                                            }
-                                            
-                                            if (!retrievedData) {
-                                              throw new Error('Failed to fetch encrypted data from all IPFS gateways');
-                                            }
-                                            
-                                            // Step 2: Verify and reconstruct messageKit
-                                            console.log(`🔍 Data verification:`);
-                                            console.log(`   - File hash: ${fileHash}`);
-                                            console.log(`   - IPFS hash: ${ipfsHash}`);
-                                            console.log(`   - Gateway used: ${gatewayUsed}`);
-                                            console.log(`   - Data length: ${retrievedData.length} bytes`);
-                                            console.log(`   - Data type: ${Object.prototype.toString.call(retrievedData)}`);
-                                            
-                                                                                           // Step 2a: Initialize TACo before reconstruction
-                                            console.log(`🔧 Initializing TACo...`);
-                                            const { tacoService } = await import('./lib/taco');
-                                            await tacoService.initialize();
-                                            console.log(`✅ TACo initialized`);
-                                            
-                                            // Step 2b: Import and reconstruct MessageKit  
-                                            const { ThresholdMessageKit } = await import('@nucypher/taco');
-                                            console.log(`🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`);
-                                            
-                                            const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
-                                            console.log(`✅ MessageKit reconstructed successfully`);
-                                            
-                                            // Step 3: Decrypt using TACo  
-                                            const decryptedData = await tacoService.decryptFile(messageKit);
-                                            
-                                            // Step 4: Download the decrypted file
-                                            const originalFileName = dossier.name.replace('Encrypted file: ', '') || 'decrypted-document';
-                                            const blob = new Blob([decryptedData]);
-                                            const url = URL.createObjectURL(blob);
-                                            
-                                            const link = document.createElement('a');
-                                            link.href = url;
-                                            link.download = originalFileName;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-                                            URL.revokeObjectURL(url);
-                                            
-                                            toast.success('🎉 Document decrypted and downloaded successfully!', { id: decryptToast });
-                                            
-                                            setActivityLog(prev => [
-                                              { 
-                                                type: `🔓 Document #${dossier.id.toString()} decrypted and downloaded`, 
-                                                date: new Date().toLocaleString() 
-                                              },
-                                              ...prev
-                                            ]);
-                                        } else {
-                                          toast.error(`No encrypted files found in this dossier. Dossier #${dossier.id.toString()} appears to be empty or corrupted.`);
+                                {/* Details Grid */}
+                                <div className="grid grid-cols-2 gap-4 text-center border-t border-gray-200 pt-4">
+                                  <div>
+                                    <div className="editorial-body text-xs text-gray-500">INTERVAL</div>
+                                    <div className="editorial-body text-sm font-bold text-black font-mono">
+                                      {Number(dossier.checkInInterval / BigInt(60))}M
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="editorial-body text-xs text-gray-500">RECIPIENTS</div>
+                                    <div className="editorial-body text-sm font-bold text-black">
+                                      {dossier.recipients.length}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="text-center mt-4 pt-4 border-t border-gray-200">
+                                  <div className="editorial-body text-xs text-gray-500">LAST CHECK-IN</div>
+                                  <div className="editorial-body text-xs font-mono text-gray-600">
+                                    {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })} {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Card Footer - Action Buttons */}
+                              <div className="border-t border-gray-200 p-4">
+                                <div className="space-y-2">
+                                  {/* Top Row - Check In and Deactivate */}
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await ContractService.checkIn(dossier.id);
+                                          await loadUserDossiers();
+                                          setActivityLog(prev => [
+                                            { 
+                                              type: `Check-in performed for document #${dossier.id.toString()}`, 
+                                              date: new Date().toLocaleString() 
+                                            },
+                                            ...prev
+                                          ]);
+                                        } catch (error) {
+                                          console.error('Failed to check in:', error);
+                                          toast.error('Failed to check in. Please try again.');
                                         }
-                                      } catch (error) {
-                                        console.error('❌ Failed to decrypt:', error);
-                                        
-                                        let errorMessage = 'Failed to decrypt document. ';
-                                        if (error instanceof Error) {
-                                          if (error.message.includes('Failed to fetch encrypted data')) {
-                                            errorMessage += 'Could not retrieve file from IPFS. The file may be unavailable.';
-                                          } else if (error.message.includes('fromBytes')) {
-                                            errorMessage += 'Invalid encrypted file format.';
-                                          } else if (error.message.includes('decrypt')) {
-                                            errorMessage += 'Decryption failed. The time condition may not be met yet.';
+                                      }}
+                                      disabled={!dossier.isActive}
+                                      className={`flex-1 editorial-body text-xs px-3 py-2 border-2 font-bold transition-colors ${
+                                        dossier.isActive 
+                                          ? 'border-black text-black bg-white hover:bg-black hover:text-white' 
+                                          : 'border-gray-300 text-gray-500 bg-gray-100 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      CHECK IN
+                                    </button>
+                                    
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          if (dossier.isActive) {
+                                            await ContractService.deactivateDossier(dossier.id);
                                           } else {
-                                            errorMessage += error.message;
+                                            await ContractService.reactivateDossier(dossier.id);
                                           }
-                                        } else {
-                                          errorMessage += 'Unknown error occurred.';
+                                          await loadUserDossiers();
+                                          setActivityLog(prev => [
+                                            { 
+                                              type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'deactivated' : 'resumed'}`, 
+                                              date: new Date().toLocaleString() 
+                                            },
+                                            ...prev
+                                          ]);
+                                        } catch (error) {
+                                          console.error('Failed to toggle document status:', error);
+                                          toast.error('Failed to update document status. Please try again.');
                                         }
-                                        
-                                        toast.error(errorMessage, { id: decryptToast });
-                                        
-                                        setActivityLog(prev => [
-                                          { 
-                                            type: `❌ Decryption failed for document #${dossier.id.toString()}`, 
-                                            date: new Date().toLocaleString() 
-                                          },
-                                          ...prev
-                                        ]);
-                                      }
-                                    }}
-                                    className="w-full editorial-body text-xs px-3 py-2 border-2 border-red-600 text-red-700 hover:bg-red-600 hover:text-white font-bold transition-colors"
-                                  >
-                                    🔓 DECRYPT EXPIRED DOCUMENT
-                                  </button>
-                                )}
+                                      }}
+                                      className="flex-1 editorial-body text-xs px-3 py-2 border-2 border-gray-400 text-gray-600 hover:border-gray-600 hover:text-gray-700 font-bold transition-colors"
+                                    >
+                                      {dossier.isActive ? 'DEACTIVATE' : 'RESUME'}
+                                    </button>
+                                  </div>
+                                  
+                                  {/* Bottom Row - Decrypt (Full Width) */}
+                                  {isExpired && dossier.isActive && (
+                                    <button
+                                      onClick={async () => {
+                                        let decryptToast: any;
+                                        try {
+                                          console.log('🔓 Attempting decryption for dossier:', dossier.id.toString());
+                                          console.log('📄 Dossier details:', {
+                                            id: dossier.id.toString(),
+                                            name: dossier.name,
+                                            fileHashes: dossier.encryptedFileHashes.length,
+                                            recipients: dossier.recipients.length,
+                                            isActive: dossier.isActive
+                                          });
+                                          
+                                          // Use dossier's encrypted file data directly
+                                          if (dossier.encryptedFileHashes.length > 0) {
+                                            // Perform real decryption from stored file hash
+                                            const fileHash = dossier.encryptedFileHashes[0];
+                                              if (!fileHash) {
+                                                throw new Error('No encrypted file hash found in dossier');
+                                              }
+                                              
+                                              console.log('🔓 Attempting to decrypt expired document...');
+                                              decryptToast = toast.loading('Decrypting expired document...');
+                                              
+                                              // Step 1: Fetch encrypted data from IPFS
+                                              const ipfsHash = fileHash.replace('ipfs://', '');
+                                              const ipfsGateways = [
+                                                `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+                                                `https://ipfs.io/ipfs/${ipfsHash}`,
+                                                `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+                                              ];
+                                              
+                                              let retrievedData: Uint8Array | null = null;
+                                              let gatewayUsed = '';
+                                              
+                                              for (const gateway of ipfsGateways) {
+                                                try {
+                                                  console.log(`🌐 Trying IPFS gateway: ${gateway}`);
+                                                  const response = await fetch(gateway);
+                                                  if (response.ok) {
+                                                    const arrayBuffer = await response.arrayBuffer();
+                                                    retrievedData = new Uint8Array(arrayBuffer);
+                                                    gatewayUsed = gateway;
+                                                    console.log(`✅ Retrieved ${retrievedData.length} bytes from ${gateway}`);
+                                                    console.log(`🔍 First 50 bytes:`, Array.from(retrievedData.slice(0, 50)));
+                                                    break;
+                                                  }
+                                                } catch (error) {
+                                                  console.log(`❌ Gateway ${gateway} failed:`, error);
+                                                  continue;
+                                                }
+                                              }
+                                              
+                                              if (!retrievedData) {
+                                                throw new Error('Failed to fetch encrypted data from all IPFS gateways');
+                                              }
+                                              
+                                              // Step 2: Verify and reconstruct messageKit
+                                              console.log(`🔍 Data verification:`);
+                                              console.log(`   - File hash: ${fileHash}`);
+                                              console.log(`   - IPFS hash: ${ipfsHash}`);
+                                              console.log(`   - Gateway used: ${gatewayUsed}`);
+                                              console.log(`   - Data length: ${retrievedData.length} bytes`);
+                                              console.log(`   - Data type: ${Object.prototype.toString.call(retrievedData)}`);
+                                              
+                                                                                           // Step 2a: Initialize TACo before reconstruction
+                                              console.log(`🔧 Initializing TACo...`);
+                                              const { tacoService } = await import('./lib/taco');
+                                              await tacoService.initialize();
+                                              console.log(`✅ TACo initialized`);
+                                              
+                                              // Step 2b: Import and reconstruct MessageKit  
+                                              const { ThresholdMessageKit } = await import('@nucypher/taco');
+                                              console.log(`🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`);
+                                              
+                                              const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
+                                              console.log(`✅ MessageKit reconstructed successfully`);
+                                              
+                                              // Step 3: Decrypt using TACo  
+                                              const decryptedData = await tacoService.decryptFile(messageKit);
+                                              
+                                              // Step 4: Download the decrypted file
+                                              const originalFileName = dossier.name.replace('Encrypted file: ', '') || 'decrypted-document';
+                                              const blob = new Blob([decryptedData]);
+                                              const url = URL.createObjectURL(blob);
+                                              
+                                              const link = document.createElement('a');
+                                              link.href = url;
+                                              link.download = originalFileName;
+                                              document.body.appendChild(link);
+                                              link.click();
+                                              document.body.removeChild(link);
+                                              URL.revokeObjectURL(url);
+                                              
+                                              toast.success('🎉 Document decrypted and downloaded successfully!', { id: decryptToast });
+                                              
+                                              setActivityLog(prev => [
+                                                { 
+                                                  type: `🔓 Document #${dossier.id.toString()} decrypted and downloaded`, 
+                                                  date: new Date().toLocaleString() 
+                                                },
+                                                ...prev
+                                              ]);
+                                          } else {
+                                            toast.error(`No encrypted files found in this dossier. Dossier #${dossier.id.toString()} appears to be empty or corrupted.`);
+                                          }
+                                        } catch (error) {
+                                          console.error('❌ Failed to decrypt:', error);
+                                          
+                                          let errorMessage = 'Failed to decrypt document. ';
+                                          if (error instanceof Error) {
+                                            if (error.message.includes('Failed to fetch encrypted data')) {
+                                              errorMessage += 'Could not retrieve file from IPFS. The file may be unavailable.';
+                                            } else if (error.message.includes('fromBytes')) {
+                                              errorMessage += 'Invalid encrypted file format.';
+                                            } else if (error.message.includes('decrypt')) {
+                                              errorMessage += 'Decryption failed. The time condition may not be met yet.';
+                                            } else {
+                                              errorMessage += error.message;
+                                            }
+                                          } else {
+                                            errorMessage += 'Unknown error occurred.';
+                                          }
+                                          
+                                          toast.error(errorMessage, { id: decryptToast });
+                                          
+                                          setActivityLog(prev => [
+                                            { 
+                                              type: `❌ Decryption failed for document #${dossier.id.toString()}`, 
+                                              date: new Date().toLocaleString() 
+                                            },
+                                            ...prev
+                                          ]);
+                                        }
+                                      }}
+                                      className="w-full editorial-body text-xs px-3 py-2 border-2 border-red-600 text-red-700 hover:bg-red-600 hover:text-white font-bold transition-colors"
+                                    >
+                                      🔓 DECRYPT EXPIRED DOCUMENT
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-16 px-4 text-center">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="text-gray-400 mb-4">
+                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="py-16 px-4 text-center">
-                      <div className="flex flex-col items-center justify-center space-y-4">
-                        <div className="text-gray-400 mb-4">
-                          <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                          <div className="space-y-2">
+                            <h3 className="editorial-header text-xl font-bold text-gray-600">No Documents Yet</h3>
+                            <p className="editorial-body text-base text-gray-500">
+                              You haven't created any deadman switch documents yet.
+                            </p>
+                            <button
+                              onClick={() => setShowCreateForm(true)}
+                              className="mt-4 px-6 py-3 bg-black text-white hover:bg-gray-800 editorial-body font-bold transition-colors"
+                            >
+                              CREATE FIRST DOCUMENT
+                            </button>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <h3 className="editorial-header text-xl font-bold text-gray-600">No Documents Yet</h3>
-                          <p className="editorial-body text-base text-gray-500">
-                            You haven't created any deadman switch documents yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            // Document Creation Flow - Full Screen
+            <div className="border-2 border-gray-800 mb-12">
+              <div className="bg-gray-800 p-3">
+                <div className="flex justify-between items-center">
+                  <button
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      // Reset form when going back
+                      setCurrentStep(1);
+                      setEncryptedCapsule(null);
+                      setTraceJson(null);
+                      setUploadedFile(null);
+                      setName('');
+                      setEmergencyContacts(['']);
+                      setReleaseMode('public');
+                    }}
+                    style={{color: '#ffffff'}}
+                    className="editorial-body text-xs font-bold hover:text-gray-300 transition-colors"
+                  >
+                    ← BACK TO DOCUMENTS
+                  </button>
+                  <h3 style={{color: '#ffffff'}} className="editorial-header text-sm tracking-[0.2em] font-bold">Document Creation</h3>
+                  <div className="w-24"></div> {/* Spacer for center alignment */}
+                </div>
+              </div>
+              <div className="bg-white/90 backdrop-blur-sm p-6">
+                {/* Progress Indicator */}
+                <div className="mb-8">
+                  {/* Back Button */}
+                  {currentStep > 1 && !traceJson && (
+                    <div className="mb-4">
+                      <button
+                        onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                        className="flex items-center text-gray-600 hover:text-black editorial-body text-sm font-semibold transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to Previous Step
+                      </button>
+                    </div>
+                  )}
+                  
+                  <div className="mb-4">
+                    <div className="relative">
+                      {/* Background lines - full width */}
+                      <div className="absolute top-5 left-5 right-5 h-1 bg-gray-300"></div>
+                      
+                      {/* Progress lines */}
+                      <div className="absolute top-5 left-5 right-5 h-1 flex">
+                        {[1, 2, 3, 4].map((segment) => (
+                          <div key={segment} className="flex-1 relative">
+                            <div className={`h-1 absolute top-0 left-0 transition-all duration-500 ${
+                              segment < currentStep ? 'w-full bg-green-600' :
+                              segment === currentStep ? 'w-1/2 bg-black' :
+                              'w-0 bg-gray-300'
+                            }`}></div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Steps container */}
+                      <div className="flex items-start justify-between relative z-10">
+                        {[1, 2, 3, 4, 5].map((step) => (
+                          <div key={step} className="flex flex-col items-center">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
+                              step === currentStep ? 'bg-black text-white border-black shadow-lg scale-110' :
+                              step < currentStep ? 'bg-green-600 text-white border-green-600 shadow-md' :
+                              'bg-white text-gray-600 border-gray-300 shadow-sm'
+                            }`}>
+                              {step < currentStep ? '✓' : step}
+                            </div>
+                            <div className="mt-2 text-xs editorial-body font-medium text-gray-600 text-center w-16">
+                              {step === 1 ? 'Name' :
+                               step === 2 ? 'Upload' :
+                               step === 3 ? 'Interval' :
+                               step === 4 ? 'Mode' :
+                               'Review'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="editorial-body text-sm text-gray-600">
+                      Step {currentStep} of 5: {
+                        currentStep === 1 ? 'Document Name' :
+                        currentStep === 2 ? 'File Upload' :
+                        currentStep === 3 ? 'Check-in Frequency' :
+                        currentStep === 4 ? 'Release Mode' :
+                        'Review & Encrypt'
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step Content */}
+                <div className="min-h-[300px]">
+                  {/* Step 1: Document Name */}
+                  {currentStep === 1 && (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className="editorial-header text-xl font-bold mb-2">Name Your Document</h3>
+                        <p className="editorial-body text-sm text-gray-600">
+                          Give your encrypted document a memorable name for easy identification
+                        </p>
+                      </div>
+                      <div className="max-w-md mx-auto">
+                        <input
+                          type="text"
+                          placeholder="Enter document name..."
+                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-black focus:outline-none rounded"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          autoFocus
+                        />
+                        <p className="editorial-body text-xs text-gray-500 mt-2 text-center">
+                          This name will help you identify the document later
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: File Upload */}
+                  {currentStep === 2 && (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className="editorial-header text-xl font-bold mb-2">Upload Your File</h3>
+                        <p className="editorial-body text-sm text-gray-600">
+                          Select the file you want to encrypt and protect with the deadman switch
+                        </p>
+                      </div>
+                      <div className="max-w-lg mx-auto">
+                        <div
+                          className="border-2 border-dashed border-gray-400 text-center py-12 cursor-pointer hover:border-black transition-colors bg-gray-50 rounded"
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Upload className="mx-auto mb-4 text-gray-600" size={48} />
+                          <p className="editorial-body text-base font-semibold text-gray-700 mb-2">
+                            {uploadedFile ? uploadedFile.name : 'Drop your file here'}
                           </p>
-                          <button
-                            onClick={() => setShowCreateForm(true)}
-                            className="mt-4 px-6 py-3 bg-black text-white hover:bg-gray-800 editorial-body font-bold transition-colors"
-                          >
-                            CREATE FIRST DOCUMENT
-                          </button>
+                          <p className="editorial-body text-sm text-gray-500">
+                            {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
+                          </p>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Check-in Frequency */}
+                  {currentStep === 3 && (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className="editorial-header text-xl font-bold mb-2">Set Check-in Frequency</h3>
+                        <p className="editorial-body text-sm text-gray-600">
+                          How often do you need to check in to prevent the document from being released?
+                        </p>
+                      </div>
+                      <div className="max-w-md mx-auto">
+                        <select 
+                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-black focus:outline-none font-mono rounded"
+                          value={checkInInterval}
+                          onChange={(e) => setCheckInInterval(e.target.value)}
+                        >
+                          {intervalOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="editorial-body text-xs text-gray-500 mt-2 text-center">
+                          The document will be released automatically if no check-in is received within this timeframe
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: Release Mode */}
+                  {currentStep === 4 && (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className="editorial-header text-xl font-bold mb-2">Choose Release Mode</h3>
+                        <p className="editorial-body text-sm text-gray-600">
+                          How should your document be released if the deadman switch is triggered?
+                        </p>
+                      </div>
+                      <div className="max-w-lg mx-auto space-y-4">
+                        <div 
+                          className={`border-2 p-4 rounded cursor-pointer transition-all ${
+                            releaseMode === 'public' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                          onClick={() => setReleaseMode('public')}
+                        >
+                          <div className="flex items-start">
+                            <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
+                              releaseMode === 'public' ? 'border-black bg-black' : 'border-gray-300'
+                            }`}>
+                              {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
+                            </div>
+                            <div>
+                              <h4 className="editorial-body font-bold text-base">Public Release</h4>
+                              <p className="editorial-body text-sm text-gray-600 mt-1">
+                                Document will be made publicly accessible when triggered
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div 
+                          className={`border-2 p-4 rounded cursor-pointer transition-all ${
+                            releaseMode === 'contacts' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                          onClick={() => setReleaseMode('contacts')}
+                        >
+                          <div className="flex items-start">
+                            <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
+                              releaseMode === 'contacts' ? 'border-black bg-black' : 'border-gray-300'
+                            }`}>
+                              {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="editorial-body font-bold text-base">Emergency Contacts</h4>
+                              <p className="editorial-body text-sm text-gray-600 mt-1 mb-3">
+                                Document will be sent to specific people when triggered
+                              </p>
+                              {releaseMode === 'contacts' && (
+                                <div className="space-y-2">
+                                  {emergencyContacts.map((contact, index) => (
+                                    <div key={index} className="flex gap-2">
+                                      <input
+                                        type="text"
+                                        placeholder="Email address or Ethereum address"
+                                        className="flex-1 border border-gray-300 p-2 editorial-body text-sm focus:border-black focus:outline-none rounded"
+                                        value={contact}
+                                        onChange={(e) => {
+                                          const newContacts = [...emergencyContacts];
+                                          newContacts[index] = e.target.value;
+                                          setEmergencyContacts(newContacts);
+                                        }}
+                                      />
+                                      {emergencyContacts.length > 1 && (
+                                        <button
+                                          onClick={() => {
+                                            const newContacts = emergencyContacts.filter((_, i) => i !== index);
+                                            setEmergencyContacts(newContacts);
+                                          }}
+                                          className="px-3 py-2 border border-red-300 text-red-600 hover:border-red-500 rounded editorial-body text-sm"
+                                        >
+                                          Remove
+                                        </button>
+                                      )}
+    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
+                                    className="text-sm editorial-body text-gray-600 hover:text-black"
+                                  >
+                                    + Add another contact
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 5: Review & Encrypt */}
+                  {currentStep === 5 && (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className="editorial-header text-xl font-bold mb-2">Review & Encrypt</h3>
+                        <p className="editorial-body text-sm text-gray-600">
+                          Please review your settings before encrypting the document
+                        </p>
+                      </div>
+                      <div className="max-w-lg mx-auto space-y-4">
+                        <div className="border border-gray-300 rounded p-4 space-y-3">
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">Document Name:</span>
+                            <span className="editorial-body text-sm text-gray-700">{name || 'Untitled'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">File:</span>
+                            <span className="editorial-body text-sm text-gray-700">{uploadedFile?.name || 'No file selected'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">Check-in Frequency:</span>
+                            <span className="editorial-body text-sm text-gray-700">
+                              {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">Release Mode:</span>
+                            <span className="editorial-body text-sm text-gray-700">
+                              {releaseMode === 'public' ? 'Public Release' : 'Emergency Contacts'}
+                            </span>
+                          </div>
+                          {releaseMode === 'contacts' && (
+                            <div className="pt-2 border-t border-gray-200">
+                              <span className="editorial-body text-sm font-semibold block mb-2">Emergency Contacts:</span>
+                              {emergencyContacts.filter(c => c.trim()).map((contact, index) => (
+                                <div key={index} className="editorial-body text-sm text-gray-700 pl-4">
+                                  • {contact}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Encrypt Button */}
+                        <div className="space-y-3">
+                          {!encryptedCapsule && (
+                            <button
+                              onClick={processCanaryTrigger}
+                              disabled={!uploadedFile || isProcessing || !name.trim()}
+                              className="w-full bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                            >
+                              {isProcessing ? (
+                                <div className="flex items-center justify-center">
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
+                                  Encrypting...
+                                </div>
+                              ) : (
+                                <>
+                                  <Shield className="inline mr-3" size={28} />
+                                  Encrypt
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {encryptedCapsule && !traceJson && (
+                            <button
+                              onClick={commitToCodex}
+                              disabled={isCommitting}
+                              className="w-full bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                            >
+                              {isCommitting ? (
+                                <div className="flex items-center justify-center">
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
+                                  Uploading...
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload className="inline mr-3" size={28} />
+                                  Upload
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {/* Reset Button - shown after everything is complete */}
+                          {traceJson && (
+                            <button
+                              onClick={() => {
+                                setCurrentStep(1);
+                                setEncryptedCapsule(null);
+                                setTraceJson(null);
+                                setUploadedFile(null);
+                                setName('');
+                                setEmergencyContacts(['']);
+                                setReleaseMode('public');
+                              }}
+                              className="w-full border-2 border-gray-400 text-gray-600 hover:border-black hover:text-black py-4 editorial-body font-semibold transition-all duration-200 rounded"
+                            >
+                              Create New Document
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-          </>
-        ) : (
-          // Document Creation Flow - Full Screen
-          <div className="border-2 border-gray-800 mb-12">
-            <div className="bg-gray-800 p-3">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    // Reset form when going back
-                    setCurrentStep(1);
-                    setEncryptedCapsule(null);
-                    setTraceJson(null);
-                    setUploadedFile(null);
-                    setName('');
-                    setEmergencyContacts(['']);
-                    setReleaseMode('public');
-                  }}
-                  style={{color: '#ffffff'}}
-                  className="editorial-body text-xs font-bold hover:text-gray-300 transition-colors"
-                >
-                  ← BACK TO DOCUMENTS
-                </button>
-                <h3 style={{color: '#ffffff'}} className="editorial-header text-sm tracking-[0.2em] font-bold">Document Creation</h3>
-                <div className="w-24"></div> {/* Spacer for center alignment */}
-              </div>
-            </div>
-            <div className="bg-white p-6">
-              {/* Progress Indicator */}
-              <div className="mb-8">
-                {/* Back Button */}
-                {currentStep > 1 && !traceJson && (
-                  <div className="mb-4">
+
+                {/* Navigation */}
+                {currentStep < 5 && !traceJson && (
+                  <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
                     <button
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                      className="flex items-center text-gray-600 hover:text-black editorial-body text-sm font-semibold transition-colors"
+                      disabled={currentStep === 1}
+                      className="px-6 py-2 border-2 border-gray-300 text-gray-600 hover:border-gray-500 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed editorial-body font-semibold transition-colors rounded"
                     >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Back to Previous Step
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (currentStep === 1 && !name.trim()) {
+                          toast.error('Please enter a document name');
+                          return;
+                        }
+                        if (currentStep === 2 && !uploadedFile) {
+                          toast.error('Please upload a file');
+                          return;
+                        }
+                        if (currentStep === 4 && releaseMode === 'contacts' && !emergencyContacts.some(c => c.trim())) {
+                          toast.error('Please add at least one emergency contact');
+                          return;
+                        }
+                        setCurrentStep(Math.min(5, currentStep + 1));
+                      }}
+                      className="px-6 py-2 bg-black text-white hover:bg-gray-800 editorial-body font-semibold transition-colors rounded"
+                    >
+                      {currentStep === 4 ? 'Review' : 'Next'}
                     </button>
                   </div>
                 )}
-                
-                <div className="mb-4">
-                  <div className="relative">
-                    {/* Background lines - full width */}
-                    <div className="absolute top-5 left-5 right-5 h-1 bg-gray-300"></div>
-                    
-                    {/* Progress lines */}
-                    <div className="absolute top-5 left-5 right-5 h-1 flex">
-                      {[1, 2, 3, 4].map((segment) => (
-                        <div key={segment} className="flex-1 relative">
-                          <div className={`h-1 absolute top-0 left-0 transition-all duration-500 ${
-                            segment < currentStep ? 'w-full bg-green-600' :
-                            segment === currentStep ? 'w-1/2 bg-black' :
-                            'w-0 bg-gray-300'
-                          }`}></div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Steps container */}
-                    <div className="flex items-start justify-between relative z-10">
-                      {[1, 2, 3, 4, 5].map((step) => (
-                        <div key={step} className="flex flex-col items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
-                            step === currentStep ? 'bg-black text-white border-black shadow-lg scale-110' :
-                            step < currentStep ? 'bg-green-600 text-white border-green-600 shadow-md' :
-                            'bg-white text-gray-600 border-gray-300 shadow-sm'
-                          }`}>
-                            {step < currentStep ? '✓' : step}
-                          </div>
-                          <div className="mt-2 text-xs editorial-body font-medium text-gray-600 text-center w-16">
-                            {step === 1 ? 'Name' :
-                             step === 2 ? 'Upload' :
-                             step === 3 ? 'Interval' :
-                             step === 4 ? 'Mode' :
-                             'Review'}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="editorial-body text-sm text-gray-600">
-                    Step {currentStep} of 5: {
-                      currentStep === 1 ? 'Document Name' :
-                      currentStep === 2 ? 'File Upload' :
-                      currentStep === 3 ? 'Check-in Frequency' :
-                      currentStep === 4 ? 'Release Mode' :
-                      'Review & Encrypt'
-                    }
-                  </p>
-                </div>
               </div>
-
-              {/* Step Content */}
-              <div className="min-h-[300px]">
-                {/* Step 1: Document Name */}
-                {currentStep === 1 && (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="editorial-header text-xl font-bold mb-2">Name Your Document</h3>
-                      <p className="editorial-body text-sm text-gray-600">
-                        Give your encrypted document a memorable name for easy identification
-                      </p>
-                    </div>
-                    <div className="max-w-md mx-auto">
-                      <input
-                        type="text"
-                        placeholder="Enter document name..."
-                        className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-black focus:outline-none rounded"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        autoFocus
-                      />
-                      <p className="editorial-body text-xs text-gray-500 mt-2 text-center">
-                        This name will help you identify the document later
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: File Upload */}
-                {currentStep === 2 && (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="editorial-header text-xl font-bold mb-2">Upload Your File</h3>
-                      <p className="editorial-body text-sm text-gray-600">
-                        Select the file you want to encrypt and protect with the deadman switch
-                      </p>
-                    </div>
-                    <div className="max-w-lg mx-auto">
-                      <div
-                        className="border-2 border-dashed border-gray-400 text-center py-12 cursor-pointer hover:border-black transition-colors bg-gray-50 rounded"
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Upload className="mx-auto mb-4 text-gray-600" size={48} />
-                        <p className="editorial-body text-base font-semibold text-gray-700 mb-2">
-                          {uploadedFile ? uploadedFile.name : 'Drop your file here'}
-                        </p>
-                        <p className="editorial-body text-sm text-gray-500">
-                          {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
-                        </p>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 3: Check-in Frequency */}
-                {currentStep === 3 && (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="editorial-header text-xl font-bold mb-2">Set Check-in Frequency</h3>
-                      <p className="editorial-body text-sm text-gray-600">
-                        How often do you need to check in to prevent the document from being released?
-                      </p>
-                    </div>
-                    <div className="max-w-md mx-auto">
-                      <select 
-                        className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-black focus:outline-none font-mono rounded"
-                        value={checkInInterval}
-                        onChange={(e) => setCheckInInterval(e.target.value)}
-                      >
-                        {intervalOptions.map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="editorial-body text-xs text-gray-500 mt-2 text-center">
-                        The document will be released automatically if no check-in is received within this timeframe
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 4: Release Mode */}
-                {currentStep === 4 && (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="editorial-header text-xl font-bold mb-2">Choose Release Mode</h3>
-                      <p className="editorial-body text-sm text-gray-600">
-                        How should your document be released if the deadman switch is triggered?
-                      </p>
-                    </div>
-                    <div className="max-w-lg mx-auto space-y-4">
-                      <div 
-                        className={`border-2 p-4 rounded cursor-pointer transition-all ${
-                          releaseMode === 'public' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                        onClick={() => setReleaseMode('public')}
-                      >
-                        <div className="flex items-start">
-                          <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
-                            releaseMode === 'public' ? 'border-black bg-black' : 'border-gray-300'
-                          }`}>
-                            {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
-                          </div>
-                          <div>
-                            <h4 className="editorial-body font-bold text-base">Public Release</h4>
-                            <p className="editorial-body text-sm text-gray-600 mt-1">
-                              Document will be made publicly accessible when triggered
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div 
-                        className={`border-2 p-4 rounded cursor-pointer transition-all ${
-                          releaseMode === 'contacts' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                        onClick={() => setReleaseMode('contacts')}
-                      >
-                        <div className="flex items-start">
-                          <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
-                            releaseMode === 'contacts' ? 'border-black bg-black' : 'border-gray-300'
-                          }`}>
-                            {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="editorial-body font-bold text-base">Emergency Contacts</h4>
-                            <p className="editorial-body text-sm text-gray-600 mt-1 mb-3">
-                              Document will be sent to specific people when triggered
-                            </p>
-                            {releaseMode === 'contacts' && (
-                              <div className="space-y-2">
-                                {emergencyContacts.map((contact, index) => (
-                                  <div key={index} className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      placeholder="Email address or Ethereum address"
-                                      className="flex-1 border border-gray-300 p-2 editorial-body text-sm focus:border-black focus:outline-none rounded"
-                                      value={contact}
-                                      onChange={(e) => {
-                                        const newContacts = [...emergencyContacts];
-                                        newContacts[index] = e.target.value;
-                                        setEmergencyContacts(newContacts);
-                                      }}
-                                    />
-                                    {emergencyContacts.length > 1 && (
-                                      <button
-                                        onClick={() => {
-                                          const newContacts = emergencyContacts.filter((_, i) => i !== index);
-                                          setEmergencyContacts(newContacts);
-                                        }}
-                                        className="px-3 py-2 border border-red-300 text-red-600 hover:border-red-500 rounded editorial-body text-sm"
-                                      >
-                                        Remove
-                                      </button>
-                                    )}
-                                  </div>
-                                ))}
-                                <button
-                                  onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
-                                  className="text-sm editorial-body text-gray-600 hover:text-black"
-                                >
-                                  + Add another contact
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 5: Review & Encrypt */}
-                {currentStep === 5 && (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="editorial-header text-xl font-bold mb-2">Review & Encrypt</h3>
-                      <p className="editorial-body text-sm text-gray-600">
-                        Please review your settings before encrypting the document
-                      </p>
-                    </div>
-                    <div className="max-w-lg mx-auto space-y-4">
-                      <div className="border border-gray-300 rounded p-4 space-y-3">
-                        <div className="flex justify-between">
-                          <span className="editorial-body text-sm font-semibold">Document Name:</span>
-                          <span className="editorial-body text-sm text-gray-700">{name || 'Untitled'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="editorial-body text-sm font-semibold">File:</span>
-                          <span className="editorial-body text-sm text-gray-700">{uploadedFile?.name || 'No file selected'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="editorial-body text-sm font-semibold">Check-in Frequency:</span>
-                          <span className="editorial-body text-sm text-gray-700">
-                            {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="editorial-body text-sm font-semibold">Release Mode:</span>
-                          <span className="editorial-body text-sm text-gray-700">
-                            {releaseMode === 'public' ? 'Public Release' : 'Emergency Contacts'}
-                          </span>
-                        </div>
-                        {releaseMode === 'contacts' && (
-                          <div className="pt-2 border-t border-gray-200">
-                            <span className="editorial-body text-sm font-semibold block mb-2">Emergency Contacts:</span>
-                            {emergencyContacts.filter(c => c.trim()).map((contact, index) => (
-                              <div key={index} className="editorial-body text-sm text-gray-700 pl-4">
-                                • {contact}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Encrypt Button */}
-                      <div className="space-y-3">
-                        {!encryptedCapsule && (
-                          <button
-                            onClick={processCanaryTrigger}
-                            disabled={!uploadedFile || isProcessing || !name.trim()}
-                            className="w-full bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                          >
-                            {isProcessing ? (
-                              <div className="flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
-                                Encrypting...
-                              </div>
-                            ) : (
-                              <>
-                                <Shield className="inline mr-3" size={28} />
-                                Encrypt
-                              </>
-                            )}
-                          </button>
-                        )}
-
-                        {encryptedCapsule && !traceJson && (
-                          <button
-                            onClick={commitToCodex}
-                            disabled={isCommitting}
-                            className="w-full bg-white text-black border-4 border-black hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                          >
-                            {isCommitting ? (
-                              <div className="flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
-                                Uploading...
-                              </div>
-                            ) : (
-                              <>
-                                <Upload className="inline mr-3" size={28} />
-                                Upload
-                              </>
-                            )}
-                          </button>
-                        )}
-
-                        {/* Reset Button - shown after everything is complete */}
-                        {traceJson && (
-                          <button
-                            onClick={() => {
-                              setCurrentStep(1);
-                              setEncryptedCapsule(null);
-                              setTraceJson(null);
-                              setUploadedFile(null);
-                              setName('');
-                              setEmergencyContacts(['']);
-                              setReleaseMode('public');
-                            }}
-                            className="w-full border-2 border-gray-400 text-gray-600 hover:border-black hover:text-black py-4 editorial-body font-semibold transition-all duration-200 rounded"
-                          >
-                            Create New Document
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Navigation */}
-              {currentStep < 5 && !traceJson && (
-                <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-                  <button
-                    onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                    disabled={currentStep === 1}
-                    className="px-6 py-2 border-2 border-gray-300 text-gray-600 hover:border-gray-500 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed editorial-body font-semibold transition-colors rounded"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (currentStep === 1 && !name.trim()) {
-                        toast.error('Please enter a document name');
-                        return;
-                      }
-                      if (currentStep === 2 && !uploadedFile) {
-                        toast.error('Please upload a file');
-                        return;
-                      }
-                      if (currentStep === 4 && releaseMode === 'contacts' && !emergencyContacts.some(c => c.trim())) {
-                        toast.error('Please add at least one emergency contact');
-                        return;
-                      }
-                      setCurrentStep(Math.min(5, currentStep + 1));
-                    }}
-                    className="px-6 py-2 bg-black text-white hover:bg-gray-800 editorial-body font-semibold transition-colors rounded"
-                  >
-                    {currentStep === 4 ? 'Review' : 'Next'}
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
+
+        {/* Toaster for notifications */}
+        <Toaster position="top-right" />
       </div>
-    </div>
+    </>
   );
 }
