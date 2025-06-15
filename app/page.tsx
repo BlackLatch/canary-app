@@ -736,17 +736,18 @@ export default function Home() {
     return { expired: false, display: 'DISCONNECTED', color: 'text-gray-500' };
   };
 
-  const handleOnboardingComplete = (userChoices: Record<string, string>) => {
+  const handleOnboardingComplete = (userChoices: Record<string, string[]>) => {
     setOnboardingComplete(true);
     
     // Set default check-in interval based on user's risk level
-    if (userChoices.risk === 'Immediate danger') {
+    const riskLevel = userChoices.risk?.[0];
+    if (riskLevel === 'Immediate danger') {
       setCheckInInterval('1');
-    } else if (userChoices.risk === 'High risk') {
+    } else if (riskLevel === 'High risk') {
       setCheckInInterval('6');
-    } else if (userChoices.risk === 'Moderate risk') {
+    } else if (riskLevel === 'Moderate risk') {
       setCheckInInterval('12');
-    } else if (userChoices.risk === 'Low risk') {
+    } else if (riskLevel === 'Low risk') {
       setCheckInInterval('60'); // 1 hour for low risk
     } else {
       setCheckInInterval('1'); // Default to 1 minute for testing
@@ -991,7 +992,7 @@ export default function Home() {
                 <button
                   onClick={handleCheckIn}
                   disabled={isCheckingIn || !isConnected || userDossiers.filter(d => d.isActive).length === 0}
-                  className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
+                  className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
                 >
                   {isCheckingIn ? (
                     <>
@@ -1027,7 +1028,7 @@ export default function Home() {
                         toast.error('Failed to copy share link');
                       });
                     }}
-                    className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white px-6 py-4 editorial-header text-sm font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
+                    className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white px-6 py-4 editorial-header text-sm font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
                     title={`Copy shareable link: ${window.location.origin}/share/${address?.slice(0,6)}...${address?.slice(-4)}`}
                   >
                     <svg className="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1211,7 +1212,7 @@ export default function Home() {
                                       disabled={!dossier.isActive}
                                       className={`flex-1 editorial-body text-xs px-3 py-2 border-2 font-bold transition-colors ${
                                         dossier.isActive 
-                                          ? 'border-gray-900 text-gray-900 bg-white hover:bg-gray-900 hover:text-white' 
+                                          ? 'border-gray-900 text-gray-900 bg-white hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white' 
                                           : 'border-gray-300 text-gray-500 bg-gray-100 cursor-not-allowed'
                                       }`}
                                     >
@@ -1753,7 +1754,7 @@ export default function Home() {
                             <button
                               onClick={processCanaryTrigger}
                               disabled={!uploadedFile || isProcessing || !name.trim()}
-                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
+                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
                             >
                               {isProcessing ? (
                                 <div className="flex items-center justify-center">
@@ -1773,7 +1774,7 @@ export default function Home() {
                             <button
                               onClick={commitToCodex}
                               disabled={isCommitting}
-                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-900 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-colors duration-200 uppercase"
+                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:text-white hover:[&>*]:text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
                             >
                               {isCommitting ? (
                                 <div className="flex items-center justify-center">
