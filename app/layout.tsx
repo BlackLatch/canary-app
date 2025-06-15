@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Crimson_Text } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from './components/Web3Provider';
+import FloatingNavigation from './components/FloatingNavigation';
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -29,9 +30,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${playfair.variable} ${crimson.variable} antialiased bg-gray-50 text-gray-900`}
+        className={`${playfair.variable} ${crimson.variable} antialiased grid-background text-gray-900`}
       >
         <Web3Provider>
+          <FloatingNavigation />
           {children}
         </Web3Provider>
       </body>

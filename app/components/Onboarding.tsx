@@ -158,15 +158,45 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   if (currentPhase === 'story') {
     return (
       <div 
-        className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8 cursor-pointer"
+        className="min-h-screen grid-background design-board flex items-center justify-center p-4 md:p-8 cursor-pointer"
         onClick={() => {
           if (!showDossierIntro && isVisible) handleNextStorySlide();
         }}
       >
-        <div className="max-w-4xl w-full">
-          {/* Canary wordmark */}
+        {/* Animated connection lines */}
+        <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
+          <path
+            d="M 200 300 Q 400 250 600 350"
+            className="connection-line"
+            style={{ 
+              strokeDasharray: '5,5',
+              animation: 'dashMove 4s linear infinite'
+            }}
+          />
+          <path
+            d="M 100 500 Q 350 450 600 550"
+            className="connection-line"
+            style={{ 
+              strokeDasharray: '3,7',
+              animation: 'dashMove 6s linear infinite reverse'
+            }}
+          />
+          <circle cx="200" cy="300" r="6" fill="rgba(255, 255, 255, 0.8)">
+            <animate attributeName="r" values="4;8;4" dur="3s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="600" cy="350" r="5" fill="rgba(255, 255, 255, 0.8)">
+            <animate attributeName="r" values="3;7;3" dur="2.5s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+
+        <div className="max-w-4xl w-full relative z-10">
+          {/* Canary logo */}
           <div className="absolute top-4 left-4 md:top-8 md:left-8 opacity-100 transition-opacity duration-500">
-            <h1 className="editorial-header text-base md:text-lg tracking-[0.2em]">CANARY</h1>
+            <img 
+              src="/canary.png" 
+              alt="Canary Logo" 
+              className="max-w-12 max-h-12 md:max-w-16 md:max-h-16 object-contain"
+            />
           </div>
 
           {/* Skip button */}
@@ -264,7 +294,26 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       'Immediate danger': '🔴',
     };
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col p-0 md:p-8">
+              <div className="min-h-screen grid-background design-board flex flex-col p-0 md:p-8">
+        {/* Animated connection lines */}
+        <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
+          <path
+            d="M 150 200 Q 350 150 550 250"
+            className="connection-line"
+            style={{ 
+              strokeDasharray: '4,6',
+              animation: 'dashMove 5s linear infinite'
+            }}
+          />
+          <circle cx="150" cy="200" r="5" fill="rgba(255, 255, 255, 0.8)">
+            <animate attributeName="r" values="3;7;3" dur="2.5s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="550" cy="250" r="6" fill="rgba(255, 255, 255, 0.8)">
+            <animate attributeName="r" values="4;8;4" dur="3.5s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+
+        <div className="relative z-10 flex flex-col h-full">
         {/* Progress bar and status */}
         <div className="w-full flex flex-col items-center mt-6 mb-2">
           <div className="relative w-3/5 md:w-2/5 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -278,13 +327,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </div>
         </div>
         <div className="max-w-xl w-full mx-auto flex-1 flex flex-col justify-center">
-          {/* Canary wordmark */}
+          {/* Canary logo */}
           <div className="text-center mt-8 mb-4">
-            <h1 className="editorial-header text-lg md:text-xl tracking-[0.2em] text-slate-700">CANARY</h1>
+            <img 
+              src="/canary.png" 
+              alt="Canary Logo" 
+              className="max-w-16 max-h-16 md:max-w-20 md:max-h-20 mx-auto object-contain"
+            />
           </div>
 
           {/* Question card */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-6 md:p-8 mb-8">
+          <div className="design-card px-4 py-6 md:p-8 mb-8">
             <div className="text-center">
               <div className="text-xs text-slate-500 mb-2 tracking-wide">
                 Question {conversationStep + 1} of {totalQuestions}
@@ -343,6 +396,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </div>
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -365,11 +419,34 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       ['recipients', 'timeline'],
     ];
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+              <div className="min-h-screen grid-background design-board p-4 md:p-8">
+        {/* Animated connection lines */}
+        <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
+          <path
+            d="M 250 150 Q 450 100 650 200"
+            className="connection-line"
+            style={{ 
+              strokeDasharray: '6,4',
+              animation: 'dashMove 7s linear infinite reverse'
+            }}
+          />
+          <circle cx="250" cy="150" r="5" fill="rgba(255, 255, 255, 0.8)">
+            <animate attributeName="r" values="3;7;3" dur="2.5s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="650" cy="200" r="6" fill="rgba(255, 255, 255, 0.8)">
+            <animate attributeName="r" values="4;8;4" dur="4s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+
+        <div className="relative z-10">
         <div className="max-w-4xl mx-auto">
-          {/* Canary wordmark */}
+          {/* Canary logo */}
           <div className="text-center mb-6 md:mb-8">
-            <h1 className="editorial-header text-lg md:text-xl tracking-[0.2em]">CANARY</h1>
+            <img 
+              src="/canary.png" 
+              alt="Canary Logo" 
+              className="max-w-16 max-h-16 md:max-w-20 md:max-h-20 mx-auto object-contain"
+            />
           </div>
 
           {/* Summary card/table */}
@@ -414,6 +491,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               <span className="mr-2">🔒</span> Connect Web3 Wallet
             </button>
           </div>
+        </div>
         </div>
       </div>
     );

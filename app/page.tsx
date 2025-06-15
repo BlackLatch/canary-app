@@ -298,10 +298,17 @@ export default function Home() {
   // Show sign-in page if onboarding complete but not signed in
   if (!signedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8" style={{ zoom: '0.8' }}>
+      <div className="min-h-screen grid-background flex items-center justify-center p-4 md:p-8" style={{ zoom: '0.8' }}>
         <div className="max-w-2xl w-full text-center">
-          {/* Canary wordmark */}
-          <h1 className="editorial-header text-xl md:text-2xl tracking-[0.2em] mb-8 md:mb-12">CANARY</h1>
+          {/* Canary logo and wordmark */}
+          <div className="flex flex-col items-center mb-8 md:mb-12">
+            <img 
+              src="/canary.png" 
+              alt="Canary Logo" 
+              className="max-w-40 max-h-40 md:max-w-48 md:max-h-48 mb-4 object-contain"
+            />
+            <h1 className="editorial-header text-xl md:text-2xl tracking-[0.2em]">CANARY</h1>
+          </div>
 
           {/* Setup summary (if user went through onboarding) */}
           {Object.keys(userProfile).length > 0 && (
@@ -370,50 +377,70 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ zoom: '0.8' }}>
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="editorial-header text-3xl tracking-[0.2em]">CANARY</h1>
-          
-          <div className="flex items-center gap-8">
-            <nav className="flex gap-8">
-              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Home</a>
-              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Triggers</a>
-              <a href="#" className="editorial-body font-semibold hover:text-blue-600">Settings</a>
-            </nav>
-            
-            {/* Wallet Status */}
-            {isConnected && address ? (
-              <div className="flex items-center gap-3">
-                <div className="editorial-body text-sm border-2 border-gray-300 px-3 py-2 rounded-lg bg-white">
-                  <span className="text-green-600 font-semibold">●</span> {address.slice(0, 6)}...{address.slice(-4)}
-                </div>
-                <button
-                  onClick={() => disconnect()}
-                  className="editorial-body text-sm text-gray-500 hover:text-gray-700 underline"
-                >
-                  Log out
-                </button>
-              </div>
-            ) : (
-              <div className="editorial-body text-sm text-gray-500">
-                Demo Mode
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen grid-background design-board" style={{ zoom: '0.8' }}>
+      {/* Animated connection lines */}
+      <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
+        {/* Animated curved lines */}
+        <path
+          d="M 300 200 Q 500 150 700 250"
+          className="connection-line"
+          style={{ 
+            strokeDasharray: '5,5',
+            animation: 'dashMove 4s linear infinite'
+          }}
+        />
+        <path
+          d="M 150 400 Q 400 350 650 450"
+          className="connection-line"
+          style={{ 
+            strokeDasharray: '3,7',
+            animation: 'dashMove 6s linear infinite reverse'
+          }}
+        />
+        <path
+          d="M 800 300 Q 1000 200 1200 350"
+          className="connection-line"
+          style={{ 
+            strokeDasharray: '4,6',
+            animation: 'dashMove 5s linear infinite'
+          }}
+        />
+        <path
+          d="M 200 600 Q 500 550 800 650"
+          className="connection-line"
+          style={{ 
+            strokeDasharray: '6,4',
+            animation: 'dashMove 7s linear infinite reverse'
+          }}
+        />
+        
+        {/* Animated circles */}
+        <circle cx="300" cy="200" r="6" fill="rgba(255, 255, 255, 0.8)">
+          <animate attributeName="r" values="4;8;4" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="700" cy="250" r="6" fill="rgba(255, 255, 255, 0.8)">
+          <animate attributeName="r" values="6;10;6" dur="4s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="150" cy="400" r="5" fill="rgba(255, 255, 255, 0.8)">
+          <animate attributeName="r" values="3;7;3" dur="2.5s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="650" cy="450" r="7" fill="rgba(255, 255, 255, 0.8)">
+          <animate attributeName="r" values="5;9;5" dur="3.5s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="800" cy="300" r="6" fill="rgba(255, 255, 255, 0.8)">
+          <animate attributeName="r" values="4;8;4" dur="4.5s" repeatCount="indefinite" />
+        </circle>
+      </svg>
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
         {/* Main Controls */}
         <div className="text-center mb-12">
           {/* Master Switch & Check-in Controls */}
           <div className="flex justify-center items-stretch gap-12 mb-12">
             {/* Master Switch */}
             <div className="flex flex-col items-center">
-              <div className="editorial-card text-center p-8 w-[280px] h-[200px] flex flex-col justify-between">
-                <h3 className="editorial-subheader">Master Switch</h3>
+              <div className="design-card" style={{ width: '280px', height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 8px 0', color: '#000' }}>Master Switch</h3>
                 <div className="flex flex-col items-center justify-center flex-1">
                   <button
                     onClick={() => setIsActive(!isActive)}
@@ -438,7 +465,7 @@ export default function Home() {
                     </span>
                   </button>
                 </div>
-                <div className="editorial-body text-sm">
+                <div style={{ fontSize: '13px', color: '#555' }}>
                   System {isActive ? 'Active' : 'Inactive'}
                 </div>
               </div>
@@ -446,8 +473,8 @@ export default function Home() {
 
             {/* Check-in Button */}
             <div className="flex flex-col items-center">
-              <div className="editorial-card text-center p-8 w-[280px] h-[200px] flex flex-col justify-between">
-                <h3 className="editorial-subheader">Safety Check-in</h3>
+              <div className="design-card" style={{ width: '280px', height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 8px 0', color: '#000' }}>Safety Check-in</h3>
                 <div className="flex flex-col items-center justify-center flex-1">
                   <button
                     onClick={handleCheckIn}
@@ -457,7 +484,7 @@ export default function Home() {
                     Check In Now
                   </button>
                 </div>
-                <div className="editorial-body text-sm">
+                <div style={{ fontSize: '13px', color: '#555' }}>
                   Last: {getTimeSinceLastCheckIn()}
                 </div>
               </div>
@@ -466,7 +493,7 @@ export default function Home() {
 
           {/* Condition Card */}
           <div className="flex justify-center mb-12">
-            <div className="editorial-card text-center max-w-md">
+            <div className="design-card" style={{ textAlign: 'center', maxWidth: '400px' }}>
               <div className="editorial-body mb-2">Release files if no check-in for</div>
               <div className="editorial-header text-3xl mb-4">{checkInInterval} HOURS</div>
               <div className="border-t border-gray-200 pt-4">
@@ -488,9 +515,9 @@ export default function Home() {
           <div className="space-y-8">
             {/* File Upload */}
             <div>
-              <h3 className="editorial-subheader mb-4">File Upload</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 16px 0', color: '#000' }}>File Upload</h3>
               <div
-                className="editorial-card border-dashed border-2 border-gray-300 text-center py-12 cursor-pointer hover:border-blue-400 transition-colors"
+                className="design-card border-dashed border-2 border-gray-300 text-center py-12 cursor-pointer hover:border-blue-400 transition-colors"
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
@@ -510,8 +537,8 @@ export default function Home() {
 
             {/* Check-in Settings */}
             <div>
-              <h3 className="editorial-subheader mb-4">Check-in Settings</h3>
-              <div className="editorial-card space-y-4">
+              <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 16px 0', color: '#000' }}>Check-in Settings</h3>
+              <div className="design-card space-y-4">
                 <div>
                   <label className="editorial-body font-semibold mb-2 block">
                     Check-in Interval
@@ -601,8 +628,8 @@ export default function Home() {
 
             {/* Activity Log */}
             <div>
-              <h3 className="editorial-subheader mb-4">Activity Log</h3>
-              <div className="editorial-card space-y-3">
+              <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 16px 0', color: '#000' }}>Activity Log</h3>
+              <div className="design-card space-y-3">
                 {activityLog.map((log, index) => (
                   <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                     <span className="editorial-body">{log.type}</span>

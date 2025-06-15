@@ -5,6 +5,137 @@
   --font-crimson: "Crimson Text", serif;
 }
 
+/* Design board background with precise grid */
+.grid-background {
+  background-color: #2a2a2a;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 80px 80px;
+  position: relative;
+  animation: gridMove 8s linear infinite;
+}
+
+/* Grid animation moving towards top right */
+@keyframes gridMove {
+  0% {
+    background-position: 0px 0px;
+  }
+  100% {
+    background-position: 80px -80px;
+  }
+}
+
+/* Dash animation for moving lines */
+@keyframes dashMove {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 20;
+  }
+}
+
+/* Design board aesthetic elements */
+.design-board {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Connecting lines */
+.connection-line {
+  position: absolute;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+  fill: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Circular nodes */
+.connection-node {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  z-index: 2;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+/* Design cards */
+.design-card {
+  position: absolute;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #333;
+  max-width: 280px;
+  z-index: 3;
+}
+
+.design-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #000;
+}
+
+.design-card p {
+  margin: 0;
+  color: #555;
+}
+
+.design-card .tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  color: #666;
+  margin-top: 12px;
+  gap: 4px;
+}
+
+.design-card .tag::before {
+  content: "○";
+  font-size: 8px;
+}
+
+/* Image cards */
+.image-card {
+  position: absolute;
+  background: #ffffff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+}
+
+.image-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.image-card .caption {
+  padding: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.image-card .caption::before {
+  content: "○";
+  font-size: 8px;
+}
+
 /* Custom component styles */
 .editorial-header {
   font-family: var(--font-playfair);
