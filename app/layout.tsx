@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Crimson_Text } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from './components/Web3Provider';
+import { Toaster } from 'react-hot-toast';
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -34,6 +35,35 @@ export default function RootLayout({
         <Web3Provider>
           {children}
         </Web3Provider>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#ffffff',
+              color: '#1f2937',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontFamily: 'var(--font-crimson)',
+            },
+            success: {
+              style: {
+                border: '1px solid #10b981',
+              },
+            },
+            error: {
+              style: {
+                border: '1px solid #ef4444',
+              },
+            },
+            loading: {
+              style: {
+                border: '1px solid #3b82f6',
+              },
+            },
+          }}
+        />
       </body>
     </html>
   );

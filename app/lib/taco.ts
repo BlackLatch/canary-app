@@ -36,7 +36,7 @@ export interface CommitResult {
   pinataCid?: string;
   pinataUploadResult?: PinataUploadResult;
   payloadUri: string;
-  storageType: 'codex' | 'ipfs' | 'pinata' | 'mock';
+  storageType: 'codex' | 'ipfs' | 'pinata';
 }
 
 export interface TraceJson {
@@ -44,7 +44,7 @@ export interface TraceJson {
   taco_capsule_uri: string;
   condition: string;
   description: string;
-  storage_type: 'codex' | 'ipfs' | 'pinata' | 'mock';
+  storage_type: 'codex' | 'ipfs' | 'pinata';
   gateway_url?: string;
   gatewayUsed?: 'primary' | 'secondary';
   created_at: string;
@@ -124,7 +124,7 @@ class TacoService {
 
     return {
       messageKit,
-      encryptedData: new TextEncoder().encode(JSON.stringify(messageKit)),
+      encryptedData: messageKit.toBytes(),
       originalFileName: file.name,
       condition,
       description,
@@ -165,6 +165,33 @@ class TacoService {
 
     console.log('✅ Decryption successful');
     return decryptedMessage;
+  }
+
+  async commitToPinataOnly(encryptionResult: EncryptionResult): Promise<CommitResult> {
+    try {
+      console.log('🟣 Uploading to Pinata only (Codex disabled)...');
+      
+      const pinataUploadResult = await uploadToPinata(
+        encryptionResult.encryptedData,
+        `${encryptionResult.originalFileName}.encrypted`
+      );
+
+      if (pinataUploadResult.success) {
+        console.log('✅ Pinata upload successful:', pinataUploadResult.ipfsHash);
+        return {
+          encryptionResult,
+          pinataCid: pinataUploadResult.ipfsHash,
+          pinataUploadResult,
+          payloadUri: `ipfs://${pinataUploadResult.ipfsHash}`,
+          storageType: 'pinata'
+        };
+      } else {
+        throw new Error(`Pinata upload failed: ${pinataUploadResult.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Pinata upload failed:', error);
+      throw new Error(`Storage failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async commitToCodex(encryptionResult: EncryptionResult): Promise<CommitResult> {
@@ -219,20 +246,11 @@ class TacoService {
       }
     } catch (error) {
       console.error('Commit failed:', error);
+      throw new Error('All storage methods failed. Unable to securely store encrypted file.');
     }
 
-    // Final fallback
-    return {
-      encryptionResult,
-      codexUploadResult: { 
-        cid: '', 
-        size: encryptionResult.encryptedData.length, 
-        success: false, 
-        error: 'All upload methods failed'
-      },
-      payloadUri: `mock://failed-${Date.now()}`,
-      storageType: 'mock'
-    };
+    // Should never reach here
+    throw new Error('Commit failed: no storage backend available');
   }
 
   createTraceJson(commitResult: CommitResult): TraceJson {
@@ -292,6 +310,15 @@ export async function commitEncryptedFile(
   encryptionResult: EncryptionResult
 ): Promise<{ commitResult: CommitResult; traceJson: TraceJson }> {
   const commitResult = await tacoService.commitToCodex(encryptionResult);
+  const traceJson = tacoService.createTraceJson(commitResult);
+  
+  return { commitResult, traceJson };
+}
+
+export async function commitEncryptedFileToPinata(
+  encryptionResult: EncryptionResult
+): Promise<{ commitResult: CommitResult; traceJson: TraceJson }> {
+  const commitResult = await tacoService.commitToPinataOnly(encryptionResult);
   const traceJson = tacoService.createTraceJson(commitResult);
   
   return { commitResult, traceJson };
