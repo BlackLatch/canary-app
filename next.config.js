@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Updated: 2025-01-16 - Added graceful webpack polyfill fallbacks for Digital Ocean
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
