@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle } from 'lucide-react';
-import { encryptFileWithCondition, commitEncryptedFileToPinata, DeadmanCondition, TraceJson } from './lib/taco';
+import { encryptFileWithCondition, commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import Onboarding from './components/Onboarding';
 import CanaryGuideStandalone from './components/CanaryGuideStandalone';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
@@ -45,7 +45,7 @@ export default function Home() {
     filename: string;
     status: 'encrypted' | 'committed';
     storageType: 'codex' | 'ipfs' | 'pinata';
-    encryptionType: 'real';
+    encryptionType: 'real' | 'dossier-enhanced';
     payloadUri?: string;
     contractDossierId?: string;
     contractTxHash?: string;
@@ -139,50 +139,151 @@ export default function Home() {
     
     setIsProcessing(true);
     
-    const encryptionToast = toast.loading('Encrypting file with TACo...');
+    const processingToast = toast.loading('Creating secure dossier with TACo encryption...');
     
     try {
+      // First, check if wallet is connected for enhanced security
+      if (!isConnected || !address) {
+        console.log('⚠️ Wallet not connected - using fallback time-based encryption');
+        
+        // Fallback to time-based encryption for backward compatibility
+        const condition: DeadmanCondition = {
+          type: 'no_checkin',
+          duration: `${checkInInterval} MINUTES`
+        };
+
+        const encryptionResult = await encryptFileWithCondition(
+          uploadedFile,
+          condition,
+          name
+        );
+        
+        setEncryptedCapsule(encryptionResult);
+        
+        toast.success('File encrypted with time-based condition (wallet not connected)', { id: processingToast });
+        return;
+      }
+
+      // Check if we're on the right network
+      if (chainId !== polygonAmoy.id) {
+        console.warn('⚠️ Wrong network! Please switch to Polygon Amoy');
+        toast.error('Please switch to Polygon Amoy network in your wallet', { id: processingToast });
+        return;
+      }
+
+      console.log('🔐 Starting enhanced encryption flow with Dossier contract integration...');
+      
+      // Step 1: Create dossier on-chain FIRST to get the dossier ID
+      console.log('📝 Step 1: Creating dossier on-chain...');
+      
+      const dossierName = `Encrypted file: ${uploadedFile.name}`;
+      const checkInMinutes = parseInt(checkInInterval);
+      const recipients = [address]; // For now, only the creator is a recipient
+      const tempFileHashes = [`ipfs://pending-${Date.now()}`]; // Temporary placeholder
+      
+      console.log('🎯 Creating dossier with parameters:');
+      console.log('   - Name:', dossierName);
+      console.log('   - Check-in interval:', checkInMinutes, 'minutes');
+      console.log('   - Recipients:', recipients);
+      
+      let dossierId: bigint;
+      let contractTxHash: string;
+      
+      try {
+        const result = await ContractService.createDossier(
+          dossierName,
+          checkInMinutes,
+          recipients,
+          tempFileHashes
+        );
+        
+        dossierId = result.dossierId;
+        contractTxHash = result.txHash;
+        setCurrentDossierId(dossierId);
+        
+        console.log('✅ Dossier created on-chain!');
+        console.log('🆔 Dossier ID:', dossierId.toString());
+        console.log('🔗 Tx Hash:', contractTxHash);
+        
+      } catch (error) {
+        console.error('❌ Failed to create dossier:', error);
+        toast.error(`Failed to create dossier: ${error}`, { id: processingToast });
+        return;
+      }
+
+      // Step 2: Encrypt file with Dossier contract condition
+      console.log('🔒 Step 2: Encrypting file with Dossier contract condition...');
+      
       const condition: DeadmanCondition = {
         type: 'no_checkin',
         duration: `${checkInInterval} MINUTES`
       };
 
-      // Encrypt the file with TACo (no upload yet)
-      const encryptionResult = await encryptFileWithCondition(
+      // Use the new encryptFileWithDossier function that integrates with the contract
+      const encryptionResult = await encryptFileWithDossier(
         uploadedFile,
         condition,
-        name
+        name,
+        dossierId,
+        address
       );
       
+      console.log('✅ File encrypted with Dossier contract condition!');
+      console.log('🔒 Dossier ID in condition:', dossierId.toString());
+      console.log('👤 User address in condition:', address);
+      
       setEncryptedCapsule(encryptionResult);
+      
+      // Step 3: Upload encrypted file and update dossier with real file hash
+      console.log('📦 Step 3: Uploading encrypted file and updating dossier...');
+      
+      const { commitResult, traceJson: newTraceJson } = await commitEncryptedFileToPinata(encryptionResult);
+      
+      console.log('📦 Storage commit result:', commitResult);
+      console.log('📄 Generated traceJson:', newTraceJson);
+      console.log('🔗 Real file hash:', newTraceJson.payload_uri);
+      
+      // Store trace JSON for download
+      setTraceJson(newTraceJson);
+      
+      // TODO: Update the dossier with the real file hash (requires contract update)
+      // For now, the dossier has a placeholder hash and the real hash is in the trace JSON
       
       // Add to uploads table
       const uploadId = `upload-${Date.now()}`;
       setUploads(prev => [...prev, {
         id: uploadId,
         filename: uploadedFile.name,
-        status: 'encrypted',
-        storageType: 'codex', // Will be updated when committed
-        encryptionType: 'real',
-        createdAt: new Date()
+        status: 'committed',
+        storageType: commitResult.storageType,
+        encryptionType: 'dossier-enhanced',
+        createdAt: new Date(),
+        payloadUri: commitResult.payloadUri,
+        contractDossierId: dossierId.toString(),
+        contractTxHash: contractTxHash
       }]);
+      
+      // Load updated dossiers
+      await loadUserDossiers();
       
       // Add to activity log
       setActivityLog(prev => [
-        { type: 'File encrypted with TACo', date: new Date().toLocaleString() },
+        { type: `Dossier #${dossierId.toString()} created with enhanced TACo encryption`, date: new Date().toLocaleString() },
+        { type: `File encrypted with contract-verified conditions`, date: new Date().toLocaleString() },
+        { type: `File committed to ${commitResult.storageType}`, date: new Date().toLocaleString() },
         ...prev
       ]);
       
-      toast.success('File encrypted successfully!', { id: encryptionToast });
+      toast.success('🔐 Enhanced encryption complete! File is now protected by Dossier contract conditions.', { id: processingToast });
       
     } catch (error) {
-      console.error('Error encrypting file:', error);
+      console.error('Error in enhanced encryption flow:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown encryption error';
       
-      toast.error(`Encryption failed: ${errorMessage}`, { id: encryptionToast });
+      toast.error(`Enhanced encryption failed: ${errorMessage}`, { id: processingToast });
       
       setActivityLog(prev => [
-        { type: 'File encryption failed', date: new Date().toLocaleString() },
+        { type: 'Enhanced encryption failed', date: new Date().toLocaleString() },
         ...prev
       ]);
     } finally {
@@ -190,211 +291,7 @@ export default function Home() {
     }
   };
 
-  const commitToCodex = async () => {
-    if (!encryptedCapsule) return;
-    
-    setIsCommitting(true);
-    
-    const commitToast = toast.loading('Committing to storage and blockchain...');
-    
-    try {
-      console.log('🔗 Starting integrated commit: storage + on-chain dossier...');
-      
-      // Step 1: Commit to storage (Codex/IPFS/etc)
-      const { commitResult, traceJson: newTraceJson } = await commitEncryptedFileToPinata(encryptedCapsule);
-      
-      console.log('📦 Storage commit result:', commitResult);
-      console.log('📄 Generated traceJson:', newTraceJson);
-      console.log('🔗 File hash to be stored on-chain:', newTraceJson.payload_uri);
-      
-      // Store trace JSON for download
-      setTraceJson(newTraceJson);
-      
-      // Step 2: Create dossier on-chain if connected
-      let dossierId: bigint | null = null;
-      let contractTxHash: string | null = null;
-      
-      if (isConnected && address) {
-        console.log('📝 Creating dossier on Polygon Amoy contract...');
-        
-        // Validate prerequisites
-        console.log('🔍 Pre-flight checks:');
-        console.log('   - Wallet connected:', isConnected);
-        console.log('   - Address:', address);
-        console.log('   - Chain ID:', chainId);
-        console.log('   - Target chain:', polygonAmoy.id);
-        console.log('   - IPFS hash:', newTraceJson.payload_uri);
-        
-        // Check if we're on the right network
-        if (chainId !== polygonAmoy.id) {
-          console.warn('⚠️ Wrong network! Please switch to Polygon Amoy');
-          toast.error('Please switch to Polygon Amoy network in your wallet');
-          return;
-        }
-        
-        const dossierName = `Encrypted file: ${encryptedCapsule.originalFileName}`;
-        const checkInMinutes = parseInt(checkInInterval);
-        const recipients = [address]; // For now, only the creator is a recipient
-        const fileHashes = [newTraceJson.payload_uri];
-        
-        console.log('🎯 Contract creation parameters:');
-        console.log('   - Name:', dossierName);
-        console.log('   - Check-in interval:', checkInMinutes, 'minutes');
-        console.log('   - Recipients:', recipients);
-        console.log('   - File hashes:', fileHashes);
-        console.log('   - First file hash:', fileHashes[0]);
-        
-        // Validate that we have a proper file hash
-        if (!fileHashes[0] || fileHashes[0] === 'undefined' || fileHashes[0] === '') {
-          throw new Error(`Invalid file hash: ${fileHashes[0]}. Storage upload may have failed.`);
-        }
-        
-        try {
-          // COMPREHENSIVE DEBUGGING BEFORE CONTRACT CALL
-          console.log('🔍🔍🔍 DEBUGGING CONTRACT PARAMETERS BEFORE TRANSACTION 🔍🔍🔍');
-          try {
-            const debugResult = await ContractService.debugCreateDossierParams(
-              dossierName,
-              checkInMinutes,
-              recipients,
-              fileHashes
-            );
-            
-            console.log('📊 DEBUG RESULT:', debugResult);
-            
-            if (!debugResult.isValid) {
-              console.error('❌ CONTRACT PARAMETER VALIDATION FAILED:');
-              debugResult.errors.forEach(error => console.error('   🚨', error));
-              throw new Error(`Contract validation failed: ${debugResult.errors.join(', ')}`);
-            }
-            
-            console.log('✅ CONTRACT PARAMETERS VALIDATED - PROCEEDING WITH TRANSACTION');
-            
-          } catch (debugError) {
-            console.error('❌ DEBUG VALIDATION FAILED:', debugError);
-            throw new Error(`Pre-transaction validation failed: ${debugError}`);
-          }
 
-          // Create dossier on-chain
-          const result = await ContractService.createDossier(
-            dossierName,
-            checkInMinutes,
-            recipients,
-            fileHashes
-          );
-          
-          dossierId = result.dossierId;
-          contractTxHash = result.txHash;
-          setCurrentDossierId(dossierId);
-          
-          console.log('✅ Dossier created on-chain!');
-          console.log('📍 Contract:', CANARY_DOSSIER_ADDRESS);
-          console.log('🆔 Dossier ID:', dossierId.toString());
-          console.log('🔗 Tx Hash:', contractTxHash);
-          
-          // Verify what actually got stored on-chain
-          try {
-            console.log('🔍 Verifying on-chain data...');
-            // Wait a moment for transaction to be fully processed
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const createdDossier = await ContractService.getDossier(address as Address, dossierId);
-            console.log('📋 Stored dossier data:');
-            console.log('   - Name:', createdDossier.name);
-            console.log('   - File hashes count:', createdDossier.encryptedFileHashes.length);
-            console.log('   - File hashes:', createdDossier.encryptedFileHashes);
-            console.log('   - Recipients:', createdDossier.recipients);
-            
-            // Check if the IPFS hash was stored correctly
-            if (createdDossier.encryptedFileHashes.length === 0) {
-              console.error('❌ WARNING: No file hashes stored on-chain!');
-            } else if (createdDossier.encryptedFileHashes[0] !== newTraceJson.payload_uri) {
-              console.error('❌ WARNING: Stored hash does not match uploaded hash!');
-              console.error('   Expected:', newTraceJson.payload_uri);
-              console.error('   Got:', createdDossier.encryptedFileHashes[0]);
-            } else {
-              console.log('✅ File hash verification successful!');
-            }
-          } catch (verifyError) {
-            console.error('❌ Failed to verify on-chain data:', verifyError);
-          }
-          
-          // Load updated dossiers
-          await loadUserDossiers();
-          
-          setActivityLog(prev => [
-            { type: `Dossier #${dossierId?.toString()} created on Polygon Amoy`, date: new Date().toLocaleString() },
-            ...prev
-          ]);
-          
-        } catch (error) {
-          console.error('❌ Failed to create dossier:', error);
-          
-          // More detailed error analysis
-          if (error instanceof Error) {
-            console.error('❌ Error details:');
-            console.error('   - Name:', error.name);
-            console.error('   - Message:', error.message);
-            console.error('   - Stack:', error.stack);
-            
-            // Check for specific error types
-            if (error.message.includes('Network connection issue')) {
-              console.error('   - Issue: Network/RPC connection problem');
-              console.error('   - Solution: Check wallet connection and network');
-            } else if (error.message.includes('Internal JSON-RPC error')) {
-              console.error('   - Issue: Wallet/RPC communication error');
-              console.error('   - Solution: Try switching networks or refreshing');
-            } else if (error.message.includes('user rejected')) {
-              console.error('   - Issue: User rejected transaction');
-            } else if (error.message.includes('insufficient funds')) {
-              console.error('   - Issue: Insufficient funds for gas');
-            }
-          }
-          
-          console.error('❌ Failed to create on-chain dossier:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          toast.error(`Failed to create dossier: ${errorMessage}`, { id: commitToast });
-          
-          setActivityLog(prev => [
-            { type: 'On-chain dossier creation failed (storage still committed)', date: new Date().toLocaleString() },
-            ...prev
-          ]);
-        }
-      }
-      
-      // Update uploads table - mark most recent upload as committed
-      setUploads(prev => prev.map((upload, index) => 
-        index === prev.length - 1 ? {
-          ...upload,
-          status: 'committed' as const,
-          storageType: commitResult.storageType,
-          payloadUri: commitResult.payloadUri,
-          contractDossierId: dossierId?.toString(),
-          contractTxHash: contractTxHash || undefined
-        } : upload
-      ));
-      
-      // Add to activity log
-      setActivityLog(prev => [
-        { type: `File committed to ${commitResult.storageType}`, date: new Date().toLocaleString() },
-        ...prev
-      ]);
-      
-      toast.success('File committed successfully!', { id: commitToast });
-      
-    } catch (error) {
-      console.error('Error in integrated commit:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown commit error';
-      
-      toast.error(`Commit failed: ${errorMessage}`, { id: commitToast });
-      
-      setActivityLog(prev => [
-        { type: 'File commit failed', date: new Date().toLocaleString() },
-        ...prev
-      ]);
-    } finally {
-      setIsCommitting(false);
-    }
-  };
 
   const copyTraceJson = () => {
     if (traceJson) {
@@ -1885,25 +1782,7 @@ export default function Home() {
                             </button>
                           )}
 
-                          {encryptedCapsule && !traceJson && (
-                            <button
-                              onClick={commitToCodex}
-                              disabled={isCommitting}
-                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                            >
-                              {isCommitting ? (
-                                <div className="flex items-center justify-center">
-                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
-                                  Uploading...
-                                </div>
-                              ) : (
-                                <>
-                                  <Upload className="inline mr-3" size={28} />
-                                  Upload
-                                </>
-                              )}
-                            </button>
-                          )}
+
 
                           {/* Reset Button - shown after everything is complete */}
                           {traceJson && (
