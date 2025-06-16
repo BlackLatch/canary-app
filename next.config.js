@@ -15,27 +15,59 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   webpack: (config) => {
-    // Handle node modules for browser compatibility
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-      net: false,
-      tls: false,
-      crypto: require.resolve('crypto-browserify'),
-      stream: require.resolve('stream-browserify'),
-      url: require.resolve('url'),
-      zlib: require.resolve('browserify-zlib'),
-      http: require.resolve('stream-http'),
-      https: require.resolve('https-browserify'),
-      assert: require.resolve('assert'),
-      os: require.resolve('os-browserify'),
-      path: require.resolve('path-browserify')
+    // Helper function to safely require modules
+    const safeRequire = (moduleName) => {
+      try {
+        return require.resolve(moduleName);
+      } catch (error) {
+        console.warn(`Warning: Could not resolve ${moduleName}, skipping polyfill`);
+        return false;
+      }
     };
 
-    config.module.rules.push({
-      test: /\.node$/,
-      use: 'raw-loader',
+    // Handle node modules for browser compatibility
+    const fallbacks = {};
+    
+    // Only add polyfills if the modules are available
+    const polyfills = {
+      crypto: 'crypto-browserify',
+      stream: 'stream-browserify',
+      url: 'url',
+      zlib: 'browserify-zlib',
+      http: 'stream-http',
+      https: 'https-browserify',
+      assert: 'assert',
+      os: 'os-browserify',
+      path: 'path-browserify'
+    };
+
+    Object.entries(polyfills).forEach(([nodeModule, polyfill]) => {
+      const resolved = safeRequire(polyfill);
+      if (resolved) {
+        fallbacks[nodeModule] = resolved;
+      } else {
+        fallbacks[nodeModule] = false;
+      }
     });
+
+    // Always disable these Node.js modules in browser
+    fallbacks.fs = false;
+    fallbacks.net = false;
+    fallbacks.tls = false;
+
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      ...fallbacks
+    };
+
+    // Only add raw-loader rule if raw-loader is available
+    const rawLoader = safeRequire('raw-loader');
+    if (rawLoader) {
+      config.module.rules.push({
+        test: /\.node$/,
+        use: 'raw-loader',
+      });
+    }
 
     return config;
   },
