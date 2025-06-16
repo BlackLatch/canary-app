@@ -28,9 +28,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="h-full">
       <body
-        className={`${playfair.variable} ${crimson.variable} antialiased bg-gray-50 text-gray-900`}
+        className={`${playfair.variable} ${crimson.variable} antialiased text-gray-900 h-full`}
       >
         <Web3Provider>
           {children}

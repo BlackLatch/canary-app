@@ -224,16 +224,16 @@ const CanaryGuideStandalone = () => {
             cy="460"
             r="345"
             style={{
-              stroke: 'rgba(0, 0, 0, 0.15)',
+              stroke: 'rgba(255, 255, 255, 0.3)',
               strokeWidth: '1.7',
               fill: 'none'
             }}
           />
           
           {/* Connection points on the perfect circular line */}
-          <circle cx="437" cy="460" r="3.5" fill="rgba(0, 0, 0, 0.4)" />
-          <circle cx="782" cy="115" r="3.5" fill="rgba(0, 0, 0, 0.4)" />
-          <circle cx="1127" cy="460" r="3.5" fill="rgba(0, 0, 0, 0.4)" />
+          <circle cx="437" cy="460" r="3.5" fill="rgba(255, 255, 255, 0.6)" />
+          <circle cx="782" cy="115" r="3.5" fill="rgba(255, 255, 255, 0.6)" />
+          <circle cx="1127" cy="460" r="3.5" fill="rgba(255, 255, 255, 0.6)" />
         </svg>
 
 

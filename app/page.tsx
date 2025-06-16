@@ -98,6 +98,23 @@ export default function Home() {
     }
   }, [isConnected]);
 
+  // Apply background to body based on current view
+  useEffect(() => {
+    const body = document.body;
+    body.classList.remove('guide-dark', 'guide-light');
+    
+    if (currentView === 'guide') {
+      body.classList.add('guide-dark');
+    } else {
+      body.classList.add('guide-light');
+    }
+    
+    // Cleanup function to remove classes when component unmounts
+    return () => {
+      body.classList.remove('guide-dark', 'guide-light');
+    };
+  }, [currentView]);
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -891,10 +908,37 @@ export default function Home() {
             background-size: 80px 80px;
             animation: gridMove 12s linear infinite;
           }
+          
+          .canary-grid-background-dark {
+            background-color: #1a1a1a;
+            background-image: 
+              linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 80px 80px;
+            animation: gridMove 12s linear infinite;
+          }
+          
+          body.guide-dark {
+            background-color: #1a1a1a !important;
+            background-image: 
+              linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px) !important;
+            background-size: 80px 80px !important;
+            animation: gridMove 12s linear infinite !important;
+          }
+          
+          body.guide-light {
+            background-color: #f8f9fa !important;
+            background-image: 
+              linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px) !important;
+            background-size: 80px 80px !important;
+            animation: gridMove 12s linear infinite !important;
+          }
         `}
       </style>
       
-             <div className="min-h-screen canary-grid-background relative" style={{ zoom: '0.8' }}>
+             <div className="min-h-screen h-auto relative" style={{ zoom: '0.8', minHeight: '100vh' }}>
         {/* Logo - Fixed Top Left */}
         <div className="absolute top-6 left-6 z-50">
           <img 
@@ -917,7 +961,11 @@ export default function Home() {
               <button 
                 onClick={() => setCurrentView('checkin')}
                 className={`editorial-body font-semibold transition-colors ${
-                                      currentView === 'checkin' ? 'text-gray-900 border-b-2 border-gray-900 pb-1' : 'text-gray-600 hover:text-gray-900'
+                  currentView === 'guide' 
+                    ? '!text-white hover:!text-gray-200'
+                    : currentView === 'checkin' 
+                      ? 'text-gray-900 border-b-2 border-gray-900 pb-1' 
+                      : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Check In
@@ -925,7 +973,11 @@ export default function Home() {
               <button 
                 onClick={() => setCurrentView('documents')}
                 className={`editorial-body font-semibold transition-colors ${
-                                      currentView === 'documents' ? 'text-gray-900 border-b-2 border-gray-900 pb-1' : 'text-gray-600 hover:text-gray-900'
+                  currentView === 'guide' 
+                    ? '!text-white hover:!text-gray-200'
+                    : currentView === 'documents' 
+                      ? 'text-gray-900 border-b-2 border-gray-900 pb-1' 
+                      : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Documents
@@ -933,7 +985,9 @@ export default function Home() {
               <button 
                 onClick={() => setCurrentView('guide')}
                 className={`editorial-body font-semibold transition-colors ${
-                                      currentView === 'guide' ? 'text-gray-900 border-b-2 border-gray-900 pb-1' : 'text-gray-600 hover:text-gray-900'
+                  currentView === 'guide' 
+                    ? '!text-white border-b-2 border-white pb-1'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Guide
@@ -943,18 +997,28 @@ export default function Home() {
             {/* Wallet Status */}
             {isConnected && address ? (
               <div className="flex items-center gap-3">
-                <div className="editorial-body text-sm border-2 border-gray-300 px-3 py-2 rounded-lg bg-white">
-                  <span className="text-green-600 font-semibold">●</span> {address.slice(0, 6)}...{address.slice(-4)}
+                <div className={`editorial-body text-sm border-2 px-3 py-2 rounded-lg ${
+                  currentView === 'guide' 
+                    ? 'border-gray-600 bg-gray-800 !text-white' 
+                    : 'border-gray-300 bg-white text-gray-900'
+                }`}>
+                  <span className="text-green-400 font-semibold">●</span> {address.slice(0, 6)}...{address.slice(-4)}
         </div>
                 <button
                   onClick={() => disconnect()}
-                  className="editorial-body text-sm text-gray-500 hover:text-gray-700 underline"
+                  className={`editorial-body text-sm underline ${
+                    currentView === 'guide' 
+                      ? '!text-gray-300 hover:!text-white' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 >
                   Log out
                 </button>
         </div>
             ) : (
-              <div className="editorial-body text-sm text-gray-500">
+              <div className={`editorial-body text-sm ${
+                currentView === 'guide' ? '!text-gray-300' : 'text-gray-500'
+              }`}>
                 Not Connected
               </div>
             )}
