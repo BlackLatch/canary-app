@@ -1,3 +1,0 @@
-Network: polygon:amoy
-Contract: 0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0
-Transaction: 0x6fdda0583779900f6028d087dcf93c1c24df30b3637d543fc10006a2b258f4d2

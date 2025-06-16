@@ -1,3 +1,0 @@
-eth-ape>=0.7.0
-ape-solidity>=0.7.0
-ape-alchemy>=0.7.0 
