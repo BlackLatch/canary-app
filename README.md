@@ -12,6 +12,27 @@ A sophisticated journalistic dead man switch app built with Next.js, TACo (Thres
 - **Elegant UI**: Newspaper editorial design inspired interface
 - **Mobile Optimized**: Responsive design that works on all devices
 
+## Environment Variables
+
+The application requires the following environment variables to be set:
+
+### Pinata IPFS Configuration
+- `NEXT_PUBLIC_PINATA_API_KEY`: Your Pinata API key for IPFS pinning service
+- `NEXT_PUBLIC_PINATA_API_SECRET`: Your Pinata API secret for IPFS pinning service
+- `NEXT_PUBLIC_PINATA_JWT`: Your Pinata JWT token for authentication
+- `NEXT_PUBLIC_PINATA_GATEWAY_URL`: Your Pinata gateway URL for accessing IPFS content
+
+### Codex Node Configuration
+- `NEXT_PUBLIC_CODEX_NODE_URL`: URL of your Codex node (defaults to http://localhost:8080)
+
+### WalletConnect Configuration
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID for wallet connections
+
+### Environment
+- `NODE_ENV`: Set to 'development' or 'production'
+
+Note: All environment variables prefixed with `NEXT_PUBLIC_` will be exposed to the browser. Only use this prefix for variables that are safe to expose to the client.
+
 ## Condition Types
 
 1. **No Activity** - Release files if no activity detected for a specified duration

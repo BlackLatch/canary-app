@@ -18,6 +18,7 @@
     "@nucypher/taco": "^0.6.0",
     "@nucypher/taco-auth": "^0.3.0",
     "@tanstack/react-query": "^5.80.7",
+    "@tailwindcss/postcss": "^4",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "ethers": "^5.7.2",
@@ -27,12 +28,12 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
+    "tailwindcss": "^4",
     "viem": "^2.31.2",
     "wagmi": "^2.15.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -47,7 +48,6 @@
     "raw-loader": "^4.0.2",
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
-    "tailwindcss": "^4",
     "typescript": "^5",
     "url": "^0.11.0"
   }
