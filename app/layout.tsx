@@ -18,8 +18,8 @@ const crimson = Crimson_Text({
 });
 
 export const metadata: Metadata = {
-  title: "Canary - Decentralized Deadman Switch",
-  description: "Sophisticated journalistic dead man switch app for secure conditional file encryption and release",
+  title: "Canary - Decentralized Encypted Deadman Switch",
+  description: "Canary is an automated deadman switch for truth protection, using TACo threshold encryption, decentralized storage, and smart contracts to ensure sensitive information reaches the public even if journalists, activists, or whistleblowers are silenced.",
 };
 
 export default function RootLayout({
