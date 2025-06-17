@@ -18,9 +18,9 @@ export interface DeadmanCondition {
   location?: string;
   keyword?: string;
   timeWindow?: { start: string; end: string };
-  // New field for dossier integration
-  dossierId?: bigint;
-  userAddress?: string;
+  // Dossier integration fields
+  dossierId: bigint;
+  userAddress: string;
 }
 
 export interface EncryptionResult {
@@ -53,10 +53,10 @@ export interface TraceJson {
   gateway_url?: string;
   gatewayUsed?: 'primary' | 'secondary';
   created_at: string;
-  // New fields for dossier integration
-  dossier_id?: string;
-  user_address?: string;
-  contract_address?: string;
+  // Dossier integration fields
+  dossier_id: string;
+  user_address: string;
+  contract_address: string;
 }
 
 class TacoService {
@@ -74,8 +74,8 @@ class TacoService {
   }
 
   /**
-   * Create a custom condition that checks the Dossier contract
-   * This replaces simple time-based conditions with contract state verification
+   * Create a Dossier contract condition that checks shouldDossierStayEncrypted
+   * This is the primary and only method for creating secure conditions
    */
   private createDossierCondition(userAddress: string, dossierId: bigint) {
     console.log(`🔒 Creating Dossier condition: user=${userAddress}, dossier=${dossierId.toString()}`);
@@ -106,42 +106,15 @@ class TacoService {
   }
 
   /**
-   * Fallback: Create a simple time condition for compatibility
-   * Used when dossier integration is not available
+   * Encrypt file with Dossier contract condition
+   * This is the only method for encrypting files with full security
    */
-  private createTimeCondition(durationMinutes: number = 1) {
-    const futureTimestamp = Math.floor(Date.now() / 1000) + (durationMinutes * 60);
-    
-    console.log(`⏰ Fallback time condition: ${durationMinutes}m (expires ${new Date(futureTimestamp * 1000).toLocaleTimeString()})`);
-    
-    return new conditions.base.time.TimeCondition({
-      chain: polygonAmoy.id, // Use Polygon Amoy for consistency
-      method: 'blocktime',
-      returnValueTest: {
-        comparator: '>',
-        value: futureTimestamp,
-      },
-    });
-  }
-
-  private parseDurationToMinutes(duration: string): number {
-    const match = duration.match(/(\d+)\s*(DAYS?|HOURS?|MINUTES?)/i);
-    if (!match) return 1;
-
-    const value = parseInt(match[1]);
-    const unit = match[2].toLowerCase();
-
-    if (unit.startsWith('day')) return value * 24 * 60;
-    if (unit.startsWith('hour')) return value * 60;
-    if (unit.startsWith('minute')) return value;
-    
-    return 1;
-  }
-
   async encryptFile(
-    file: File, 
-    condition: DeadmanCondition, 
-    description: string
+    file: File,
+    condition: DeadmanCondition,
+    description: string,
+    dossierId: bigint,
+    userAddress: string
   ): Promise<EncryptionResult> {
     await this.initialize();
 
@@ -151,26 +124,17 @@ class TacoService {
 
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     
-    let tacoCondition;
-    
-    // Use Dossier contract condition if we have the required data
-    if (condition.dossierId && condition.userAddress) {
-      console.log('🔒 Using Dossier contract condition for enhanced security');
-      tacoCondition = this.createDossierCondition(condition.userAddress, condition.dossierId);
-    } else {
-      console.log('⚠️ Using fallback time condition (less secure)');
-      const durationMinutes = this.parseDurationToMinutes(condition.duration || '1 MINUTE');
-      tacoCondition = this.createTimeCondition(durationMinutes);
-    }
+    console.log('🔒 Using Dossier contract condition for maximum security');
+    const tacoCondition = this.createDossierCondition(userAddress, dossierId);
 
     const fileArrayBuffer = await file.arrayBuffer();
     const message = new Uint8Array(fileArrayBuffer);
 
-    console.log('🔐 Encrypting with condition:', {
-      type: condition.dossierId ? 'dossier' : 'time',
-      dossierId: condition.dossierId?.toString(),
-      userAddress: condition.userAddress,
-      contractAddress: condition.dossierId ? CANARY_DOSSIER_ADDRESS : undefined
+    console.log('🔐 Encrypting with Dossier condition:', {
+      type: 'dossier_contract',
+      dossierId: dossierId.toString(),
+      userAddress: userAddress,
+      contractAddress: CANARY_DOSSIER_ADDRESS
     });
 
     const messageKit = await encrypt(
@@ -182,15 +146,22 @@ class TacoService {
       web3Provider.getSigner()
     );
 
-    console.log('✅ Encryption successful with Dossier integration');
+    console.log('✅ Encryption successful with Dossier contract integration');
+
+    // Add dossier information to condition
+    const enhancedCondition = {
+      ...condition,
+      dossierId,
+      userAddress
+    };
 
     return {
       messageKit,
       encryptedData: messageKit.toBytes(),
       originalFileName: file.name,
-      condition,
+      condition: enhancedCondition,
       description,
-      capsuleUri: `taco://dossier-${condition.dossierId || 'time'}-${Date.now()}`,
+      capsuleUri: `taco://dossier-${dossierId.toString()}-${Date.now()}`,
     };
   }
 
@@ -211,7 +182,7 @@ class TacoService {
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     await web3Provider.send("eth_requestAccounts", []);
 
-    console.log('🔓 Attempting decryption with Dossier contract verification...');
+    console.log('🔓 Attempting decryption with contract verification...');
 
     const conditionContext = conditions.context.ConditionContext.fromMessageKit(messageKit);
     const authProvider = new EIP4361AuthProvider(
@@ -220,8 +191,8 @@ class TacoService {
     );
     conditionContext.addAuthProvider(USER_ADDRESS_PARAM_DEFAULT, authProvider);
 
-    // The TACo network will automatically verify the condition by calling
-    // shouldDossierStayEncrypted on the Dossier contract
+    // The TACo network will automatically verify the condition
+    // The Dossier condition will call shouldDossierStayEncrypted
     const decryptedMessage = await decrypt(
       web3Provider,
       TACO_DOMAIN,
@@ -229,13 +200,14 @@ class TacoService {
       conditionContext,
     );
 
-    console.log('✅ Decryption successful - Dossier contract confirmed check-in missed');
+    console.log('✅ Decryption successful - dossier conditions verified');
     return decryptedMessage;
   }
 
+  // Storage methods remain unchanged
   async commitToPinataOnly(encryptionResult: EncryptionResult): Promise<CommitResult> {
     try {
-      console.log('🟣 Uploading to Pinata only (Codex disabled)...');
+      console.log('🟣 Uploading to Pinata...');
       
       const pinataUploadResult = await uploadToPinata(
         encryptionResult.encryptedData,
@@ -339,35 +311,20 @@ class TacoService {
       payload_uri: commitResult.payloadUri,
       taco_capsule_uri: commitResult.encryptionResult.capsuleUri,
       condition: conditionText,
-      description: commitResult.encryptionResult.description || 'Encrypted file with Dossier condition',
+      description: commitResult.encryptionResult.description || 'Encrypted file with dossier conditions',
       storage_type: commitResult.storageType,
       gateway_url: gatewayUrl,
       gatewayUsed: gatewayUsed,
       created_at: new Date().toISOString(),
-      // Enhanced metadata for Dossier integration
-      dossier_id: condition.dossierId?.toString(),
+      // Dossier integration metadata (required)
+      dossier_id: condition.dossierId.toString(),
       user_address: condition.userAddress,
-      contract_address: condition.dossierId ? CANARY_DOSSIER_ADDRESS : undefined,
+      contract_address: CANARY_DOSSIER_ADDRESS,
     };
   }
 
   private formatConditionText(condition: DeadmanCondition): string {
-    if (condition.dossierId && condition.userAddress) {
-      return `Dossier #${condition.dossierId.toString()} check-in verification (${condition.duration || 'contract-defined interval'})`;
-    }
-    
-    switch (condition.type) {
-      case 'no_activity':
-        return `No activity for ${condition.duration || '1 MINUTE'}`;
-      case 'no_checkin':
-        return `No check-in for ${condition.duration || '1 MINUTE'}`;
-      case 'location':
-        return `Location outside ${condition.location || 'safe zone'} for ${condition.duration || '1 MINUTE'}`;
-      case 'keyword':
-        return `Email containing ${condition.keyword || 'KEYWORD'}`;
-      default:
-        return `Time condition: ${condition.duration || '1 MINUTE'}`;
-    }
+    return `Dossier #${condition.dossierId.toString()} contract verification (${condition.duration || 'contract-defined interval'})`;
   }
 }
 
@@ -376,6 +333,7 @@ export const tacoService = new TacoService();
 
 /**
  * Enhanced encryption function that integrates with Dossier contract
+ * This is the only method for maximum security
  */
 export async function encryptFileWithDossier(
   file: File,
@@ -384,27 +342,10 @@ export async function encryptFileWithDossier(
   dossierId: bigint,
   userAddress: string
 ): Promise<EncryptionResult> {
-  // Add dossier information to condition
-  const enhancedCondition = {
-    ...condition,
-    dossierId,
-    userAddress
-  };
-  
-  return await tacoService.encryptFile(file, enhancedCondition, description);
+  return await tacoService.encryptFile(file, condition, description, dossierId, userAddress);
 }
 
-/**
- * Legacy function for backward compatibility
- */
-export async function encryptFileWithCondition(
-  file: File,
-  condition: DeadmanCondition,
-  description: string = ''
-): Promise<EncryptionResult> {
-  return await tacoService.encryptFile(file, condition, description);
-}
-
+// Storage functions remain unchanged
 export async function commitEncryptedFile(
   encryptionResult: EncryptionResult
 ): Promise<{ commitResult: CommitResult; traceJson: TraceJson }> {

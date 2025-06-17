@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle } from 'lucide-react';
-import { encryptFileWithCondition, commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
+import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import Onboarding from './components/Onboarding';
 import CanaryGuideStandalone from './components/CanaryGuideStandalone';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { polygonAmoy } from 'wagmi/chains';
 import { Address } from 'viem';
 import { ContractService, CANARY_DOSSIER_ADDRESS, Dossier } from './lib/contract';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Extended dossier interface with accurate decryptable status
 interface DossierWithStatus extends Dossier {
@@ -45,7 +45,7 @@ export default function Home() {
     filename: string;
     status: 'encrypted' | 'committed';
     storageType: 'codex' | 'ipfs' | 'pinata';
-    encryptionType: 'real' | 'dossier-enhanced';
+    encryptionType: 'real' | 'dossier-enhanced' | 'dossier-only';
     payloadUri?: string;
     contractDossierId?: string;
     contractTxHash?: string;
@@ -135,56 +135,71 @@ export default function Home() {
   };
 
   const processCanaryTrigger = async () => {
-    if (!uploadedFile) return;
-    
+    if (!uploadedFile) {
+      toast.error('Please select a file first');
+      return;
+    }
+
+    if (!checkInInterval || parseInt(checkInInterval) <= 0) {
+      toast.error('Please set a valid check-in interval');
+      return;
+    }
+
+    // Require wallet connection for dossier-only mode
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet to create encrypted documents');
+      return;
+    }
+
+    // Check if we're on the right network
+    if (chainId !== polygonAmoy.id) {
+      console.warn('⚠️ Wrong network! Please switch to Polygon Amoy');
+      toast.error('Please switch to Polygon Amoy network in your wallet');
+      return;
+    }
+
     setIsProcessing(true);
-    
-    const processingToast = toast.loading('Creating secure dossier with TACo encryption...');
-    
+    const processingToast = toast.loading('Creating encrypted document with dossier conditions...');
+
     try {
-      // First, check if wallet is connected for enhanced security
-      if (!isConnected || !address) {
-        console.log('⚠️ Wallet not connected - using fallback time-based encryption');
-        
-        // Fallback to time-based encryption for backward compatibility
-        const condition: DeadmanCondition = {
-          type: 'no_checkin',
-          duration: `${checkInInterval} MINUTES`
-        };
-
-        const encryptionResult = await encryptFileWithCondition(
-          uploadedFile,
-          condition,
-          name
-        );
-        
-        setEncryptedCapsule(encryptionResult);
-        
-        toast.success('File encrypted with time-based condition (wallet not connected)', { id: processingToast });
-        return;
-      }
-
-      // Check if we're on the right network
-      if (chainId !== polygonAmoy.id) {
-        console.warn('⚠️ Wrong network! Please switch to Polygon Amoy');
-        toast.error('Please switch to Polygon Amoy network in your wallet', { id: processingToast });
-        return;
-      }
-
-      console.log('🔐 Starting enhanced encryption flow with Dossier contract integration...');
+      console.log('🔐 Starting dossier-only encryption flow...');
       
-      // Step 1: Create dossier on-chain FIRST to get the dossier ID
-      console.log('📝 Step 1: Creating dossier on-chain...');
+      // Step 1: Get next dossier ID
+      console.log('🔍 Step 1: Getting next dossier ID...');
+      const userDossierIds = await ContractService.getUserDossierIds(address as Address);
+      const nextDossierId = BigInt(userDossierIds.length);
+      console.log('🆔 Next dossier ID will be:', nextDossierId.toString());
       
+      // Step 2: Encrypt with Dossier condition
+      console.log('🔒 Step 2: Encrypting with Dossier contract condition...');
+      const condition: DeadmanCondition = {
+        type: 'no_checkin',
+        duration: `${checkInInterval} MINUTES`,
+        dossierId: nextDossierId,
+        userAddress: address
+      };
+
+      const encryptionResult = await encryptFileWithDossier(
+        uploadedFile,
+        condition,
+        name,
+        nextDossierId,
+        address
+      );
+      
+      console.log('✅ File encrypted with Dossier contract condition');
+      
+      // Step 3: Upload encrypted file
+      console.log('📦 Step 3: Uploading encrypted file...');
+      const { commitResult, traceJson } = await commitEncryptedFileToPinata(encryptionResult);
+      console.log('📦 Storage result:', commitResult);
+      
+      // Step 4: Create dossier on-chain
+      console.log('📝 Step 4: Creating dossier on-chain...');
       const dossierName = `Encrypted file: ${uploadedFile.name}`;
       const checkInMinutes = parseInt(checkInInterval);
-      const recipients = [address]; // For now, only the creator is a recipient
-      const tempFileHashes = [`ipfs://pending-${Date.now()}`]; // Temporary placeholder
-      
-      console.log('🎯 Creating dossier with parameters:');
-      console.log('   - Name:', dossierName);
-      console.log('   - Check-in interval:', checkInMinutes, 'minutes');
-      console.log('   - Recipients:', recipients);
+      const recipients = [address];
+      const fileHashes = [traceJson.payload_uri];
       
       let dossierId: bigint;
       let contractTxHash: string;
@@ -194,7 +209,7 @@ export default function Home() {
           dossierName,
           checkInMinutes,
           recipients,
-          tempFileHashes
+          fileHashes
         );
         
         dossierId = result.dossierId;
@@ -203,7 +218,14 @@ export default function Home() {
         
         console.log('✅ Dossier created on-chain!');
         console.log('🆔 Dossier ID:', dossierId.toString());
-        console.log('🔗 Tx Hash:', contractTxHash);
+        console.log('🔗 Contract TX:', contractTxHash);
+        
+        // Verify the ID matches our prediction
+        if (dossierId !== nextDossierId) {
+          console.warn(`⚠️ Dossier ID mismatch: predicted ${nextDossierId}, got ${dossierId}`);
+        } else {
+          console.log('✅ Dossier ID prediction was correct!');
+        }
         
       } catch (error) {
         console.error('❌ Failed to create dossier:', error);
@@ -211,43 +233,23 @@ export default function Home() {
         return;
       }
 
-      // Step 2: Encrypt file with Dossier contract condition
-      console.log('🔒 Step 2: Encrypting file with Dossier contract condition...');
-      
-      const condition: DeadmanCondition = {
-        type: 'no_checkin',
-        duration: `${checkInInterval} MINUTES`
-      };
-
-      // Use the new encryptFileWithDossier function that integrates with the contract
-      const encryptionResult = await encryptFileWithDossier(
-        uploadedFile,
-        condition,
-        name,
-        dossierId,
-        address
-      );
-      
-      console.log('✅ File encrypted with Dossier contract condition!');
-      console.log('🔒 Dossier ID in condition:', dossierId.toString());
-      console.log('👤 User address in condition:', address);
-      
+      // Step 5: Store results
       setEncryptedCapsule(encryptionResult);
       
-      // Step 3: Upload encrypted file and update dossier with real file hash
-      console.log('📦 Step 3: Uploading encrypted file and updating dossier...');
+      // Create enhanced trace JSON with dossier information
+      const enhancedTraceJson = {
+        ...traceJson,
+        dossier_id: dossierId.toString(),
+        user_address: address,
+        contract_address: CANARY_DOSSIER_ADDRESS,
+        contract_chain_id: polygonAmoy.id.toString(),
+        contract_tx_hash: contractTxHash,
+        check_in_interval_minutes: checkInMinutes,
+        condition_type: 'dossier_contract_verification',
+        encryption_method: 'dossier_only'
+      };
       
-      const { commitResult, traceJson: newTraceJson } = await commitEncryptedFileToPinata(encryptionResult);
-      
-      console.log('📦 Storage commit result:', commitResult);
-      console.log('📄 Generated traceJson:', newTraceJson);
-      console.log('🔗 Real file hash:', newTraceJson.payload_uri);
-      
-      // Store trace JSON for download
-      setTraceJson(newTraceJson);
-      
-      // TODO: Update the dossier with the real file hash (requires contract update)
-      // For now, the dossier has a placeholder hash and the real hash is in the trace JSON
+      setTraceJson(enhancedTraceJson);
       
       // Add to uploads table
       const uploadId = `upload-${Date.now()}`;
@@ -256,7 +258,7 @@ export default function Home() {
         filename: uploadedFile.name,
         status: 'committed',
         storageType: commitResult.storageType,
-        encryptionType: 'dossier-enhanced',
+        encryptionType: 'dossier-only',
         createdAt: new Date(),
         payloadUri: commitResult.payloadUri,
         contractDossierId: dossierId.toString(),
@@ -268,22 +270,23 @@ export default function Home() {
       
       // Add to activity log
       setActivityLog(prev => [
-        { type: `Dossier #${dossierId.toString()} created with enhanced TACo encryption`, date: new Date().toLocaleString() },
-        { type: `File encrypted with contract-verified conditions`, date: new Date().toLocaleString() },
-        { type: `File committed to ${commitResult.storageType}`, date: new Date().toLocaleString() },
+        { type: `✅ Dossier #${dossierId.toString()} created with contract condition`, date: new Date().toLocaleString() },
+        { type: `🔒 File encrypted with Dossier-only condition`, date: new Date().toLocaleString() },
+        { type: `📁 IPFS hash ${traceJson.payload_uri} stored on-chain`, date: new Date().toLocaleString() },
+        { type: `📦 File committed to ${commitResult.storageType}`, date: new Date().toLocaleString() },
         ...prev
       ]);
       
-      toast.success('🔐 Enhanced encryption complete! File is now protected by Dossier contract conditions.', { id: processingToast });
+      toast.success('🎉 Document created with dossier-only encryption!', { id: processingToast });
       
     } catch (error) {
-      console.error('Error in enhanced encryption flow:', error);
+      console.error('Error in dossier encryption flow:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown encryption error';
       
-      toast.error(`Enhanced encryption failed: ${errorMessage}`, { id: processingToast });
+      toast.error(`Dossier encryption failed: ${errorMessage}`, { id: processingToast });
       
       setActivityLog(prev => [
-        { type: 'Enhanced encryption failed', date: new Date().toLocaleString() },
+        { type: 'Dossier encryption failed', date: new Date().toLocaleString() },
         ...prev
       ]);
     } finally {
@@ -407,7 +410,11 @@ export default function Home() {
     } catch (error) {
       console.error('❌ Decryption test failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`❌ Decryption test failed: ${errorMessage}. Check console for details.`);
+      let displayMessage = errorMessage;
+      if (errorMessage.includes('time condition')) {
+        displayMessage = 'Decryption failed. The dossier condition may not be met yet.';
+      }
+      toast.error(`❌ Decryption test failed: ${displayMessage}. Check console for details.`);
       
       // Add to activity log
       setActivityLog(prev => [
@@ -437,11 +444,9 @@ export default function Home() {
           isDecryptable = !shouldStayEncrypted;
         } catch (error) {
           console.warn(`Could not check encryption status for dossier #${id.toString()}:`, error);
-          // Fallback to time-based calculation if contract call fails
-          const timeSinceLastCheckIn = Date.now() / 1000 - Number(dossier.lastCheckIn);
-          const gracePeriod = 3600; // 1 hour grace period (should match contract)
-          isDecryptable = !dossier.isActive || timeSinceLastCheckIn > (Number(dossier.checkInInterval) + gracePeriod);
-          console.log(`⚠️ Using fallback calculation for dossier #${id.toString()}: timeSince=${Math.floor(timeSinceLastCheckIn)}s, interval=${dossier.checkInInterval}s, gracePeriod=${gracePeriod}s, isExpired=${timeSinceLastCheckIn > (Number(dossier.checkInInterval) + gracePeriod)}`);
+          // If contract call fails, assume not decryptable for security
+          isDecryptable = false;
+          console.log(`⚠️ Contract call failed for dossier #${id.toString()}, assuming encrypted for security`);
         }
         
         // Add accurate decryptable status to dossier object
@@ -584,67 +589,29 @@ export default function Home() {
   };
 
   const getRemainingTime = () => {
-    // If connected and have dossiers, use actual on-chain data
+    // If connected and have dossiers, use contract status
     if (isConnected && userDossiers.length > 0) {
-      let shortestRemainingMs = Number.MAX_SAFE_INTEGER;
-      let hasActiveDossiers = false;
-      
-      // Find the dossier with the shortest remaining time
-      for (const dossier of userDossiers) {
-        if (!dossier.isActive) continue;
-        
-        hasActiveDossiers = true;
-        const lastCheckInMs = Number(dossier.lastCheckIn) * 1000; // Convert to milliseconds
-        const intervalMs = Number(dossier.checkInInterval) * 1000; // Convert to milliseconds
-        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-        const remainingMs = intervalMs - timeSinceLastCheckIn;
-        
-        if (remainingMs < shortestRemainingMs) {
-          shortestRemainingMs = remainingMs;
-        }
-      }
+      const activeDossiers = userDossiers.filter(d => d.isActive);
       
       // If no active dossiers, show inactive status
-      if (!hasActiveDossiers) {
+      if (activeDossiers.length === 0) {
         return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-gray-500' };
       }
       
-      // Check if expired
-      if (shortestRemainingMs <= 0) {
-        return { expired: true, display: 'EXPIRED', color: 'text-red-600' };
+      // Check if any dossier is decryptable (expired)
+      const hasExpiredDossiers = activeDossiers.some(d => d.isDecryptable);
+      
+      if (hasExpiredDossiers) {
+        return { expired: true, display: 'DECRYPTABLE', color: 'text-red-600' };
       }
       
-      // Format remaining time
-      const remainingHours = Math.floor(shortestRemainingMs / (1000 * 60 * 60));
-      const remainingMinutes = Math.floor((shortestRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
-      const remainingSeconds = Math.floor((shortestRemainingMs % (1000 * 60)) / 1000);
-      
-      // Color coding based on urgency
-      let color = 'text-green-600';
-      if (shortestRemainingMs < 5 * 60 * 1000) { // Less than 5 minutes
-        color = 'text-red-600';
-      } else if (shortestRemainingMs < 30 * 60 * 1000) { // Less than 30 minutes
-        color = 'text-orange-500';
-      } else if (shortestRemainingMs < 2 * 60 * 60 * 1000) { // Less than 2 hours
-        color = 'text-yellow-600';
-      }
-      
-      // Format display string
-      let display = '';
-      if (remainingHours > 0) {
-        display = `${remainingHours}h ${remainingMinutes}m`;
-      } else if (remainingMinutes > 0) {
-        display = `${remainingMinutes}m ${remainingSeconds}s`;
-      } else {
-        display = `${remainingSeconds}s`;
-      }
-      
-      return { expired: false, display, color };
+      // All active dossiers are still encrypted
+      return { expired: false, display: 'ENCRYPTED', color: 'text-green-600' };
     }
     
-    // If connected but no dossiers, suspend countdown
+    // If connected but no dossiers, show status
     if (isConnected && userDossiers.length === 0) {
-      return { expired: false, display: 'SUSPENDED', color: 'text-gray-500' };
+      return { expired: false, display: 'NO DOCUMENTS', color: 'text-gray-500' };
     }
     
     // If not connected, show disconnected status
