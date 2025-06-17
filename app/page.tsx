@@ -64,6 +64,8 @@ export default function Home() {
   const [releaseMode, setReleaseMode] = useState<'public' | 'contacts'>('public');
   const [currentView, setCurrentView] = useState<'checkin' | 'documents' | 'guide'>('checkin');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -196,7 +198,7 @@ export default function Home() {
       
       // Step 4: Create dossier on-chain
       console.log('📝 Step 4: Creating dossier on-chain...');
-      const dossierName = `Encrypted file: ${uploadedFile.name}`;
+      const dossierName = name || `Encrypted document #${nextDossierId.toString()}`;
       const checkInMinutes = parseInt(checkInInterval);
       const recipients = [address];
       const fileHashes = [traceJson.payload_uri];
@@ -278,6 +280,16 @@ export default function Home() {
       ]);
       
       toast.success('🎉 Document created with dossier-only encryption!', { id: processingToast });
+      
+      // Reset form and navigate back to documents view
+      setShowCreateForm(false);
+      setCurrentStep(1);
+      setEncryptedCapsule(null);
+      setTraceJson(null);
+      setUploadedFile(null);
+      setName('');
+      setEmergencyContacts(['']);
+      setReleaseMode('public');
       
     } catch (error) {
       console.error('Error in dossier encryption flow:', error);
@@ -618,6 +630,75 @@ export default function Home() {
     return { expired: false, display: 'DISCONNECTED', color: 'text-gray-500' };
   };
 
+  const getCountdownTime = () => {
+    // If connected and have dossiers, calculate actual countdown
+    if (isConnected && userDossiers.length > 0) {
+      const activeDossiers = userDossiers.filter(d => d.isActive);
+      
+      // If no active dossiers, show inactive status
+      if (activeDossiers.length === 0) {
+        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-gray-500' };
+      }
+      
+      // Find the dossier with the shortest remaining time
+      let shortestRemainingMs = Infinity;
+      let hasExpiredDossier = false;
+      
+      for (const dossier of activeDossiers) {
+        const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+        const intervalMs = Number(dossier.checkInInterval) * 1000;
+        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+        const remainingMs = intervalMs - timeSinceLastCheckIn;
+        
+        if (remainingMs <= 0) {
+          hasExpiredDossier = true;
+        } else if (remainingMs < shortestRemainingMs) {
+          shortestRemainingMs = remainingMs;
+        }
+      }
+      
+      // If any dossier has expired, show expired status
+      if (hasExpiredDossier) {
+        return { expired: true, display: '⚠ EXPIRED', color: 'text-red-600' };
+      }
+      
+      // If we have a valid remaining time, format it
+      if (shortestRemainingMs !== Infinity && shortestRemainingMs > 0) {
+        const remainingHours = Math.floor(shortestRemainingMs / (1000 * 60 * 60));
+        const remainingMinutes = Math.floor((shortestRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
+        const remainingSeconds = Math.floor((shortestRemainingMs % (1000 * 60)) / 1000);
+        
+        let color = 'text-green-600';
+        if (shortestRemainingMs < 5 * 60 * 1000) {
+          color = 'text-red-600';
+        } else if (shortestRemainingMs < 30 * 60 * 1000) {
+          color = 'text-orange-500';
+        } else if (shortestRemainingMs < 2 * 60 * 60 * 1000) {
+          color = 'text-yellow-600';
+        }
+        
+        let display = '';
+        if (remainingHours > 0) {
+          display = `${remainingHours}H ${remainingMinutes}M ${remainingSeconds}S`;
+        } else if (remainingMinutes > 0) {
+          display = `${remainingMinutes}M ${remainingSeconds}S`;
+        } else {
+          display = `${remainingSeconds}S`;
+        }
+        
+        return { expired: false, display, color };
+      }
+    }
+    
+    // If connected but no dossiers, show status
+    if (isConnected && userDossiers.length === 0) {
+      return { expired: false, display: 'NO DOCUMENTS', color: 'text-gray-500' };
+    }
+    
+    // If not connected, show disconnected status
+    return { expired: false, display: 'DISCONNECTED', color: 'text-gray-500' };
+  };
+
   const handleOnboardingComplete = (userChoices: Record<string, string[]>) => {
     setOnboardingComplete(true);
     
@@ -906,10 +987,10 @@ export default function Home() {
                 <div className="editorial-body text-sm text-gray-500">
                   {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
                 </div>
-                <div className={`editorial-header text-5xl ${getRemainingTime().color} font-bold font-mono tracking-wide`}>
-                  {getRemainingTime().display}
+                <div className={`editorial-header text-5xl ${getCountdownTime().color} font-bold font-mono tracking-wide`}>
+                  {getCountdownTime().display}
                 </div>
-                {getRemainingTime().expired && (
+                {getCountdownTime().expired && (
                   <div className="editorial-body text-sm text-red-600 font-semibold">
                     ⚠ Release condition met
                   </div>
@@ -990,12 +1071,26 @@ export default function Home() {
                   <div className="bg-gray-800 p-3">
                     <div className="flex justify-between items-center">
                       <h2 style={{color: '#ffffff'}} className="editorial-header text-lg tracking-[0.2em] font-bold">Your Documents</h2>
-                      <span style={{color: '#ffffff'}} className="editorial-body text-xs">
-                        {userDossiers.length > 0 
-                          ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
-                          : 'No documents created yet'
-                        }
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <span style={{color: '#ffffff'}} className="editorial-body text-xs">
+                          {userDossiers.length > 0 
+                            ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
+                            : 'No documents created yet'
+                          }
+                        </span>
+                        {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
+                          <button
+                            onClick={() => setShowInactiveDocuments(!showInactiveDocuments)}
+                            className={`px-3 py-1 editorial-body text-xs font-bold border-2 transition-all duration-200 ${
+                              showInactiveDocuments
+                                ? 'bg-white text-gray-900 border-white hover:bg-gray-200'
+                                : 'bg-transparent text-white border-white hover:bg-white hover:text-gray-900'
+                            }`}
+                          >
+                            {showInactiveDocuments ? 'HIDE INACTIVE' : 'SHOW INACTIVE'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="bg-white/90 backdrop-blur-sm p-6">
@@ -1021,7 +1116,9 @@ export default function Home() {
                           </div>
                         </div>
                         
-                        {userDossiers.map((dossier, index) => {
+                        {userDossiers
+                          .filter(dossier => showInactiveDocuments || dossier.isActive)
+                          .map((dossier, index) => {
                           const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
                           const intervalMs = Number(dossier.checkInInterval) * 1000;
                           const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
@@ -1074,7 +1171,12 @@ export default function Home() {
                                 <div className="flex justify-end items-start">
                                   <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
                                     (() => {
-                                      // Check if expired by time calculation
+                                      // First check if document is deactivated
+                                      if (!dossier.isActive) {
+                                        return 'border-gray-400 text-gray-600 bg-gray-100';
+                                      }
+                                      
+                                      // Then check if expired by time calculation (only for active documents)
                                       const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
                                       const intervalMs = Number(dossier.checkInInterval) * 1000;
                                       const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
@@ -1083,15 +1185,18 @@ export default function Home() {
                                       
                                       if (isTimeExpired) {
                                         return 'border-red-600 text-red-700 bg-red-50';
-                                      } else if (dossier.isActive) {
-                                        return 'border-green-600 text-green-700 bg-green-50';
                                       } else {
-                                        return 'border-gray-400 text-gray-600 bg-gray-100';
+                                        return 'border-green-600 text-green-700 bg-green-50';
                                       }
                                     })()
                                   }`}>
                                     {(() => {
-                                      // Check if expired by time calculation
+                                      // First check if document is deactivated
+                                      if (!dossier.isActive) {
+                                        return 'Deactivated';
+                                      }
+                                      
+                                      // Then check if expired by time calculation (only for active documents)
                                       const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
                                       const intervalMs = Number(dossier.checkInInterval) * 1000;
                                       const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
@@ -1101,7 +1206,7 @@ export default function Home() {
                                       if (isTimeExpired) {
                                         return 'Expired';
                                       } else {
-                                        return dossier.isActive ? 'Active' : 'Deactivated';
+                                        return 'Active';
                                       }
                                     })()}
                                   </div>
@@ -1355,24 +1460,7 @@ export default function Home() {
                                     >
                                       DECRYPT
                                     </button>
-                                  ) : (
-                                    <div className="w-full text-center py-2 editorial-body text-xs text-gray-500">
-                                      {(() => {
-                                        if (!dossier.isActive) return 'Document deactivated';
-                                        if (dossier.encryptedFileHashes.length === 0) return 'No files available';
-                                        
-                                        // Check if expired by time
-                                        const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
-                                        const intervalMs = Number(dossier.checkInInterval) * 1000;
-                                        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                                        const remainingMs = intervalMs - timeSinceLastCheckIn;
-                                        const isTimeExpired = remainingMs <= 0;
-                                        
-                                        if (isTimeExpired || dossier.isDecryptable) return null; // Button will show instead
-                                        return `Not yet expired (${dossier.encryptedFileHashes.length} files)`;
-                                      })()}
-                                    </div>
-                                  )}
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -1457,7 +1545,7 @@ export default function Home() {
                       
                       {/* Progress lines */}
                       <div className="absolute top-5 left-5 right-5 h-1 flex">
-                        {[1, 2, 3, 4].map((segment) => (
+                        {[1, 2, 3, 4, 5, 6].map((segment) => (
                           <div key={segment} className="flex-1 relative">
                             <div className={`h-1 absolute top-0 left-0 transition-all duration-500 ${
                               segment < currentStep ? 'w-full bg-green-600' :
@@ -1470,7 +1558,7 @@ export default function Home() {
                       
                       {/* Steps container */}
                       <div className="flex items-start justify-between relative z-10">
-                        {[1, 2, 3, 4, 5].map((step) => (
+                        {[1, 2, 3, 4, 5, 6].map((step) => (
                           <div key={step} className="flex flex-col items-center">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
                               step === currentStep ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-110' :
@@ -1484,7 +1572,8 @@ export default function Home() {
                                step === 2 ? 'Upload' :
                                step === 3 ? 'Interval' :
                                step === 4 ? 'Mode' :
-                               'Review'}
+                               step === 5 ? 'Review' :
+                               'Finalize'}
                             </div>
                           </div>
                         ))}
@@ -1493,12 +1582,13 @@ export default function Home() {
                   </div>
                   <div className="text-center">
                     <p className="editorial-body text-sm text-gray-600">
-                      Step {currentStep} of 5: {
+                      Step {currentStep} of 6: {
                         currentStep === 1 ? 'Document Name' :
                         currentStep === 2 ? 'File Upload' :
                         currentStep === 3 ? 'Check-in Frequency' :
                         currentStep === 4 ? 'Release Mode' :
-                        'Review & Encrypt'
+                        currentStep === 5 ? 'Review & Encrypt' :
+                        'Finalize & Upload'
                       }
                     </p>
                   </div>
@@ -1772,10 +1862,57 @@ export default function Home() {
                       </div>
                     </div>
                   )}
+
+                  {currentStep === 6 && (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className="editorial-header text-xl font-bold mb-2">Finalize & Upload</h3>
+                        <p className="editorial-body text-sm text-gray-600">
+                          This is the final step. Your document will be encrypted, uploaded, and registered on the blockchain.
+                        </p>
+                      </div>
+                      <div className="max-w-lg mx-auto space-y-4">
+                        <div className="border border-gray-300 rounded p-4 space-y-3">
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">Document Name:</span>
+                            <span className="editorial-body text-sm text-gray-700">{name || 'Untitled'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">File:</span>
+                            <span className="editorial-body text-sm text-gray-700">{uploadedFile?.name || 'No file selected'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">Check-in Frequency:</span>
+                            <span className="editorial-body text-sm text-gray-700">
+                              {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="editorial-body text-sm font-semibold">Release Mode:</span>
+                            <span className="editorial-body text-sm text-gray-700 capitalize">{releaseMode}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={processCanaryTrigger}
+                          disabled={isProcessing}
+                          className="w-full bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed py-4 editorial-body font-semibold transition-all duration-200 rounded"
+                        >
+                          {isProcessing ? (
+                            <div className="flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                              Finalizing document...
+                            </div>
+                          ) : (
+                            'Finalize & Upload'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Navigation */}
-                {currentStep < 5 && !traceJson && (
+                {currentStep < 6 && !traceJson && (
                   <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
                     <button
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
@@ -1798,11 +1935,11 @@ export default function Home() {
                           toast.error('Please add at least one emergency contact');
                           return;
                         }
-                        setCurrentStep(Math.min(5, currentStep + 1));
+                        setCurrentStep(Math.min(6, currentStep + 1));
                       }}
                       className="px-6 py-2 bg-gray-900 text-white hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white editorial-body font-semibold transition-colors rounded"
                     >
-                      {currentStep === 4 ? 'Review' : 'Next'}
+                      {currentStep === 5 ? 'Finalize' : 'Next'}
                     </button>
                   </div>
                 )}
