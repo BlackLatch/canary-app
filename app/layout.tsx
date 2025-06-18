@@ -18,7 +18,7 @@ const crimson = Crimson_Text({
 });
 
 export const metadata: Metadata = {
-  title: "Canary - Decentralized Encypted Deadman Switch",
+  title: "Canary - Decentralized Encrypted Deadman Switch",
   description: "Canary is an automated deadman switch for truth protection, using TACo threshold encryption, decentralized storage, and smart contracts to ensure sensitive information reaches the public even if journalists, activists, or whistleblowers are silenced.",
 };
 
@@ -35,7 +35,7 @@ export default function RootLayout({
         <Web3Provider>
           {children}
         </Web3Provider>
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 5000,
