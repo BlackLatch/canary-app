@@ -66,6 +66,7 @@ export default function Home() {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
+  const [showAlphaBanner, setShowAlphaBanner] = useState(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -783,11 +784,20 @@ export default function Home() {
   // Show sign-in page if onboarding complete but not signed in
   if (!signedIn) {
   return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8" style={{ zoom: '0.8' }}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8 relative" style={{ zoom: '0.8' }}>
+        {/* Logo - Top Left */}
+        <div className="absolute top-6 left-6">
+          <img 
+            src="/canary.png" 
+            alt="Canary" 
+            className="h-16 md:h-20 w-auto"
+            style={{
+              filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
+            }}
+          />
+        </div>
+        
         <div className="max-w-2xl w-full text-center">
-          {/* Canary wordmark */}
-          <h1 className="editorial-header text-xl md:text-2xl tracking-[0.2em] mb-8 md:mb-12">CANARY</h1>
-
           {/* Sign in */}
           <h2 className="editorial-header text-3xl md:text-4xl lg:text-5xl mb-6 md:mb-8 leading-tight">
             Welcome to Canary
@@ -810,16 +820,50 @@ export default function Home() {
             </button>
             
             <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
-              onClick={() => handleSignIn('Email')}
+              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60"
+              disabled
             >
-              Sign in with Email
+              Email Sign-in Coming Soon
             </button>
           </div>
 
           <p className="editorial-body text-gray-600 mt-6 md:mt-8 text-sm md:text-base">
             Your truth protection starts now.
           </p>
+          
+          {/* Support Section */}
+          <div className="mt-8 md:mt-12 pt-6 border-t border-gray-200">
+            <div className="text-center">
+              <p className="editorial-body text-gray-500 text-xs md:text-sm mb-3">
+                Support this open-source project
+              </p>
+              <button
+                onClick={() => {
+                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                  navigator.clipboard.writeText(supportAddress).then(() => {
+                    toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
+                      duration: 6000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                        maxWidth: '500px',
+                      },
+                    });
+                  }).catch(() => {
+                    toast.error('Failed to copy address');
+                  });
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all duration-200 editorial-body font-medium"
+                title="Click to copy donation address"
+              >
+                <span>💝</span>
+                <span>Donate ETH/Polygon</span>
+              </button>
+              <p className="editorial-body text-gray-400 text-xs mt-2">
+                Click to copy donation address
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -884,8 +928,32 @@ export default function Home() {
       </style>
       
              <div className="min-h-screen h-auto relative" style={{ zoom: '0.8', minHeight: '100vh' }}>
+        {/* Alpha Warning Banner */}
+        {showAlphaBanner && (
+          <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border-b border-amber-200/50 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div></div>
+                <div className="text-center">
+                  <div className="editorial-header font-bold text-amber-900 tracking-wide text-sm mb-1">ALPHA SOFTWARE</div>
+                  <div className="editorial-body text-amber-800 text-sm">Testnet demo with no guarantees for data security or service availability. Not for production use.</div>
+                </div>
+                <button
+                  onClick={() => setShowAlphaBanner(false)}
+                  className="flex items-center justify-center w-6 h-6 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-md transition-colors mt-1"
+                  aria-label="Close banner"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Logo - Fixed Top Left */}
-        <div className="absolute top-6 left-6 z-50">
+        <div className={`absolute left-6 z-50 transition-all duration-300 ${showAlphaBanner ? 'top-28' : 'top-6'}`}>
           <img 
             src="/canary.png" 
             alt="Canary" 
@@ -897,7 +965,7 @@ export default function Home() {
         </div>
 
         {/* Header */}
-        <header className="border-b border-gray-200/30 px-4 py-6">
+        <header className="border-b border-gray-200/30 px-4 py-6" style={{ marginTop: '0px' }}>
                   <div className="max-w-7xl mx-auto flex justify-between items-center">
             <div></div> {/* Spacer for layout balance */}
             
@@ -936,6 +1004,30 @@ export default function Home() {
                 }`}
               >
                 Guide
+              </button>
+              <button 
+                onClick={() => {
+                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                  navigator.clipboard.writeText(supportAddress).then(() => {
+                    toast.success('💝 Support address copied to clipboard!', {
+                      duration: 4000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                      },
+                    });
+                  }).catch(() => {
+                    toast.error('Failed to copy address');
+                  });
+                }}
+                className={`editorial-body font-semibold transition-colors ${
+                  currentView === 'guide' 
+                    ? '!text-white hover:!text-gray-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="Support project development - Click to copy donation address"
+              >
+                💝 Support
               </button>
             </nav>
             
@@ -985,7 +1077,7 @@ export default function Home() {
               {/* Countdown Display */}
               <div className="space-y-2">
                 <div className="editorial-body text-sm text-gray-500">
-                  {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
+                  {isConnected && userDossiers.length > 0 ? 'Next release in:' : ''}
                 </div>
                 <div className={`editorial-header text-5xl ${getCountdownTime().color} font-bold font-mono tracking-wide`}>
                   {getCountdownTime().display}
@@ -1054,7 +1146,7 @@ export default function Home() {
                 {isConnected && userDossiers.length > 0 ? (
                   `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
                 ) : (
-                  isConnected ? 'No documents created yet' : 'Wallet not connected'
+                  isConnected ? '' : 'Wallet not connected'
                 )}
               </div>
             </div>
@@ -1075,7 +1167,7 @@ export default function Home() {
                         <span style={{color: '#ffffff'}} className="editorial-body text-xs">
                           {userDossiers.length > 0 
                             ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
-                            : 'No documents created yet'
+                            : ''
                           }
                         </span>
                         {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
@@ -1094,29 +1186,29 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="bg-white/90 backdrop-blur-sm p-6">
-                    {userDossiers.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* Add New Document Card */}
-                        <div 
-                          onClick={() => setShowCreateForm(true)}
-                          className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-gray-900 hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
-                        >
-                          <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
-                            <div className="text-gray-400 group-hover:text-gray-900 transition-colors mb-4">
-                              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                            </div>
-                            <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors text-center">
-                              CREATE NEW DOCUMENT
-                            </h3>
-                            <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
-                              Encrypt and upload a new file to the deadman switch
-                            </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {/* Add New Document Card - Always shown */}
+                      <div 
+                        onClick={() => setShowCreateForm(true)}
+                        className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-gray-900 hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
+                      >
+                        <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
+                          <div className="text-gray-400 group-hover:text-gray-900 transition-colors mb-4">
+                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
                           </div>
+                          <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors text-center">
+                            CREATE NEW DOCUMENT
+                          </h3>
+                          <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
+                            Encrypt and upload a new file to the deadman switch
+                          </p>
                         </div>
-                        
-                        {userDossiers
+                      </div>
+
+                      {/* Existing documents */}
+                      {userDossiers
                           .filter(dossier => showInactiveDocuments || dossier.isActive)
                           .map((dossier, index) => {
                           const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
@@ -1465,31 +1557,8 @@ export default function Home() {
                               </div>
                             </div>
                           );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="py-16 px-4 text-center">
-                        <div className="flex flex-col items-center justify-center space-y-4">
-                          <div className="text-gray-400 mb-4">
-                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                          <div className="space-y-2">
-                            <h3 className="editorial-header text-xl font-bold text-gray-600">No Documents Yet</h3>
-                            <p className="editorial-body text-base text-gray-500">
-                              You haven't created any deadman switch documents yet.
-                            </p>
-                            <button
-                              onClick={() => setShowCreateForm(true)}
-                              className="mt-4 px-6 py-3 bg-gray-900 text-white hover:bg-gray-800 editorial-body font-bold transition-colors"
-                            >
-                              CREATE FIRST DOCUMENT
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                                                })}
+                    </div>
                   </div>
                 </div>
               )}

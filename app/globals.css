@@ -115,3 +115,16 @@
   opacity: 0.9;
   margin-top: 2px;
 }
+
+/* Guide view background classes */
+.guide-dark {
+  background-color: #111827;
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+.guide-light {
+  background-color: #f9fafb;
+  color: #111827;
+  min-height: 100vh;
+}
