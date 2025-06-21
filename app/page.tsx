@@ -830,6 +830,40 @@ export default function Home() {
           <p className="editorial-body text-gray-600 mt-6 md:mt-8 text-sm md:text-base">
             Your truth protection starts now.
           </p>
+          
+          {/* Support Section */}
+          <div className="mt-8 md:mt-12 pt-6 border-t border-gray-200">
+            <div className="text-center">
+              <p className="editorial-body text-gray-500 text-xs md:text-sm mb-3">
+                Support this open-source project
+              </p>
+              <button
+                onClick={() => {
+                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                  navigator.clipboard.writeText(supportAddress).then(() => {
+                    toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
+                      duration: 6000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                        maxWidth: '500px',
+                      },
+                    });
+                  }).catch(() => {
+                    toast.error('Failed to copy address');
+                  });
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all duration-200 editorial-body font-medium"
+                title="Click to copy donation address"
+              >
+                <span>💝</span>
+                <span>Donate ETH/Polygon</span>
+              </button>
+              <p className="editorial-body text-gray-400 text-xs mt-2">
+                Click to copy donation address
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -970,6 +1004,30 @@ export default function Home() {
                 }`}
               >
                 Guide
+              </button>
+              <button 
+                onClick={() => {
+                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                  navigator.clipboard.writeText(supportAddress).then(() => {
+                    toast.success('💝 Support address copied to clipboard!', {
+                      duration: 4000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                      },
+                    });
+                  }).catch(() => {
+                    toast.error('Failed to copy address');
+                  });
+                }}
+                className={`editorial-body font-semibold transition-colors ${
+                  currentView === 'guide' 
+                    ? '!text-white hover:!text-gray-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="Support project development - Click to copy donation address"
+              >
+                💝 Support
               </button>
             </nav>
             
