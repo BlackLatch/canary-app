@@ -985,7 +985,7 @@ export default function Home() {
               {/* Countdown Display */}
               <div className="space-y-2">
                 <div className="editorial-body text-sm text-gray-500">
-                  {isConnected && userDossiers.length > 0 ? 'Next release in:' : 'Status:'}
+                  {isConnected && userDossiers.length > 0 ? 'Next release in:' : ''}
                 </div>
                 <div className={`editorial-header text-5xl ${getCountdownTime().color} font-bold font-mono tracking-wide`}>
                   {getCountdownTime().display}
@@ -1054,7 +1054,7 @@ export default function Home() {
                 {isConnected && userDossiers.length > 0 ? (
                   `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
                 ) : (
-                  isConnected ? 'No documents created yet' : 'Wallet not connected'
+                  isConnected ? '' : 'Wallet not connected'
                 )}
               </div>
             </div>
@@ -1075,7 +1075,7 @@ export default function Home() {
                         <span style={{color: '#ffffff'}} className="editorial-body text-xs">
                           {userDossiers.length > 0 
                             ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
-                            : 'No documents created yet'
+                            : ''
                           }
                         </span>
                         {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
@@ -1094,29 +1094,29 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="bg-white/90 backdrop-blur-sm p-6">
-                    {userDossiers.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* Add New Document Card */}
-                        <div 
-                          onClick={() => setShowCreateForm(true)}
-                          className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-gray-900 hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
-                        >
-                          <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
-                            <div className="text-gray-400 group-hover:text-gray-900 transition-colors mb-4">
-                              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                            </div>
-                            <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors text-center">
-                              CREATE NEW DOCUMENT
-                            </h3>
-                            <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
-                              Encrypt and upload a new file to the deadman switch
-                            </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {/* Add New Document Card - Always shown */}
+                      <div 
+                        onClick={() => setShowCreateForm(true)}
+                        className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-gray-900 hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
+                      >
+                        <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
+                          <div className="text-gray-400 group-hover:text-gray-900 transition-colors mb-4">
+                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
                           </div>
+                          <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors text-center">
+                            CREATE NEW DOCUMENT
+                          </h3>
+                          <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
+                            Encrypt and upload a new file to the deadman switch
+                          </p>
                         </div>
-                        
-                        {userDossiers
+                      </div>
+
+                      {/* Existing documents */}
+                      {userDossiers
                           .filter(dossier => showInactiveDocuments || dossier.isActive)
                           .map((dossier, index) => {
                           const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
@@ -1465,31 +1465,8 @@ export default function Home() {
                               </div>
                             </div>
                           );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="py-16 px-4 text-center">
-                        <div className="flex flex-col items-center justify-center space-y-4">
-                          <div className="text-gray-400 mb-4">
-                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                          <div className="space-y-2">
-                            <h3 className="editorial-header text-xl font-bold text-gray-600">No Documents Yet</h3>
-                            <p className="editorial-body text-base text-gray-500">
-                              You haven't created any deadman switch documents yet.
-                            </p>
-                            <button
-                              onClick={() => setShowCreateForm(true)}
-                              className="mt-4 px-6 py-3 bg-gray-900 text-white hover:bg-gray-800 editorial-body font-bold transition-colors"
-                            >
-                              CREATE FIRST DOCUMENT
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                                                })}
+                    </div>
                   </div>
                 </div>
               )}
