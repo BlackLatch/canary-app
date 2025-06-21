@@ -784,11 +784,20 @@ export default function Home() {
   // Show sign-in page if onboarding complete but not signed in
   if (!signedIn) {
   return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8" style={{ zoom: '0.8' }}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8 relative" style={{ zoom: '0.8' }}>
+        {/* Logo - Top Left */}
+        <div className="absolute top-6 left-6">
+          <img 
+            src="/canary.png" 
+            alt="Canary" 
+            className="h-16 md:h-20 w-auto"
+            style={{
+              filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
+            }}
+          />
+        </div>
+        
         <div className="max-w-2xl w-full text-center">
-          {/* Canary wordmark */}
-          <h1 className="editorial-header text-xl md:text-2xl tracking-[0.2em] mb-8 md:mb-12">CANARY</h1>
-
           {/* Sign in */}
           <h2 className="editorial-header text-3xl md:text-4xl lg:text-5xl mb-6 md:mb-8 leading-tight">
             Welcome to Canary

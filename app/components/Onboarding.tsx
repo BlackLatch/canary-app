@@ -164,9 +164,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         }}
       >
         <div className="max-w-4xl w-full">
-          {/* Canary wordmark */}
+          {/* Logo */}
           <div className="absolute top-4 left-4 md:top-8 md:left-8 opacity-100 transition-opacity duration-500">
-            <h1 className="editorial-header text-base md:text-lg tracking-[0.2em]">CANARY</h1>
+            <img 
+              src="/canary.png" 
+              alt="Canary" 
+              className="h-12 md:h-16 w-auto"
+              style={{
+                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
+              }}
+            />
           </div>
 
           {/* Skip button */}
@@ -278,9 +285,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </div>
         </div>
         <div className="max-w-xl w-full mx-auto flex-1 flex flex-col justify-center">
-          {/* Canary wordmark */}
+          {/* Logo */}
           <div className="text-center mt-8 mb-4">
-            <h1 className="editorial-header text-lg md:text-xl tracking-[0.2em] text-slate-700">CANARY</h1>
+            <img 
+              src="/canary.png" 
+              alt="Canary" 
+              className="h-12 md:h-14 w-auto mx-auto"
+              style={{
+                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
+              }}
+            />
           </div>
 
           {/* Question card */}
@@ -367,9 +381,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     return (
       <div className="min-h-screen bg-gray-50 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
-          {/* Canary wordmark */}
+          {/* Logo */}
           <div className="text-center mb-6 md:mb-8">
-            <h1 className="editorial-header text-lg md:text-xl tracking-[0.2em]">CANARY</h1>
+            <img 
+              src="/canary.png" 
+              alt="Canary" 
+              className="h-12 md:h-14 w-auto mx-auto"
+              style={{
+                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
+              }}
+            />
           </div>
 
           {/* Summary card/table */}
