@@ -66,6 +66,7 @@ export default function Home() {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
+  const [showAlphaBanner, setShowAlphaBanner] = useState(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -884,8 +885,32 @@ export default function Home() {
       </style>
       
              <div className="min-h-screen h-auto relative" style={{ zoom: '0.8', minHeight: '100vh' }}>
+        {/* Alpha Warning Banner */}
+        {showAlphaBanner && (
+          <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border-b border-amber-200/50 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div></div>
+                <div className="text-center">
+                  <div className="editorial-header font-bold text-amber-900 tracking-wide text-sm mb-1">ALPHA SOFTWARE</div>
+                  <div className="editorial-body text-amber-800 text-sm">Testnet demo with no guarantees for data security or service availability. Not for production use.</div>
+                </div>
+                <button
+                  onClick={() => setShowAlphaBanner(false)}
+                  className="flex items-center justify-center w-6 h-6 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-md transition-colors mt-1"
+                  aria-label="Close banner"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Logo - Fixed Top Left */}
-        <div className="absolute top-6 left-6 z-50">
+        <div className={`absolute left-6 z-50 transition-all duration-300 ${showAlphaBanner ? 'top-28' : 'top-6'}`}>
           <img 
             src="/canary.png" 
             alt="Canary" 
@@ -897,7 +922,7 @@ export default function Home() {
         </div>
 
         {/* Header */}
-        <header className="border-b border-gray-200/30 px-4 py-6">
+        <header className="border-b border-gray-200/30 px-4 py-6" style={{ marginTop: '0px' }}>
                   <div className="max-w-7xl mx-auto flex justify-between items-center">
             <div></div> {/* Spacer for layout balance */}
             
