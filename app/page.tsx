@@ -810,10 +810,10 @@ export default function Home() {
             </button>
             
             <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
-              onClick={() => handleSignIn('Email')}
+              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60"
+              disabled
             >
-              Sign in with Email
+              Email Sign-in Coming Soon
             </button>
           </div>
 
