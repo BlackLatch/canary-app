@@ -876,26 +876,29 @@ export default function Home() {
           <div className="space-y-3 md:space-y-4 max-w-md mx-auto">
             <button
               className="editorial-button w-full py-3 md:py-4 text-base md:text-lg bg-slate-700 hover:bg-slate-800 text-white font-medium transition-all duration-200 hover:scale-105 transform disabled:opacity-50 disabled:cursor-not-allowed border-2 border-slate-600 hover:border-slate-700"
-              onClick={() => handleSignIn('Web3 Wallet')}
-              disabled={isPending}
-            >
-              {isPending ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Connecting...
-                </div>
-              ) : (
-                'Connect Web3 Wallet'
-              )}
-            </button>
-            
-            <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
               onClick={() => handleSignIn('Email')}
               disabled={!ready}
             >
               {!ready ? 'Loading...' : 'Sign in with Email'}
             </button>
+            
+            <div className="text-center">
+              <p className="editorial-body text-xs text-gray-500 mb-2">Advanced users</p>
+              <button
+                className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-600 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
+                onClick={() => handleSignIn('Web3 Wallet')}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
+                    Connecting...
+                  </div>
+                ) : (
+                  'Connect Web3 Wallet'
+                )}
+              </button>
+            </div>
           </div>
 
           <p className="editorial-body text-gray-600 mt-6 md:mt-8 text-sm md:text-base">
