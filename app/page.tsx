@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle, Github } from 'lucide-react';
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import Onboarding from './components/Onboarding';
 import CanaryGuideStandalone from './components/CanaryGuideStandalone';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { usePrivy, useWallets, useConnectWallet } from '@privy-io/react-auth';
+import { useSetActiveWallet } from '@privy-io/wagmi';
 import { polygonAmoy } from 'wagmi/chains';
 import { Address } from 'viem';
 import { ContractService, CANARY_DOSSIER_ADDRESS, Dossier } from './lib/contract';
@@ -18,8 +20,14 @@ interface DossierWithStatus extends Dossier {
 
 export default function Home() {
   const { connectors, connect, isPending } = useConnect();
+  
+
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
+  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { wallets } = useWallets();
+  const { setActiveWallet } = useSetActiveWallet();
+  const { connectWallet } = useConnectWallet();
   
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -69,6 +77,16 @@ export default function Home() {
   const [showAlphaBanner, setShowAlphaBanner] = useState(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to check if we have a valid wallet connection (wagmi or Privy)
+  const hasWalletConnection = () => {
+    return (isConnected && address) || (authenticated && wallets.length > 0);
+  };
+
+  // Helper function to get current wallet address (wagmi or Privy)
+  const getCurrentAddress = () => {
+    return address || (wallets.length > 0 ? wallets[0]?.address : null);
+  };
 
   // Update current time every second for real-time countdown
   useEffect(() => {
@@ -439,21 +457,25 @@ export default function Home() {
 
   // Load user's dossiers from contract with accurate decryptable status
   const loadUserDossiers = async () => {
-    if (!isConnected || !address) return;
+    const currentAddress = address || (wallets.length > 0 ? wallets[0]?.address : null);
+    if (!currentAddress) {
+      console.log('No wallet address available for loading dossiers');
+      return;
+    }
     
     try {
-      console.log('📋 Loading user dossiers from contract...');
-      const dossierIds = await ContractService.getUserDossierIds(address as Address);
+      console.log('📋 Loading user dossiers from contract for address:', currentAddress);
+      const dossierIds = await ContractService.getUserDossierIds(currentAddress as Address);
       
       const dossiers: DossierWithStatus[] = [];
       for (const id of dossierIds) {
-        const dossier = await ContractService.getDossier(address as Address, id);
+        const dossier = await ContractService.getDossier(currentAddress as Address, id);
         
         // Check the actual decryptable status according to contract
         let shouldStayEncrypted = true;
         let isDecryptable = false;
         try {
-          shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(address as Address, id);
+          shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(currentAddress as Address, id);
           isDecryptable = !shouldStayEncrypted;
         } catch (error) {
           console.warn(`Could not check encryption status for dossier #${id.toString()}:`, error);
@@ -565,7 +587,7 @@ export default function Home() {
 
   const getTimeSinceLastCheckIn = () => {
     // If connected and have dossiers, use the most recent on-chain check-in
-    if (isConnected && userDossiers.length > 0) {
+    if (hasWalletConnection() && userDossiers.length > 0) {
       let mostRecentCheckIn = 0;
       
       for (const dossier of userDossiers) {
@@ -593,7 +615,7 @@ export default function Home() {
     }
     
     // If connected but no dossiers, show appropriate message
-    if (isConnected && userDossiers.length === 0) {
+    if (hasWalletConnection() && userDossiers.length === 0) {
       return 'No documents created yet';
     }
     
@@ -603,7 +625,7 @@ export default function Home() {
 
   const getRemainingTime = () => {
     // If connected and have dossiers, use contract status
-    if (isConnected && userDossiers.length > 0) {
+    if (hasWalletConnection() && userDossiers.length > 0) {
       const activeDossiers = userDossiers.filter(d => d.isActive);
       
       // If no active dossiers, show inactive status
@@ -633,7 +655,7 @@ export default function Home() {
 
   const getCountdownTime = () => {
     // If connected and have dossiers, calculate actual countdown
-    if (isConnected && userDossiers.length > 0) {
+    if (hasWalletConnection() && userDossiers.length > 0) {
       const activeDossiers = userDossiers.filter(d => d.isActive);
       
       // If no active dossiers, show inactive status
@@ -722,43 +744,91 @@ export default function Home() {
     console.log('Sign in method:', method);
     
     if (method === 'Web3 Wallet') {
-      // Connect to the first available connector (usually MetaMask)
-      const connector = connectors.find(c => c.id === 'metaMask') || connectors[0];
-      if (connector) {
-        connect({ connector });
+      // Use Privy's connectWallet for external wallet connections
+      console.log('Using Privy connectWallet for external wallet...');
+      try {
+        connectWallet();
+      } catch (error) {
+        console.error('Failed to connect external wallet via Privy:', error);
+      }
+    } else if (method === 'Email') {
+      // Email sign-in via Privy
+      console.log('Privy states:', { ready, authenticated, signedIn });
+      if (ready) {
+        if (!authenticated) {
+          console.log('Calling Privy login()...');
+          login();
+        } else if (!signedIn) {
+          console.log('User already authenticated, setting signedIn to true');
+          setSignedIn(true);
+        } else {
+          console.log('User already signed in');
+        }
+      } else {
+        console.log('Privy not ready yet, waiting...');
       }
     } else {
-      // For email sign-in, just simulate for now
+      // Fallback for other methods
       setSignedIn(true);
     }
   };
 
-  // Clear wallet connection on page refresh/load
+  // Clear wagmi wallet connection on page refresh/load only if Privy is authenticated
   useEffect(() => {
-    if (isConnected) {
-      console.log('🔌 Disconnecting wallet on page refresh...');
+    // Only disconnect wagmi if user is authenticated with Privy (to avoid conflicts)
+    if (isConnected && authenticated) {
+      console.log('🔌 Disconnecting wagmi wallet on page refresh (Privy authenticated)...');
       disconnect();
-      setSignedIn(false);
     }
+    // Don't reset signedIn here - let the auto sign-in effect handle Privy authentication
   }, []); // Run only once on mount
 
-  // Auto sign-in if wallet is already connected
+  // Auto sign-in if wallet is already connected (but not if Privy is handling auth)
   useEffect(() => {
-    if (isConnected && !signedIn) {
+    if (isConnected && !signedIn && !authenticated) {
+      console.log('Auto-signing in wagmi wallet user...');
       setSignedIn(true);
     }
-  }, [isConnected, signedIn]);
+  }, [isConnected, signedIn, authenticated]);
 
-  // Return to sign-in screen if wallet is disconnected
+  // Auto sign-in if Privy is authenticated
   useEffect(() => {
-    if (!isConnected && signedIn) {
+    console.log('Auto sign-in effect triggered:', { ready, authenticated, signedIn });
+    if (ready && authenticated && !signedIn) {
+      console.log('Auto-signing in authenticated Privy user...');
+      setSignedIn(true);
+    }
+  }, [ready, authenticated]);
+
+  // Auto-connect Privy embedded wallet to wagmi
+  useEffect(() => {
+    if (ready && authenticated && wallets.length > 0 && !isConnected) {
+      console.log('Auto-connecting Privy embedded wallet...', { wallets });
+      const embeddedWallet = wallets.find(wallet => wallet.walletClientType === 'privy');
+      if (embeddedWallet) {
+        console.log('Found embedded wallet:', embeddedWallet);
+        setActiveWallet(embeddedWallet).then(() => {
+          console.log('Embedded wallet set as active');
+        }).catch(error => {
+          console.error('Failed to set embedded wallet as active:', error);
+        });
+      }
+    }
+  }, [ready, authenticated, wallets, isConnected, setActiveWallet]);
+
+  // Return to sign-in screen if BOTH wallet and Privy are disconnected
+  useEffect(() => {
+    if (!isConnected && !authenticated && signedIn) {
+      console.log('Both wagmi and Privy disconnected, signing out...');
       setSignedIn(false);
     }
-  }, [isConnected, signedIn]);
+  }, [isConnected, authenticated, signedIn]);
 
-  // Load contract data when wallet connects
+  // Load contract data when wallet connects (wagmi or Privy embedded)
   useEffect(() => {
-    if (isConnected && address) {
+    const currentAddress = address || (wallets.length > 0 ? wallets[0]?.address : null);
+    if ((isConnected && address) || (authenticated && currentAddress)) {
+      console.log('Loading contract data for address:', currentAddress);
       loadUserDossiers();
       
       // Load contract constants
@@ -774,7 +844,7 @@ export default function Home() {
           console.error('❌ Failed to load contract constants:', error);
         });
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, authenticated, wallets]);
 
   // Show onboarding if not completed
   if (!onboardingComplete) {
@@ -820,10 +890,11 @@ export default function Home() {
             </button>
             
             <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60"
-              disabled
+              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
+              onClick={() => handleSignIn('Email')}
+              disabled={!ready}
             >
-              Email Sign-in Coming Soon
+              {!ready ? 'Loading...' : 'Sign in with Email'}
             </button>
           </div>
 
@@ -837,30 +908,40 @@ export default function Home() {
               <p className="editorial-body text-gray-500 text-xs md:text-sm mb-3">
                 Support this open-source project
               </p>
-              <button
-                onClick={() => {
-                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
-                  navigator.clipboard.writeText(supportAddress).then(() => {
-                    toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
-                      duration: 6000,
-                      style: {
-                        background: '#10B981',
-                        color: 'white',
-                        maxWidth: '500px',
-                      },
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                    navigator.clipboard.writeText(supportAddress).then(() => {
+                      toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
+                        duration: 6000,
+                        style: {
+                          background: '#10B981',
+                          color: 'white',
+                          maxWidth: '500px',
+                        },
+                      });
+                    }).catch(() => {
+                      toast.error('Failed to copy address');
                     });
-                  }).catch(() => {
-                    toast.error('Failed to copy address');
-                  });
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all duration-200 editorial-body font-medium"
-                title="Click to copy donation address"
-              >
-                <span>💝</span>
-                <span>Donate ETH/Polygon</span>
-              </button>
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all duration-200 editorial-body font-medium"
+                  title="Click to copy donation address"
+                >
+                  <span>💝</span>
+                  <span>Donate ETH/Polygon</span>
+                </button>
+                <button
+                  onClick={() => window.open('https://github.com/TheThirdRoom/canary', '_blank')}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all duration-200 editorial-body font-medium"
+                  title="View source code on GitHub"
+                >
+                  <Github size={16} />
+                  <span>View on GitHub</span>
+                </button>
+              </div>
               <p className="editorial-body text-gray-400 text-xs mt-2">
-                Click to copy donation address
+                Open-source and community-driven
               </p>
             </div>
           </div>
@@ -1029,20 +1110,51 @@ export default function Home() {
               >
                 💝 Support
               </button>
+              <button 
+                onClick={() => window.open('https://github.com/TheThirdRoom/canary', '_blank')}
+                className={`editorial-body font-semibold transition-colors ${
+                  currentView === 'guide' 
+                    ? '!text-white hover:!text-gray-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="View source code on GitHub"
+              >
+                <Github size={18} />
+              </button>
             </nav>
             
             {/* Wallet Status */}
-            {isConnected && address ? (
+            {(isConnected && address) || (authenticated && wallets.length > 0) ? (
               <div className="flex items-center gap-3">
                 <div className={`editorial-body text-sm border-2 px-3 py-2 rounded-lg ${
                   currentView === 'guide' 
                     ? 'border-gray-600 bg-gray-800 !text-white' 
                     : 'border-gray-300 bg-white text-gray-900'
                 }`}>
-                  <span className="text-green-400 font-semibold">●</span> {address.slice(0, 6)}...{address.slice(-4)}
+                  <span className="text-green-400 font-semibold">●</span> {
+                    address 
+                      ? `${address.slice(0, 6)}...${address.slice(-4)}` 
+                      : wallets[0]?.address 
+                        ? `${wallets[0].address.slice(0, 6)}...${wallets[0].address.slice(-4)}`
+                        : 'Wallet'
+                  }
+                  {!isConnected && authenticated && (
+                    <span className="ml-2 text-xs opacity-75">(Email)</span>
+                  )}
         </div>
                 <button
-                  onClick={() => disconnect()}
+                  onClick={() => {
+                    // Disconnect wagmi wallet
+                    if (isConnected) {
+                      disconnect();
+                    }
+                    // Logout from Privy if authenticated
+                    if (authenticated) {
+                      logout();
+                    }
+                    // Reset local state
+                    setSignedIn(false);
+                  }}
                   className={`editorial-body text-sm underline ${
                     currentView === 'guide' 
                       ? '!text-gray-300 hover:!text-white' 
@@ -1077,7 +1189,7 @@ export default function Home() {
               {/* Countdown Display */}
               <div className="space-y-2">
                 <div className="editorial-body text-sm text-gray-500">
-                  {isConnected && userDossiers.length > 0 ? 'Next release in:' : ''}
+                  {hasWalletConnection() && userDossiers.length > 0 ? 'Next release in:' : ''}
                 </div>
                 <div className={`editorial-header text-5xl ${getCountdownTime().color} font-bold font-mono tracking-wide`}>
                   {getCountdownTime().display}
@@ -1093,7 +1205,7 @@ export default function Home() {
                 {/* Check In Button */}
                 <button
                   onClick={handleCheckIn}
-                  disabled={isCheckingIn || !isConnected || userDossiers.filter(d => d.isActive).length === 0}
+                  disabled={isCheckingIn || !hasWalletConnection() || userDossiers.filter(d => d.isActive).length === 0}
                   className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
                 >
                   {isCheckingIn ? (
@@ -1110,10 +1222,11 @@ export default function Home() {
                 </button>
                 
                 {/* Share Button */}
-                {isConnected && address && (
+                {hasWalletConnection() && (
                   <button
                     onClick={() => {
-                      const shareUrl = `${window.location.origin}/share/${address}`;
+                      const currentAddress = getCurrentAddress();
+                      const shareUrl = `${window.location.origin}/share/${currentAddress}`;
                       navigator.clipboard.writeText(shareUrl).then(() => {
                         toast.success('📋 Share link copied to clipboard!', {
                           duration: 3000,
@@ -1131,7 +1244,7 @@ export default function Home() {
                       });
                     }}
                     className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white px-6 py-4 editorial-header text-sm font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                    title={`Copy shareable link: ${window.location.origin}/share/${address?.slice(0,6)}...${address?.slice(-4)}`}
+                    title={`Copy shareable link: ${window.location.origin}/share/${getCurrentAddress()?.slice(0,6)}...${getCurrentAddress()?.slice(-4)}`}
                   >
                     <svg className="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
@@ -1143,10 +1256,10 @@ export default function Home() {
               
               {/* Document Summary */}
               <div className="editorial-body text-sm text-gray-600">
-                {isConnected && userDossiers.length > 0 ? (
+                {hasWalletConnection() && userDossiers.length > 0 ? (
                   `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
                 ) : (
-                  isConnected ? '' : 'Wallet not connected'
+                  hasWalletConnection() ? '' : 'Wallet not connected'
                 )}
               </div>
             </div>
@@ -1158,7 +1271,7 @@ export default function Home() {
           {!showCreateForm ? (
             <>
               {/* Your Documents */}
-              {isConnected && (
+              {hasWalletConnection() && (
                 <div className="border-2 border-gray-800 mb-12">
                   <div className="bg-gray-800 p-3">
                     <div className="flex justify-between items-center">
