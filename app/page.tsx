@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle, Github } from 'lucide-react';
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
-import Onboarding from './components/Onboarding';
-import CanaryGuideStandalone from './components/CanaryGuideStandalone';
+
+
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { usePrivy, useWallets, useConnectWallet } from '@privy-io/react-auth';
 import { useSetActiveWallet } from '@privy-io/wagmi';
@@ -29,7 +29,6 @@ export default function Home() {
   const { setActiveWallet } = useSetActiveWallet();
   const { connectWallet } = useConnectWallet();
   
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -70,7 +69,7 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>(['']);
   const [releaseMode, setReleaseMode] = useState<'public' | 'contacts'>('public');
-  const [currentView, setCurrentView] = useState<'checkin' | 'documents' | 'guide'>('checkin');
+  const [currentView, setCurrentView] = useState<'checkin' | 'documents'>('checkin');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
@@ -123,18 +122,13 @@ export default function Home() {
   useEffect(() => {
     const body = document.body;
     body.classList.remove('guide-dark', 'guide-light');
-    
-    if (currentView === 'guide') {
-      body.classList.add('guide-dark');
-    } else {
-      body.classList.add('guide-light');
-    }
+    body.classList.add('guide-light');
     
     // Cleanup function to remove classes when component unmounts
     return () => {
       body.classList.remove('guide-dark', 'guide-light');
     };
-  }, [currentView]);
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -630,7 +624,7 @@ export default function Home() {
       
       // If no active dossiers, show inactive status
       if (activeDossiers.length === 0) {
-        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-gray-500' };
+        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-muted' };
       }
       
       // Check if any dossier is decryptable (expired)
@@ -646,11 +640,11 @@ export default function Home() {
     
     // If connected but no dossiers, show status
     if (isConnected && userDossiers.length === 0) {
-      return { expired: false, display: 'NO DOCUMENTS', color: 'text-gray-500' };
+      return { expired: false, display: 'NO DOCUMENTS', color: 'text-muted' };
     }
     
     // If not connected, show disconnected status
-    return { expired: false, display: 'DISCONNECTED', color: 'text-gray-500' };
+    return { expired: false, display: 'DISCONNECTED', color: 'text-muted' };
   };
 
   const getCountdownTime = () => {
@@ -660,7 +654,7 @@ export default function Home() {
       
       // If no active dossiers, show inactive status
       if (activeDossiers.length === 0) {
-        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-gray-500' };
+        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-muted' };
       }
       
       // Find the dossier with the shortest remaining time
@@ -715,30 +709,14 @@ export default function Home() {
     
     // If connected but no dossiers, show status
     if (isConnected && userDossiers.length === 0) {
-      return { expired: false, display: 'NO DOCUMENTS', color: 'text-gray-500' };
+      return { expired: false, display: 'NO DOCUMENTS', color: 'text-muted' };
     }
     
     // If not connected, show disconnected status
-    return { expired: false, display: 'DISCONNECTED', color: 'text-gray-500' };
+    return { expired: false, display: 'DISCONNECTED', color: 'text-muted' };
   };
 
-  const handleOnboardingComplete = (userChoices: Record<string, string[]>) => {
-    setOnboardingComplete(true);
-    
-    // Set default check-in interval based on user's risk level
-    const riskLevel = userChoices.risk?.[0];
-    if (riskLevel === 'Immediate danger') {
-      setCheckInInterval('1');
-    } else if (riskLevel === 'High risk') {
-      setCheckInInterval('6');
-    } else if (riskLevel === 'Moderate risk') {
-      setCheckInInterval('12');
-    } else if (riskLevel === 'Low risk') {
-      setCheckInInterval('60'); // 1 hour for low risk
-    } else {
-      setCheckInInterval('1'); // Default to 1 minute for testing
-    }
-  };
+
 
   const handleSignIn = (method: string) => {
     console.log('Sign in method:', method);
@@ -761,7 +739,7 @@ export default function Home() {
         } else if (!signedIn) {
           console.log('User already authenticated, setting signedIn to true');
           setSignedIn(true);
-        } else {
+    } else {
           console.log('User already signed in');
         }
       } else {
@@ -846,53 +824,58 @@ export default function Home() {
     }
   }, [isConnected, address, authenticated, wallets]);
 
-  // Show onboarding if not completed
-  if (!onboardingComplete) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
-  }
-
-  // Show sign-in page if onboarding complete but not signed in
+  // Show sign-in page if not signed in
   if (!signedIn) {
-  return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8 relative" style={{ zoom: '0.8' }}>
+    return (
+      <div className="fixed inset-0 mesh-background-light flex items-center justify-center" style={{ zoom: '0.8' }}>
         {/* Logo - Top Left */}
-        <div className="absolute top-6 left-6">
+        <div className="absolute top-8 left-8">
           <img 
             src="/canary.png" 
             alt="Canary" 
-            className="h-16 md:h-20 w-auto"
+            className="h-20 w-auto opacity-90"
             style={{
-              filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
+              filter: 'drop-shadow(0 1px 3px rgba(31, 31, 31, 0.1))'
             }}
           />
         </div>
         
-        <div className="max-w-2xl w-full text-center">
-          {/* Sign in */}
-          <h2 className="editorial-header text-3xl md:text-4xl lg:text-5xl mb-6 md:mb-8 leading-tight">
-            Welcome to Canary
-          </h2>
+        {/* Main Sign-in Area */}
+        <div className="max-w-lg w-full mx-auto px-8">
+          <div className="text-center spacing-large">
+            <h1 className="editorial-header-large">
+              Try the Canary Testnet Demo
+            </h1>
+            <p className="editorial-body-large text-secondary max-w-md mx-auto font-medium">
+              Truth protection through cryptographic deadman switches
+            </p>
+          </div>
 
-          <div className="space-y-3 md:space-y-4 max-w-md mx-auto">
+          <div className="space-y-4 max-w-sm mx-auto spacing-medium">
             <button
-              className="editorial-button w-full py-3 md:py-4 text-base md:text-lg bg-slate-700 hover:bg-slate-800 text-white font-medium transition-all duration-200 hover:scale-105 transform disabled:opacity-50 disabled:cursor-not-allowed border-2 border-slate-600 hover:border-slate-700"
+              className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => handleSignIn('Email')}
               disabled={!ready}
             >
-              {!ready ? 'Loading...' : 'Sign in with Email'}
+              {!ready ? 'Initializing...' : 'Sign in with Email'}
             </button>
             
-            <div className="text-center">
-              <p className="editorial-body text-xs text-gray-500 mb-2">Advanced users</p>
+            <div className="text-center spacing-small">
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-gray-300"></div>
+                <span className="editorial-label-small">Advanced</span>
+                <div className="flex-1 h-px bg-gray-300"></div>
+              </div>
+              
               <button
-                className="editorial-button w-full py-3 md:py-4 text-base md:text-lg border-2 border-slate-300 text-slate-600 hover:bg-slate-50 transition-all duration-200 hover:scale-105 transform bg-white"
+                className="editorial-button editorial-button-large w-full"
                 onClick={() => handleSignIn('Web3 Wallet')}
                 disabled={isPending}
               >
                 {isPending ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
-                    Connecting...
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    <span>Connecting...</span>
                   </div>
                 ) : (
                   'Connect Web3 Wallet'
@@ -901,17 +884,17 @@ export default function Home() {
             </div>
           </div>
 
-          <p className="editorial-body text-gray-600 mt-6 md:mt-8 text-sm md:text-base">
-            Your truth protection starts now.
-          </p>
+          {/* Cryptographic Pattern Accent */}
+          <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
           
           {/* Support Section */}
-          <div className="mt-8 md:mt-12 pt-6 border-t border-gray-200">
-            <div className="text-center">
-              <p className="editorial-body text-gray-500 text-xs md:text-sm mb-3">
-                Support this open-source project
+          <div className="spacing-large">
+            <div className="text-center pt-8 border-t border-gray-200">
+              <p className="editorial-body text-sm text-muted spacing-tiny">
+                Support open-source truth protection
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              
+              <div className="flex items-center justify-center gap-6">
                 <button
                   onClick={() => {
                     const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
@@ -928,24 +911,12 @@ export default function Home() {
                       toast.error('Failed to copy address');
                     });
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all duration-200 editorial-body font-medium"
+                  className="flex items-center gap-2 text-xs text-muted hover:text-primary transition-colors"
                   title="Click to copy donation address"
                 >
-                  <span>💝</span>
-                  <span>Donate ETH/Polygon</span>
-                </button>
-                <button
-                  onClick={() => window.open('https://github.com/TheThirdRoom/canary', '_blank')}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all duration-200 editorial-body font-medium"
-                  title="View source code on GitHub"
-                >
-                  <Github size={16} />
-                  <span>View on GitHub</span>
+                  💝 <span>Donate</span>
                 </button>
               </div>
-              <p className="editorial-body text-gray-400 text-xs mt-2">
-                Open-source and community-driven
-              </p>
             </div>
           </div>
         </div>
@@ -963,363 +934,379 @@ export default function Home() {
     { value: '1440', label: '24 Hours' }
   ];
 
-  return (
+    return (
     <>
-      {/* Global Grid Animation Styles */}
+      <Toaster position="top-center" />
+      <div className="h-screen flex flex-col">
+        {/* Global Fine Mesh Animation Styles */}
       <style>
         {`
-          @keyframes gridMove {
-            0% { background-position: 0px 0px; }
-            100% { background-position: 80px -80px; }
-          }
-          
-          .canary-grid-background {
-            background-color: #f8f9fa;
-            background-image: 
-              linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
-            background-size: 80px 80px;
-            animation: gridMove 12s linear infinite;
-          }
-          
-          .canary-grid-background-dark {
-            background-color: #1a1a1a;
-            background-image: 
-              linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-            background-size: 80px 80px;
-            animation: gridMove 12s linear infinite;
+          @keyframes meshFloat {
+            0% { 
+              background-position: 
+                0px 0px,
+                0px 0px,
+                0px 0px,
+                0px 0px,
+                0px 0px,
+                0px 0px;
+            }
+            33% { 
+              background-position: 
+                4px 4px,
+                -4px 4px,
+                12px 12px,
+                -12px 12px,
+                24px 24px,
+                -24px 24px;
+            }
+            66% { 
+              background-position: 
+                8px -4px,
+                -8px -4px,
+                24px -12px,
+                -24px -12px,
+                48px -24px,
+                -48px -24px;
+            }
+            100% { 
+              background-position: 
+                12px 0px,
+                -12px 0px,
+                36px 0px,
+                -36px 0px,
+                72px 0px,
+                -72px 0px;
+            }
           }
           
           body.guide-dark {
             background-color: #1a1a1a !important;
             background-image: 
-              linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px) !important;
-            background-size: 80px 80px !important;
-            animation: gridMove 12s linear infinite !important;
+              linear-gradient(rgba(255, 255, 255, 0.035) 0.5px, transparent 0.5px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0.5px, transparent 0.5px),
+              linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+              linear-gradient(rgba(255, 255, 255, 0.008) 2px, transparent 2px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.008) 2px, transparent 2px) !important;
+            background-size: 
+              12px 12px,
+              12px 12px,
+              36px 36px,
+              36px 36px,
+              72px 72px,
+              72px 72px !important;
+            animation: meshFloat 20s ease-in-out infinite !important;
           }
           
           body.guide-light {
-            background-color: #f8f9fa !important;
+            background-color: #fefefe !important;
             background-image: 
-              linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px) !important;
-            background-size: 80px 80px !important;
-            animation: gridMove 12s linear infinite !important;
+              linear-gradient(rgba(0, 0, 0, 0.015) 0.5px, transparent 0.5px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.015) 0.5px, transparent 0.5px),
+              linear-gradient(rgba(0, 0, 0, 0.008) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.008) 1px, transparent 1px),
+              linear-gradient(rgba(0, 0, 0, 0.003) 2px, transparent 2px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.003) 2px, transparent 2px) !important;
+            background-size: 
+              12px 12px,
+              12px 12px,
+              36px 36px,
+              36px 36px,
+              72px 72px,
+              72px 72px !important;
+            animation: meshFloat 20s ease-in-out infinite !important;
           }
         `}
       </style>
       
-             <div className="min-h-screen h-auto relative" style={{ zoom: '0.8', minHeight: '100vh' }}>
-        {/* Alpha Warning Banner */}
-        {showAlphaBanner && (
-          <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border-b border-amber-200/50 shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="flex items-start justify-between gap-4">
-                <div></div>
-                <div className="text-center">
-                  <div className="editorial-header font-bold text-amber-900 tracking-wide text-sm mb-1">ALPHA SOFTWARE</div>
-                  <div className="editorial-body text-amber-800 text-sm">Testnet demo with no guarantees for data security or service availability. Not for production use.</div>
-                </div>
-                <button
-                  onClick={() => setShowAlphaBanner(false)}
-                  className="flex items-center justify-center w-6 h-6 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-md transition-colors mt-1"
-                  aria-label="Close banner"
+      {/* Alpha Status Indicator */}
+      {showAlphaBanner && (
+        <div className="bg-gray-50 border-b border-gray-200 flex-shrink-0">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-center justify-between h-12">
+              <div className="w-4 h-4"></div>
+              <div className="flex items-center justify-center flex-1">
+                <span className="text-xs text-muted font-medium">
+                  Testnet demo · No production guarantees · Use at your own risk
+                </span>
+              </div>
+              <button
+                onClick={() => setShowAlphaBanner(false)}
+                className="text-xs text-muted hover:text-primary transition-colors w-4 h-4 flex items-center justify-center flex-shrink-0"
+                aria-label="Close banner"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex-1" style={{ zoom: '0.8' }}>
+        
+        {/* Header */}
+        <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm" style={{ marginTop: '0px' }}>
+          <div className="max-w-7xl mx-auto px-6 py-3">
+            <div className="flex items-center justify-between h-10">
+              {/* Left: Logo */}
+              <div className="w-32 flex items-center">
+                <img 
+                  src="/canary.png" 
+                  alt="Canary" 
+                  className="h-8 w-auto"
+                  style={{
+                    filter: 'drop-shadow(0 1px 4px rgba(0, 0, 0, 0.1))'
+                  }}
+                />
+              </div>
+              
+              {/* Center: Main Navigation */}
+              <nav className="flex items-center gap-8 h-full">
+                <button 
+                  onClick={() => setCurrentView('checkin')}
+                  className={`nav-link ${
+                    currentView === 'checkin' ? 'nav-link-active' : ''
+                  }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  Check In
                 </button>
+                <button 
+                  onClick={() => setCurrentView('documents')}
+                  className={`nav-link ${
+                    currentView === 'documents' ? 'nav-link-active' : ''
+                  }`}
+                >
+                  Documents
+                </button>
+              </nav>
+              
+              {/* Right: Wallet Status */}
+              <div className="flex items-center gap-6">
+                
+                {/* Wallet Status */}
+                {(isConnected && address) || (authenticated && wallets.length > 0) ? (
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-gray-300 bg-white text-xs">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <span className="monospace-accent text-gray-900">
+                        {address 
+                          ? `${address.slice(0, 6)}...${address.slice(-4)}` 
+                          : wallets[0]?.address 
+                            ? `${wallets[0].address.slice(0, 6)}...${wallets[0].address.slice(-4)}`
+                            : 'Wallet'
+                        }
+                        {!isConnected && authenticated && (
+                          <span className="text-xs opacity-75 ml-1">(Email)</span>
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        // Disconnect wagmi wallet
+                        if (isConnected) {
+                          disconnect();
+                        }
+                        // Logout from Privy if authenticated
+                        if (authenticated) {
+                          logout();
+                        }
+                        // Reset local state
+                        setSignedIn(false);
+                      }}
+                      className="text-sm text-muted hover:text-primary transition-colors"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <span>Not Connected</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        )}
-        
-        {/* Logo - Fixed Top Left */}
-        <div className={`absolute left-6 z-50 transition-all duration-300 ${showAlphaBanner ? 'top-28' : 'top-6'}`}>
-          <img 
-            src="/canary.png" 
-            alt="Canary" 
-            className="h-20 w-auto"
-            style={{
-              filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))'
-            }}
-          />
-        </div>
+        </header>
 
-        {/* Header */}
-        <header className="border-b border-gray-200/30 px-4 py-6" style={{ marginTop: '0px' }}>
-                  <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div></div> {/* Spacer for layout balance */}
+      {currentView === 'checkin' ? (
+        // Check In View - Editorial Layout
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          {/* Main Check-in Interface */}
+          <div className="text-center spacing-section">
+            {/* Status Overview */}
+            <div className="spacing-medium">
+                                <div className="editorial-label spacing-tiny">
+                    {hasWalletConnection() && userDossiers.length > 0 ? 'System Status' : 'Connection Required'}
+                  </div>
+              
+              <div className={`editorial-header-large ${getCountdownTime().color} monospace-accent`}>
+                {getCountdownTime().display}
+              </div>
+              
+              {getCountdownTime().expired && (
+                <div className="status-indicator status-expired justify-center spacing-small">
+                  <div className="status-dot"></div>
+                  <span>Release condition met</span>
+                </div>
+              )}
+              
+              {hasWalletConnection() && userDossiers.length > 0 && (
+                <div className="editorial-body text-sm">
+                  {userDossiers.filter(d => d.isActive).length} active documents protected
+                </div>
+              )}
+            </div>
             
-            <div className="flex items-center gap-8">
-            <nav className="flex gap-8">
-              <button 
-                onClick={() => setCurrentView('checkin')}
-                className={`editorial-body font-semibold transition-colors ${
-                  currentView === 'guide' 
-                    ? '!text-white hover:!text-gray-200'
-                    : currentView === 'checkin' 
-                      ? 'text-gray-900 border-b-2 border-gray-900 pb-1' 
-                      : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Check In
-              </button>
-              <button 
-                onClick={() => setCurrentView('documents')}
-                className={`editorial-body font-semibold transition-colors ${
-                  currentView === 'guide' 
-                    ? '!text-white hover:!text-gray-200'
-                    : currentView === 'documents' 
-                      ? 'text-gray-900 border-b-2 border-gray-900 pb-1' 
-                      : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Documents
-              </button>
-              <button 
-                onClick={() => setCurrentView('guide')}
-                className={`editorial-body font-semibold transition-colors ${
-                  currentView === 'guide' 
-                    ? '!text-white border-b-2 border-white pb-1'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Guide
-              </button>
-              <button 
-                onClick={() => {
-                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
-                  navigator.clipboard.writeText(supportAddress).then(() => {
-                    toast.success('💝 Support address copied to clipboard!', {
-                      duration: 4000,
-                      style: {
-                        background: '#10B981',
-                        color: 'white',
-                      },
-                    });
-                  }).catch(() => {
-                    toast.error('Failed to copy address');
-                  });
+            {/* Action Interface */}
+            <div className="max-w-md mx-auto spacing-medium">
+              <button
+                onClick={handleCheckIn}
+                disabled={isCheckingIn || !hasWalletConnection() || userDossiers.filter(d => d.isActive).length === 0}
+                className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed spacing-small"
+                style={{ 
+                  backgroundColor: hasWalletConnection() && userDossiers.filter(d => d.isActive).length > 0 && !isCheckingIn ? 'var(--color-ink)' : undefined,
+                  color: hasWalletConnection() && userDossiers.filter(d => d.isActive).length > 0 && !isCheckingIn ? 'white' : undefined
                 }}
-                className={`editorial-body font-semibold transition-colors ${
-                  currentView === 'guide' 
-                    ? '!text-white hover:!text-gray-200'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                title="Support project development - Click to copy donation address"
               >
-                💝 Support
+                {isCheckingIn ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                    <span>Checking In...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-3">
+                    <CheckCircle size={20} />
+                    <span>Check In Now</span>
+                  </div>
+                )}
               </button>
-              <button 
-                onClick={() => window.open('https://github.com/TheThirdRoom/canary', '_blank')}
-                className={`editorial-body font-semibold transition-colors ${
-                  currentView === 'guide' 
-                    ? '!text-white hover:!text-gray-200'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                title="View source code on GitHub"
-              >
-                <Github size={18} />
-              </button>
-            </nav>
-            
-            {/* Wallet Status */}
-            {(isConnected && address) || (authenticated && wallets.length > 0) ? (
-              <div className="flex items-center gap-3">
-                <div className={`editorial-body text-sm border-2 px-3 py-2 rounded-lg ${
-                  currentView === 'guide' 
-                    ? 'border-gray-600 bg-gray-800 !text-white' 
-                    : 'border-gray-300 bg-white text-gray-900'
-                }`}>
-                  <span className="text-green-400 font-semibold">●</span> {
-                    address 
-                      ? `${address.slice(0, 6)}...${address.slice(-4)}` 
-                      : wallets[0]?.address 
-                        ? `${wallets[0].address.slice(0, 6)}...${wallets[0].address.slice(-4)}`
-                        : 'Wallet'
-                  }
-                  {!isConnected && authenticated && (
-                    <span className="ml-2 text-xs opacity-75">(Email)</span>
-                  )}
-        </div>
+              
+              {/* Secondary Actions */}
+              {hasWalletConnection() && userDossiers.length > 0 && (
                 <button
                   onClick={() => {
-                    // Disconnect wagmi wallet
-                    if (isConnected) {
-                      disconnect();
-                    }
-                    // Logout from Privy if authenticated
-                    if (authenticated) {
-                      logout();
-                    }
-                    // Reset local state
-                    setSignedIn(false);
+                    const currentAddress = getCurrentAddress();
+                    const shareUrl = `${window.location.origin}/share/${currentAddress}`;
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                      toast.success('📋 Share link copied to clipboard!', {
+                        duration: 3000,
+                        style: {
+                          background: '#10B981',
+                          color: 'white',
+                        },
+                      });
+                      setActivityLog(prev => [
+                        { type: `📤 Share link copied: ${shareUrl}`, date: new Date().toLocaleString() },
+                        ...prev
+                      ]);
+                    }).catch(() => {
+                      toast.error('Failed to copy share link');
+                    });
                   }}
-                  className={`editorial-body text-sm underline ${
-                    currentView === 'guide' 
-                      ? '!text-gray-300 hover:!text-white' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                  className="editorial-button w-full text-sm"
+                  title={`Copy shareable link: ${window.location.origin}/share/${getCurrentAddress()?.slice(0,6)}...${getCurrentAddress()?.slice(-4)}`}
                 >
-                  Log out
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                    </svg>
+                    <span>Share Status</span>
+                  </div>
                 </button>
-        </div>
-            ) : (
-              <div className={`editorial-body text-sm ${
-                currentView === 'guide' ? '!text-gray-300' : 'text-gray-500'
-              }`}>
-                Not Connected
+              )}
+            </div>
+            
+            {/* System Information Grid */}
+            {hasWalletConnection() && userDossiers.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto spacing-medium">
+                <div className="text-center">
+                                      <div className="editorial-label-small spacing-tiny">Last Check-in</div>
+                    <div className="monospace-accent text-sm font-bold text-primary">{getTimeSinceLastCheckIn()}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="editorial-label-small spacing-tiny">Status</div>
+                    <div className="monospace-accent text-sm font-bold text-primary">{getRemainingTime().display}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="editorial-label-small spacing-tiny">Protected</div>
+                    <div className="monospace-accent text-sm font-bold text-primary">{userDossiers.filter(d => d.isActive).length} docs</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Connection Prompt */}
+            {!hasWalletConnection() && (
+              <div className="editorial-card max-w-md mx-auto text-center">
+                <div className="spacing-small">
+                  <h3 className="editorial-header">Connect to Begin</h3>
+                  <p className="editorial-body text-sm">
+                    Connect your wallet or sign in with email to start protecting your documents with cryptographic deadman switches.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCurrentView('documents')}
+                  className="editorial-button-primary"
+                >
+                  Get Started
+                </button>
               </div>
             )}
           </div>
         </div>
-      </header>
-
-      {currentView === 'guide' ? (
-        // Guide View - Full Content Area
-        <div className="w-full">
-          <CanaryGuideStandalone />
-        </div>
-      ) : currentView === 'checkin' ? (
-        // Check In View - Normal Container
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          {/* Safety Check-in with Countdown */}
-          <div className="text-center mb-16">
-            <div className="space-y-6">
-              {/* Countdown Display */}
-              <div className="space-y-2">
-                <div className="editorial-body text-sm text-gray-500">
-                  {hasWalletConnection() && userDossiers.length > 0 ? 'Next release in:' : ''}
-                </div>
-                <div className={`editorial-header text-5xl ${getCountdownTime().color} font-bold font-mono tracking-wide`}>
-                  {getCountdownTime().display}
-                </div>
-                {getCountdownTime().expired && (
-                  <div className="editorial-body text-sm text-red-600 font-semibold">
-                    ⚠ Release condition met
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex flex-col items-center gap-4">
-                {/* Check In Button */}
-                <button
-                  onClick={handleCheckIn}
-                  disabled={isCheckingIn || !hasWalletConnection() || userDossiers.filter(d => d.isActive).length === 0}
-                  className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-12 py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                >
-                  {isCheckingIn ? (
-                    <>
-                      <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-current mr-4"></div>
-                      CHECKING IN...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="inline mr-4" size={28} />
-                      CHECK IN NOW
-                    </>
-                  )}
-                </button>
-                
-                {/* Share Button */}
-                {hasWalletConnection() && (
-                  <button
-                    onClick={() => {
-                      const currentAddress = getCurrentAddress();
-                      const shareUrl = `${window.location.origin}/share/${currentAddress}`;
-                      navigator.clipboard.writeText(shareUrl).then(() => {
-                        toast.success('📋 Share link copied to clipboard!', {
-                          duration: 3000,
-                          style: {
-                            background: '#10B981',
-                            color: 'white',
-                          },
-                        });
-                        setActivityLog(prev => [
-                          { type: `📤 Share link copied: ${shareUrl}`, date: new Date().toLocaleString() },
-                          ...prev
-                        ]);
-                      }).catch(() => {
-                        toast.error('Failed to copy share link');
-                      });
-                    }}
-                    className="bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white px-6 py-4 editorial-header text-sm font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
-                    title={`Copy shareable link: ${window.location.origin}/share/${getCurrentAddress()?.slice(0,6)}...${getCurrentAddress()?.slice(-4)}`}
-                  >
-                    <svg className="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                    </svg>
-                    SHARE
-                  </button>
-                )}
-              </div>
-              
-              {/* Document Summary */}
-              <div className="editorial-body text-sm text-gray-600">
-                {hasWalletConnection() && userDossiers.length > 0 ? (
-                  `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total documents`
-                ) : (
-                  hasWalletConnection() ? '' : 'Wallet not connected'
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
       ) : (
         // Documents View - Normal Container
-        <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           {!showCreateForm ? (
             <>
               {/* Your Documents */}
               {hasWalletConnection() && (
-                <div className="border-2 border-gray-800 mb-12">
-                  <div className="bg-gray-800 p-3">
-                    <div className="flex justify-between items-center">
-                      <h2 style={{color: '#ffffff'}} className="editorial-header text-lg tracking-[0.2em] font-bold">Your Documents</h2>
-                      <div className="flex items-center gap-4">
-                        <span style={{color: '#ffffff'}} className="editorial-body text-xs">
-                          {userDossiers.length > 0 
-                            ? `${userDossiers.filter(d => d.isActive).length} active of ${userDossiers.length} total`
-                            : ''
-                          }
-                        </span>
-                        {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
-                          <button
-                            onClick={() => setShowInactiveDocuments(!showInactiveDocuments)}
-                            className={`px-3 py-1 editorial-body text-xs font-bold border-2 transition-all duration-200 ${
-                              showInactiveDocuments
-                                ? 'bg-white text-gray-900 border-white hover:bg-gray-200'
-                                : 'bg-transparent text-white border-white hover:bg-white hover:text-gray-900'
-                            }`}
-                          >
-                            {showInactiveDocuments ? 'HIDE INACTIVE' : 'SHOW INACTIVE'}
-                          </button>
-                        )}
-                      </div>
+                <div className="spacing-section">
+                  <div className="flex justify-between items-center spacing-medium">
+                    <div>
+                      <h2 className="editorial-header">Protected Documents</h2>
+                      <p className="editorial-body text-sm text-secondary font-medium">
+                        {userDossiers.length > 0 
+                          ? `${userDossiers.filter(d => d.isActive).length} active, ${userDossiers.length} total`
+                          : 'No documents created yet'
+                        }
+                      </p>
                     </div>
+                    
+                    {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
+                      <button
+                        onClick={() => setShowInactiveDocuments(!showInactiveDocuments)}
+                        className={`editorial-button text-sm ${
+                          showInactiveDocuments ? 'editorial-button-primary' : ''
+                        }`}
+                      >
+                        {showInactiveDocuments ? 'Hide Inactive' : 'Show All'}
+                      </button>
+                    )}
                   </div>
-                  <div className="bg-white/90 backdrop-blur-sm p-6">
+                  
+                  <div className="crypto-grid-pattern bg-gray-50 p-8 border border-gray-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {/* Add New Document Card - Always shown */}
                       <div 
                         onClick={() => setShowCreateForm(true)}
-                        className="border-2 border-dashed border-gray-400 bg-gray-50 hover:border-gray-900 hover:bg-gray-100 transition-all duration-200 cursor-pointer group"
+                        className="bg-gray-900 hover:bg-gray-800 cursor-pointer group min-h-[220px] transition-all duration-200 shadow-lg hover:shadow-xl border-2 border-gray-800 hover:border-gray-700"
                       >
-                        <div className="h-full flex flex-col items-center justify-center p-8 min-h-[300px]">
-                          <div className="text-gray-400 group-hover:text-gray-900 transition-colors mb-4">
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                          <div className="text-gray-300 group-hover:text-white transition-colors mb-6">
                             <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                           </div>
-                          <h3 className="editorial-header text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors text-center">
-                            CREATE NEW DOCUMENT
-                          </h3>
-                          <p className="editorial-body text-sm text-gray-500 group-hover:text-gray-700 transition-colors text-center mt-2">
-                            Encrypt and upload a new file to the deadman switch
-                          </p>
+                          <div>
+                            <h3 className="text-xl font-semibold text-white group-hover:text-gray-100 transition-colors mb-3" style={{ fontFamily: 'var(--font-playfair)', color: 'white' }}>
+                              Create Document
+                            </h3>
+                            <p className="text-sm text-gray-300 group-hover:text-gray-200 transition-colors" style={{ color: '#d1d5db' }}>
+                              Encrypt and protect a new file with cryptographic deadman switches
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -1345,7 +1332,7 @@ export default function Home() {
                           let timeDisplay = '';
                           if (!dossier.isActive) {
                             timeDisplay = 'Deactivated';
-                            timeColor = 'text-gray-400';
+                            timeColor = 'text-muted';
                           } else if (isExpired) {
                             timeDisplay = '⚠ EXPIRED';
                             timeColor = 'text-red-600';
@@ -1366,99 +1353,87 @@ export default function Home() {
                           return (
                             <div
                               key={dossier.id.toString()}
-                              className="border-2 border-gray-300 bg-white hover:border-gray-800 hover:shadow-lg transition-all duration-200"
+                              className="editorial-card-bordered hover:border-gray-900 min-h-[220px] flex flex-col"
                             >
                               {/* Card Header */}
-                              <div className="border-b border-gray-200 p-4">
-                                <h3 className="editorial-header text-base font-bold text-gray-900 leading-tight mb-3" title={dossier.name.replace('Encrypted file: ', '')}>
-                                  {(() => {
-                                    const displayName = dossier.name.replace('Encrypted file: ', '');
-                                    return displayName.length > 40 ? `${displayName.substring(0, 40)}...` : displayName;
-                                  })()}
-                                </h3>
-                                <div className="flex justify-end items-start">
-                                  <div className={`editorial-body text-xs font-semibold px-2 py-1 border ${
+                              <div className="border-b border-gray-200 pb-3 mb-3">
+                                <div className="flex justify-between items-start">
+                                  <h3 className="editorial-header text-sm" title={dossier.name.replace('Encrypted file: ', '')}>
+                                    {(() => {
+                                      const displayName = dossier.name.replace('Encrypted file: ', '');
+                                      return displayName.length > 32 ? `${displayName.substring(0, 32)}...` : displayName;
+                                    })()}
+                                  </h3>
+                                  
+                                  <div className={`status-indicator text-xs ${
                                     (() => {
-                                      // First check if document is deactivated
-                                      if (!dossier.isActive) {
-                                        return 'border-gray-400 text-gray-600 bg-gray-100';
-                                      }
+                                      if (!dossier.isActive) return 'status-inactive';
                                       
-                                      // Then check if expired by time calculation (only for active documents)
                                       const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
                                       const intervalMs = Number(dossier.checkInInterval) * 1000;
                                       const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
                                       const remainingMs = intervalMs - timeSinceLastCheckIn;
                                       const isTimeExpired = remainingMs <= 0;
                                       
-                                      if (isTimeExpired) {
-                                        return 'border-red-600 text-red-700 bg-red-50';
-                                      } else {
-                                        return 'border-green-600 text-green-700 bg-green-50';
-                                      }
+                                      return isTimeExpired ? 'status-expired' : 'status-active';
                                     })()
                                   }`}>
-                                    {(() => {
-                                      // First check if document is deactivated
-                                      if (!dossier.isActive) {
-                                        return 'Deactivated';
-                                      }
-                                      
-                                      // Then check if expired by time calculation (only for active documents)
-                                      const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
-                                      const intervalMs = Number(dossier.checkInInterval) * 1000;
-                                      const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                                      const remainingMs = intervalMs - timeSinceLastCheckIn;
-                                      const isTimeExpired = remainingMs <= 0;
-                                      
-                                      if (isTimeExpired) {
-                                        return 'Expired';
-                                      } else {
-                                        return 'Active';
-                                      }
-                                    })()}
+                                    <div className="status-dot"></div>
+                                    <span>
+                                      {(() => {
+                                        if (!dossier.isActive) return 'Inactive';
+                                        
+                                        const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                        const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                        const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                        const isTimeExpired = remainingMs <= 0;
+                                        
+                                        return isTimeExpired ? 'Expired' : 'Active';
+                                      })()}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Card Body */}
-                              <div className="p-4">
-                                {/* Time Remaining - Most Prominent */}
-                                <div className="text-center mb-4">
-                                  <div className="editorial-body text-xs text-gray-500 mb-1">TIME REMAINING</div>
-                                  <div className={`editorial-header text-2xl font-bold ${timeColor} font-mono tracking-wide`}>
+                              <div className="flex-1 mb-3">
+                                {/* Time Display */}
+                                <div className="text-center mb-3">
+                                  <div className="editorial-label-small mb-1">Time Remaining</div>
+                                  <div className={`editorial-header ${timeColor} monospace-accent text-lg`}>
                                     {timeDisplay}
                                   </div>
                                 </div>
                                 
-                                {/* Details Grid */}
-                                <div className="grid grid-cols-2 gap-4 text-center border-t border-gray-200 pt-4">
+                                {/* Metadata Grid */}
+                                <div className="grid grid-cols-2 gap-3 text-center pt-3 border-t border-gray-200">
                                   <div>
-                                    <div className="editorial-body text-xs text-gray-500">INTERVAL</div>
-                                    <div className="editorial-body text-sm font-bold text-gray-900 font-mono">
-                                      {Number(dossier.checkInInterval / BigInt(60))}M
+                                    <div className="editorial-label-small">Interval</div>
+                                    <div className="monospace-accent text-sm font-semibold text-primary">
+                                      {Number(dossier.checkInInterval / BigInt(60))}m
                                     </div>
                                   </div>
                                   <div>
-                                    <div className="editorial-body text-xs text-gray-500">RECIPIENTS</div>
-                                    <div className="editorial-body text-sm font-bold text-gray-900">
-                                      {dossier.recipients.length}
+                                    <div className="editorial-label-small">Files</div>
+                                    <div className="monospace-accent text-sm font-semibold text-primary">
+                                      {dossier.encryptedFileHashes.length}
                                     </div>
                                   </div>
                                 </div>
                                 
-                                <div className="text-center mt-4 pt-4 border-t border-gray-200">
-                                  <div className="editorial-body text-xs text-gray-500">LAST CHECK-IN</div>
-                                  <div className="editorial-body text-xs font-mono text-gray-600">
+                                <div className="text-center pt-2 border-t border-gray-200">
+                                  <div className="editorial-label-small">Last Check-in</div>
+                                  <div className="monospace-accent text-xs">
                                     {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })} {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Card Footer - Action Buttons */}
-                              <div className="border-t border-gray-200 p-4">
-                                <div className="space-y-2">
-                                  {/* Top Row - Check In and Deactivate */}
+                              <div className="border-t border-gray-200 pt-4 mt-auto">
+                                <div className="space-y-3">
+                                  {/* Primary Actions */}
                                   <div className="flex gap-2">
                                     <button
                                       onClick={async () => {
@@ -1478,13 +1453,11 @@ export default function Home() {
                                         }
                                       }}
                                       disabled={!dossier.isActive}
-                                      className={`flex-1 editorial-body text-xs px-3 py-2 border-2 font-bold transition-colors ${
-                                        dossier.isActive 
-                                          ? 'border-gray-900 text-gray-900 bg-white hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white' 
-                                          : 'border-gray-300 text-gray-500 bg-gray-100 cursor-not-allowed'
-                                      }`}
+                                      className={`flex-1 editorial-button text-xs ${
+                                        dossier.isActive ? 'editorial-button-primary' : ''
+                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
-                                      CHECK IN
+                                      Check In
                                     </button>
                                     
                                     <button
@@ -1508,13 +1481,13 @@ export default function Home() {
                                           toast.error('Failed to update document status. Please try again.');
                                         }
                                       }}
-                                      className="flex-1 editorial-body text-xs px-3 py-2 border-2 border-gray-400 text-gray-600 hover:border-gray-600 hover:text-gray-700 font-bold transition-colors"
+                                      className="flex-1 editorial-button text-xs"
                                     >
-                                      {dossier.isActive ? 'DEACTIVATE' : 'RESUME'}
+                                      {dossier.isActive ? 'Pause' : 'Resume'}
                                     </button>
                                   </div>
                                   
-                                  {/* Bottom Row - Decrypt (Full Width) */}
+                                  {/* Decrypt Action */}
                                   {(() => {
                                     // Check if document is expired based on time calculation
                                     const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
@@ -1664,9 +1637,14 @@ export default function Home() {
                                           ]);
                                         }
                                       }}
-                                      className="w-full editorial-body text-xs px-3 py-2 border-2 border-red-600 text-red-700 hover:bg-red-600 hover:text-white font-bold transition-colors"
+                                      className="w-full editorial-button text-xs border-red-600 text-red-700 hover:bg-red-600 hover:text-white hover:border-red-600"
                                     >
-                                      DECRYPT
+                                      <div className="flex items-center justify-center gap-2">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                        </svg>
+                                        <span>Decrypt</span>
+                                      </div>
                                     </button>
                                   ) : null}
                                 </div>
@@ -1680,79 +1658,72 @@ export default function Home() {
               )}
             </>
           ) : (
-            // Document Creation Flow - Full Screen
-            <div className="border-2 border-gray-800 mb-12">
-              <div className="bg-gray-800 p-3">
-                <div className="flex justify-between items-center">
-                  <button
-                    onClick={() => {
-                      setShowCreateForm(false);
-                      // Reset form when going back
-                      setCurrentStep(1);
-                      setEncryptedCapsule(null);
-                      setTraceJson(null);
-                      setUploadedFile(null);
-                      setName('');
-                      setEmergencyContacts(['']);
-                      setReleaseMode('public');
-                    }}
-                    style={{color: '#ffffff'}}
-                    className="editorial-body text-xs font-bold hover:text-gray-300 transition-colors"
-                  >
-                    ← BACK TO DOCUMENTS
-                  </button>
-                  <h3 style={{color: '#ffffff'}} className="editorial-header text-sm tracking-[0.2em] font-bold">Document Creation</h3>
-                  <div className="w-24"></div> {/* Spacer for center alignment */}
-                </div>
+            // Document Creation Flow - Editorial Layout
+            <div className="spacing-section">
+              <div className="flex justify-between items-center spacing-medium">
+                <button
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    // Reset form when going back
+                    setCurrentStep(1);
+                    setEncryptedCapsule(null);
+                    setTraceJson(null);
+                    setUploadedFile(null);
+                    setName('');
+                    setEmergencyContacts(['']);
+                    setReleaseMode('public');
+                  }}
+                  className="editorial-button text-sm font-semibold"
+                >
+                  ← Back to Documents
+                </button>
+                <h2 className="editorial-header text-2xl font-bold">Document Creation</h2>
+                <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
-              <div className="bg-white/90 backdrop-blur-sm p-6">
+              
+              <div className="crypto-grid-pattern bg-gray-50 p-8 border border-gray-200">
                 {/* Progress Indicator */}
-                <div className="mb-8">
+                <div className="spacing-large">
                   {/* Back Button */}
                   {currentStep > 1 && !traceJson && (
-                    <div className="mb-4">
+                    <div className="spacing-small">
                       <button
                         onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                        className="flex items-center text-gray-600 hover:text-gray-900 editorial-body text-sm font-semibold transition-colors"
+                        className="editorial-button text-sm"
                       >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
-                        Back to Previous Step
+                        Previous Step
                       </button>
                     </div>
                   )}
                   
-                  <div className="mb-4">
+                  <div className="spacing-medium">
                     <div className="relative">
-                      {/* Background lines - full width */}
-                      <div className="absolute top-5 left-5 right-5 h-1 bg-gray-300"></div>
+                      {/* Progress Rail */}
+                      <div className="absolute top-4 left-4 right-4 progress-rail"></div>
                       
-                      {/* Progress lines */}
-                      <div className="absolute top-5 left-5 right-5 h-1 flex">
-                        {[1, 2, 3, 4, 5, 6].map((segment) => (
-                          <div key={segment} className="flex-1 relative">
-                            <div className={`h-1 absolute top-0 left-0 transition-all duration-500 ${
-                              segment < currentStep ? 'w-full bg-green-600' :
-                              segment === currentStep ? 'w-1/2 bg-gray-900' :
-                              'w-0 bg-gray-300'
-                            }`}></div>
-                          </div>
-                        ))}
+                      {/* Progress Fill */}
+                      <div className="absolute top-4 left-4 right-4 progress-rail">
+                        <div 
+                          className="progress-fill" 
+                          style={{ width: `${((currentStep - 1) / 5) * 100}%` }}
+                        ></div>
                       </div>
                       
                       {/* Steps container */}
                       <div className="flex items-start justify-between relative z-10">
                         {[1, 2, 3, 4, 5, 6].map((step) => (
                           <div key={step} className="flex flex-col items-center">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
-                              step === currentStep ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-110' :
-                              step < currentStep ? 'bg-green-600 text-white border-green-600 shadow-md' :
-                              'bg-white text-gray-600 border-gray-300 shadow-sm'
+                            <div className={`progress-step ${
+                              step === currentStep ? 'progress-step-active' :
+                              step < currentStep ? 'progress-step-completed' :
+                              'progress-step-inactive'
                             }`}>
                               {step < currentStep ? '✓' : step}
                             </div>
-                            <div className="mt-2 text-xs editorial-body font-medium text-gray-600 text-center w-16">
+                            <div className="mt-3 text-xs editorial-body text-gray-700 text-center w-16 font-semibold">
                               {step === 1 ? 'Name' :
                                step === 2 ? 'Upload' :
                                step === 3 ? 'Interval' :
@@ -1765,42 +1736,43 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                  
                   <div className="text-center">
-                    <p className="editorial-body text-sm text-gray-600">
-                      Step {currentStep} of 6: {
-                        currentStep === 1 ? 'Document Name' :
-                        currentStep === 2 ? 'File Upload' :
-                        currentStep === 3 ? 'Check-in Frequency' :
-                        currentStep === 4 ? 'Release Mode' :
-                        currentStep === 5 ? 'Review & Encrypt' :
-                        'Finalize & Upload'
-                      }
+                    <h3 className="editorial-header text-xl text-gray-900 font-bold">
+                      {currentStep === 1 ? 'Document Name' :
+                       currentStep === 2 ? 'File Upload' :
+                       currentStep === 3 ? 'Check-in Frequency' :
+                       currentStep === 4 ? 'Release Mode' :
+                       currentStep === 5 ? 'Review & Encrypt' :
+                       'Finalize & Upload'}
+                    </h3>
+                    <p className="editorial-body text-sm text-gray-700 font-semibold">
+                      Step {currentStep} of 6
                     </p>
                   </div>
                 </div>
 
                 {/* Step Content */}
-                <div className="min-h-[300px]">
+                <div className="min-h-[280px] max-w-2xl mx-auto">
                   {/* Step 1: Document Name */}
                   {currentStep === 1 && (
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <h3 className="editorial-header text-xl font-bold mb-2">Name Your Document</h3>
-                        <p className="editorial-body text-sm text-gray-600">
-                          Give your encrypted document a memorable name for easy identification
+                    <div className="text-center spacing-medium">
+                      <div className="spacing-medium">
+                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
+                          Give your encrypted document a memorable name for easy identification.
                         </p>
                       </div>
-                      <div className="max-w-md mx-auto">
+                      <div className="max-w-sm mx-auto">
                         <input
                           type="text"
                           placeholder="Enter document name..."
-                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-gray-900 focus:outline-none rounded"
+                          className="editorial-input text-center text-lg font-semibold"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           autoFocus
                         />
-                        <p className="editorial-body text-xs text-gray-500 mt-2 text-center">
-                          This name will help you identify the document later
+                        <p className="editorial-body text-sm text-gray-700 spacing-tiny font-medium">
+                          This helps identify the document in your protected collection
                         </p>
                       </div>
                     </div>
@@ -1808,27 +1780,28 @@ export default function Home() {
 
                   {/* Step 2: File Upload */}
                   {currentStep === 2 && (
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <h3 className="editorial-header text-xl font-bold mb-2">Upload Your File</h3>
-                        <p className="editorial-body text-sm text-gray-600">
-                          Select the file you want to encrypt and protect with the deadman switch
+                    <div className="text-center spacing-medium">
+                      <div className="spacing-medium">
+                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
+                          Select the file you want to encrypt and protect with the deadman switch.
                         </p>
                       </div>
-                      <div className="max-w-lg mx-auto">
+                      <div className="max-w-md mx-auto">
                         <div
-                          className="border-2 border-dashed border-gray-400 text-center py-12 cursor-pointer hover:border-gray-900 transition-colors bg-gray-50 rounded"
+                          className="bg-gray-50 border-2 border-gray-300 hover:border-gray-900 hover:bg-white text-center py-12 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md"
                           onDragOver={handleDragOver}
                           onDrop={handleDrop}
                           onClick={() => fileInputRef.current?.click()}
                         >
-                          <Upload className="mx-auto mb-4 text-gray-600" size={48} />
-                          <p className="editorial-body text-base font-semibold text-gray-700 mb-2">
-                            {uploadedFile ? uploadedFile.name : 'Drop your file here'}
-                          </p>
-                          <p className="editorial-body text-sm text-gray-500">
-                            {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
-                          </p>
+                          <Upload className="mx-auto spacing-small text-secondary group-hover:text-primary transition-colors" size={48} />
+                          <div className="spacing-small">
+                            <p className="editorial-header text-lg text-gray-900 group-hover:text-black transition-colors font-semibold">
+                              {uploadedFile ? uploadedFile.name : 'Drop your file here'}
+                            </p>
+                            <p className="editorial-body text-sm text-gray-700 group-hover:text-gray-900 transition-colors font-medium">
+                              {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
+                            </p>
+                          </div>
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -1842,16 +1815,15 @@ export default function Home() {
 
                   {/* Step 3: Check-in Frequency */}
                   {currentStep === 3 && (
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <h3 className="editorial-header text-xl font-bold mb-2">Set Check-in Frequency</h3>
-                        <p className="editorial-body text-sm text-gray-600">
-                          How often do you need to check in to prevent the document from being released?
+                    <div className="text-center spacing-medium">
+                      <div className="spacing-medium">
+                        <p className="editorial-body text-gray-900 max-w-lg mx-auto font-semibold">
+                          How often do you need to check in to prevent the document from being released automatically?
                         </p>
                       </div>
-                      <div className="max-w-md mx-auto">
+                      <div className="max-w-sm mx-auto">
                         <select 
-                          className="w-full border-2 border-gray-300 p-4 editorial-body text-base focus:border-gray-900 focus:outline-none font-mono rounded"
+                          className="editorial-input monospace-accent text-center cursor-pointer text-lg font-semibold"
                           value={checkInInterval}
                           onChange={(e) => setCheckInInterval(e.target.value)}
                         >
@@ -1861,8 +1833,8 @@ export default function Home() {
                             </option>
                           ))}
                         </select>
-                        <p className="editorial-body text-xs text-gray-500 mt-2 text-center">
-                          The document will be released automatically if no check-in is received within this timeframe
+                        <p className="editorial-body text-sm text-gray-700 spacing-tiny font-medium">
+                          The document will be released if no check-in is received within this timeframe
                         </p>
                       </div>
                     </div>
@@ -1870,29 +1842,28 @@ export default function Home() {
 
                   {/* Step 4: Release Mode */}
                   {currentStep === 4 && (
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <h3 className="editorial-header text-xl font-bold mb-2">Choose Release Mode</h3>
-                        <p className="editorial-body text-sm text-gray-600">
+                    <div className="spacing-medium">
+                      <div className="text-center spacing-medium">
+                        <p className="editorial-body text-gray-900 max-w-lg mx-auto font-semibold">
                           How should your document be released if the deadman switch is triggered?
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto space-y-4">
                         <div 
-                          className={`border-2 p-4 rounded cursor-pointer transition-all ${
-                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+                          className={`editorial-card-bordered cursor-pointer transition-all ${
+                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50' : 'hover:border-gray-600'
                           }`}
                           onClick={() => setReleaseMode('public')}
                         >
                           <div className="flex items-start">
-                            <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
-                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900' : 'border-gray-300'
+                            <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
+                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900' : 'border-gray-400'
                             }`}>
                               {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
                             </div>
                             <div>
-                              <h4 className="editorial-body font-bold text-base">Public Release</h4>
-                              <p className="editorial-body text-sm text-gray-600 mt-1">
+                              <h4 className="editorial-header text-sm">Public Release</h4>
+                              <p className="editorial-body text-sm text-secondary font-medium">
                                 Document will be made publicly accessible when triggered
                               </p>
                             </div>
@@ -1900,30 +1871,30 @@ export default function Home() {
                         </div>
                         
                         <div 
-                          className={`border-2 p-4 rounded cursor-pointer transition-all ${
-                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+                          className={`editorial-card-bordered cursor-pointer transition-all ${
+                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50' : 'hover:border-gray-600'
                           }`}
                           onClick={() => setReleaseMode('contacts')}
                         >
                           <div className="flex items-start">
-                            <div className={`w-5 h-5 rounded-full border-2 mr-3 mt-0.5 ${
-                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900' : 'border-gray-300'
+                            <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
+                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900' : 'border-gray-400'
                             }`}>
                               {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
                             </div>
                             <div className="flex-1">
-                              <h4 className="editorial-body font-bold text-base">Emergency Contacts</h4>
-                              <p className="editorial-body text-sm text-gray-600 mt-1 mb-3">
+                              <h4 className="editorial-header text-sm">Emergency Contacts</h4>
+                              <p className="editorial-body text-sm text-secondary font-medium spacing-small">
                                 Document will be sent to specific people when triggered
                               </p>
                               {releaseMode === 'contacts' && (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                   {emergencyContacts.map((contact, index) => (
                                     <div key={index} className="flex gap-2">
                                       <input
                                         type="text"
                                         placeholder="Email address or Ethereum address"
-                                        className="flex-1 border border-gray-300 p-2 editorial-body text-sm focus:border-gray-900 focus:outline-none rounded"
+                                        className="flex-1 editorial-input text-sm"
                                         value={contact}
                                         onChange={(e) => {
                                           const newContacts = [...emergencyContacts];
@@ -1937,18 +1908,18 @@ export default function Home() {
                                             const newContacts = emergencyContacts.filter((_, i) => i !== index);
                                             setEmergencyContacts(newContacts);
                                           }}
-                                          className="px-3 py-2 border border-red-300 text-red-600 hover:border-red-500 rounded editorial-body text-sm"
+                                          className="editorial-button text-xs border-red-600 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
                                         >
                                           Remove
                                         </button>
                                       )}
-    </div>
+                                    </div>
                                   ))}
                                   <button
                                     onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
-                                    className="text-sm editorial-body text-gray-600 hover:text-gray-900"
+                                    className="editorial-button text-sm"
                                   >
-                                    + Add another contact
+                                    + Add contact
                                   </button>
                                 </div>
                               )}
@@ -1961,40 +1932,39 @@ export default function Home() {
 
                   {/* Step 5: Review & Encrypt */}
                   {currentStep === 5 && (
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <h3 className="editorial-header text-xl font-bold mb-2">Review & Encrypt</h3>
-                        <p className="editorial-body text-sm text-gray-600">
-                          Please review your settings before encrypting the document
+                    <div className="text-center spacing-medium">
+                      <div className="spacing-medium">
+                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
+                          Please review your settings before encrypting the document.
                         </p>
                       </div>
-                      <div className="max-w-lg mx-auto space-y-4">
-                        <div className="border border-gray-300 rounded p-4 space-y-3">
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">Document Name:</span>
-                            <span className="editorial-body text-sm text-gray-700">{name || 'Untitled'}</span>
+                      <div className="max-w-lg mx-auto">
+                        <div className="editorial-card border-gray-300 text-left space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">Document Name</span>
+                            <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">File:</span>
-                            <span className="editorial-body text-sm text-gray-700">{uploadedFile?.name || 'No file selected'}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">File</span>
+                            <span className="editorial-body text-sm text-primary font-semibold">{uploadedFile?.name || 'No file selected'}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">Check-in Frequency:</span>
-                            <span className="editorial-body text-sm text-gray-700">
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">Check-in Frequency</span>
+                            <span className="monospace-accent text-sm text-primary font-semibold">
                               {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
                             </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">Release Mode:</span>
-                            <span className="editorial-body text-sm text-gray-700">
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">Release Mode</span>
+                            <span className="editorial-body text-sm text-primary font-semibold">
                               {releaseMode === 'public' ? 'Public Release' : 'Emergency Contacts'}
                             </span>
                           </div>
                           {releaseMode === 'contacts' && (
-                            <div className="pt-2 border-t border-gray-200">
-                              <span className="editorial-body text-sm font-semibold block mb-2">Emergency Contacts:</span>
+                            <div className="pt-3 border-t border-gray-200">
+                              <div className="editorial-label-small spacing-tiny">Emergency Contacts</div>
                               {emergencyContacts.filter(c => c.trim()).map((contact, index) => (
-                                <div key={index} className="editorial-body text-sm text-gray-700 pl-4">
+                                <div key={index} className="editorial-body text-sm text-primary font-semibold monospace-accent">
                                   • {contact}
                                 </div>
                               ))}
@@ -2003,28 +1973,26 @@ export default function Home() {
                         </div>
                         
                         {/* Encrypt Button */}
-                        <div className="space-y-3">
+                        <div className="spacing-medium">
                           {!encryptedCapsule && (
                             <button
                               onClick={processCanaryTrigger}
                               disabled={!uploadedFile || isProcessing || !name.trim()}
-                              className="w-full bg-white text-gray-900 border-4 border-gray-900 hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white disabled:opacity-50 disabled:cursor-not-allowed py-8 editorial-header text-xl font-bold tracking-[0.15em] shadow-xl transform hover:scale-105 transition-all duration-200 uppercase"
+                              className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isProcessing ? (
-                                <div className="flex items-center justify-center">
-                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
-                                  Encrypting...
+                                <div className="flex items-center justify-center gap-3">
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                                  <span>Encrypting...</span>
                                 </div>
                               ) : (
-                                <>
-                                  <Shield className="inline mr-3" size={28} />
-                                  Encrypt
-                                </>
+                                <div className="flex items-center justify-center gap-3">
+                                  <Shield size={18} />
+                                  <span>Encrypt Document</span>
+                                </div>
                               )}
                             </button>
                           )}
-
-
 
                           {/* Reset Button - shown after everything is complete */}
                           {traceJson && (
@@ -2038,7 +2006,7 @@ export default function Home() {
                                 setEmergencyContacts(['']);
                                 setReleaseMode('public');
                               }}
-                              className="w-full border-2 border-gray-400 text-gray-600 hover:border-gray-900 hover:text-gray-900 py-4 editorial-body font-semibold transition-all duration-200 rounded"
+                              className="editorial-button w-full"
                             >
                               Create New Document
                             </button>
@@ -2049,43 +2017,42 @@ export default function Home() {
                   )}
 
                   {currentStep === 6 && (
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <h3 className="editorial-header text-xl font-bold mb-2">Finalize & Upload</h3>
-                        <p className="editorial-body text-sm text-gray-600">
+                    <div className="text-center spacing-medium">
+                      <div className="spacing-medium">
+                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
                           This is the final step. Your document will be encrypted, uploaded, and registered on the blockchain.
                         </p>
                       </div>
-                      <div className="max-w-lg mx-auto space-y-4">
-                        <div className="border border-gray-300 rounded p-4 space-y-3">
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">Document Name:</span>
-                            <span className="editorial-body text-sm text-gray-700">{name || 'Untitled'}</span>
+                      <div className="max-w-lg mx-auto">
+                        <div className="editorial-card border-gray-300 text-left space-y-4 spacing-medium">
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">Document Name</span>
+                            <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">File:</span>
-                            <span className="editorial-body text-sm text-gray-700">{uploadedFile?.name || 'No file selected'}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">File</span>
+                            <span className="editorial-body text-sm text-primary font-semibold">{uploadedFile?.name || 'No file selected'}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">Check-in Frequency:</span>
-                            <span className="editorial-body text-sm text-gray-700">
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">Check-in Frequency</span>
+                            <span className="monospace-accent text-sm text-primary font-semibold">
                               {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
                             </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="editorial-body text-sm font-semibold">Release Mode:</span>
-                            <span className="editorial-body text-sm text-gray-700 capitalize">{releaseMode}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="editorial-label-small">Release Mode</span>
+                            <span className="editorial-body text-sm text-primary font-semibold capitalize">{releaseMode}</span>
                           </div>
                         </div>
                         <button
                           onClick={processCanaryTrigger}
                           disabled={isProcessing}
-                          className="w-full bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed py-4 editorial-body font-semibold transition-all duration-200 rounded"
+                          className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isProcessing ? (
-                            <div className="flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                              Finalizing document...
+                            <div className="flex items-center justify-center gap-3">
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                              <span>Finalizing document...</span>
                             </div>
                           ) : (
                             'Finalize & Upload'
@@ -2102,7 +2069,7 @@ export default function Home() {
                     <button
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                       disabled={currentStep === 1}
-                      className="px-6 py-2 border-2 border-gray-300 text-gray-600 hover:border-gray-500 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed editorial-body font-semibold transition-colors rounded"
+                      className="editorial-button disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
@@ -2122,7 +2089,7 @@ export default function Home() {
                         }
                         setCurrentStep(Math.min(6, currentStep + 1));
                       }}
-                      className="px-6 py-2 bg-gray-900 text-white hover:bg-gray-800 hover:!text-white hover:[&>*]:!text-white editorial-body font-semibold transition-colors rounded"
+                      className="editorial-button-primary"
                     >
                       {currentStep === 5 ? 'Finalize' : 'Next'}
                     </button>
@@ -2133,9 +2100,80 @@ export default function Home() {
           )}
         </div>
       )}
+        </div>
 
-        
-      </div>
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm flex-shrink-0">
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="flex items-center justify-center gap-6">
+            <a
+              href="https://canary.tools"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+            >
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Website</span>
+            </a>
+            
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                navigator.clipboard.writeText(supportAddress).then(() => {
+                  toast.success('💝 Support address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
+                    duration: 6000,
+                    style: {
+                      background: '#10B981',
+                      color: 'white',
+                      maxWidth: '500px',
+                    },
+                  });
+                }).catch(() => {
+                  toast.error('Failed to copy address');
+                });
+              }}
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+              title="Click to copy donation address"
+            >
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span>Support</span>
+            </a>
+            
+            <a
+              href="https://github.com/TheThirdRoom/canary"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+            >
+              <Github size={10} />
+              <span>Source</span>
+            </a>
+            
+            <a
+              href="mailto:contact@canary.tools"
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+            >
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>Contact</span>
+            </a>
+          </div>
+          
+          <div className="text-center mt-2 pt-2 border-t border-gray-200">
+            <p className="text-xs text-muted">
+              © 2024 Canary. Truth protection through cryptographic deadman switches.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
     </>
   );
 }

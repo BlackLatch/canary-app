@@ -48,7 +48,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={config}>
-          {children}
+        {children}
         </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>
