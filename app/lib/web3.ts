@@ -1,4 +1,5 @@
-import { http, createConfig } from 'wagmi'
+import { http } from 'wagmi'
+import { createConfig } from '@privy-io/wagmi'
 import { mainnet, polygonAmoy } from 'wagmi/chains'
 import { coinbaseWallet, metaMask, walletConnect } from 'wagmi/connectors'
 import type { CreateConnectorFn } from 'wagmi'

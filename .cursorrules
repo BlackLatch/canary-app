@@ -65,3 +65,72 @@
   
   Refer to Next.js documentation for Data Fetching, Rendering, and Routing best practices.
   
+  {
+  "name": "E-Reader Futurism",
+  "description": "A minimalist design system that feels like a futuristic e-reader. Calm, grounded, reliable — with the seriousness of a tool and the friendliness of good print.",
+  "guidelines": [
+    {
+      "title": "Theme & Color",
+      "rules": [
+        "Use a light monochrome base with warm or soft grayscale.",
+        "Accents should be used for meaning, not branding — muted purples, dusty pinks, graphite, or desaturated tech blues.",
+        "No gradients unless extremely subtle. No neon or saturated colors."
+      ]
+    },
+    {
+      "title": "Typography",
+      "rules": [
+        "Typography should feel like high-end print: set in a modern serif or a humanist sans-serif (e.g. IBM Plex, Newsreader, Inter).",
+        "Text should always be readable like a Kindle: generous line-height, wide margins, no shouting.",
+        "Use large display sizes sparingly — no oversized headings unless paired with ample white space."
+      ]
+    },
+    {
+      "title": "Layout & Rhythm",
+      "rules": [
+        "Grid-first, with modular sections that feel like content blocks in a digital book.",
+        "Use vertical rhythm with consistent spacing units (e.g., multiples of 8px or 12px).",
+        "Hero sections should feel editorial, not like marketing banners."
+      ]
+    },
+    {
+      "title": "Interactions",
+      "rules": [
+        "Microinteractions should be near-invisible — fade-ins, scroll reveals, soft transitions. Nothing should bounce or spin.",
+        "Interactive elements should feel like turning a page or clicking a real button — use depth lightly and meaningfully.",
+        "No hover-only affordances. All functionality must be obvious and tactile on touch screens."
+      ]
+    },
+    {
+      "title": "Components & UI Elements",
+      "rules": [
+        "Buttons: rounded rectangles with simple labels. No shadows unless conveying real layering.",
+        "Cards: should feel like sheets of paper or e-ink tiles — minimal border radius, clear dividers if needed.",
+        "Forms: label-first layout, wide inputs, calm success/error states with subtle color and clear messages."
+      ]
+    },
+    {
+      "title": "Visual Identity",
+      "rules": [
+        "Use symbolic visual metaphors (e.g. keys, nodes, vaults, threads) over literal icons unless necessary.",
+        "Custom icons should be line-based and slightly geometric. Avoid cartoon or skeuomorphic styles.",
+        "Use illustrations sparingly, and in editorial tone — no clip-art, mascots, or exaggerated faces."
+      ]
+    },
+    {
+      "title": "Tone & Content Strategy",
+      "rules": [
+        "Voice: Calm, clear, human. No jargon. Never 'hype'.",
+        "Error messages should feel like guidance from a trusted guide — not alerts from a machine.",
+        "Everything should feel *helpful*, not *slick*. Your UI is the manual, not the ad."
+      ]
+    },
+    {
+      "title": "Moodboard Anchors",
+      "rules": [
+        "Inspired by: Kindle UI, Swiss Modernism, Jony Ive era Apple, IBM Design Language, Monocle Magazine.",
+        "Avoid: Web3 hype aesthetics, glossy gradients, overuse of animations, dark techno-futurism."
+      ]
+    }
+  ]
+}
