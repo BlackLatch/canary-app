@@ -9,9 +9,12 @@ import { useState } from 'react';
 export function Web3Provider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
+  // Use the environment variable or a valid-format fallback for build time
+  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || 'clxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || 'your-privy-app-id'}
+      appId={privyAppId}
       config={{
         loginMethods: ['email', 'wallet'],
         appearance: {
