@@ -828,95 +828,95 @@ export default function Home() {
   if (!signedIn) {
     return (
       <div className="fixed inset-0 mesh-background-light flex items-center justify-center" style={{ zoom: '0.8' }}>
-        {/* Logo - Top Left */}
-        <div className="absolute top-8 left-8">
-          <img 
-            src="/canary.png" 
-            alt="Canary" 
-            className="h-20 w-auto opacity-90"
-            style={{
-              filter: 'drop-shadow(0 1px 3px rgba(31, 31, 31, 0.1))'
-            }}
-          />
-        </div>
+        {/* Cryptographic Pattern Accent */}
+        <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
         
         {/* Main Sign-in Area */}
-        <div className="max-w-lg w-full mx-auto px-8">
-          <div className="text-center spacing-large">
-            <h1 className="editorial-header-large">
-              Try the Canary Testnet Demo
-            </h1>
-            <p className="editorial-body-large text-secondary max-w-md mx-auto font-medium">
-              Truth protection through cryptographic deadman switches
-            </p>
-          </div>
-
-          <div className="space-y-4 max-w-sm mx-auto spacing-medium">
-            <button
-              className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => handleSignIn('Email')}
-              disabled={!ready}
-            >
-              {!ready ? 'Initializing...' : 'Sign in with Email'}
-            </button>
-            
-            <div className="text-center spacing-small">
-              <div className="flex items-center gap-3 my-4">
-                <div className="flex-1 h-px bg-gray-300"></div>
-                <span className="editorial-label-small">Advanced</span>
-                <div className="flex-1 h-px bg-gray-300"></div>
-              </div>
-              
-              <button
-                className="editorial-button editorial-button-large w-full"
-                onClick={() => handleSignIn('Web3 Wallet')}
-                disabled={isPending}
-              >
-                {isPending ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                    <span>Connecting...</span>
-                  </div>
-                ) : (
-                  'Connect Web3 Wallet'
-                )}
-              </button>
+        <div className="max-w-xl w-full mx-auto px-8">
+          <div className="text-center">
+            {/* Logo - Centered Above Title */}
+            <div className="mb-8">
+              <img 
+                src="/canary.png" 
+                alt="Canary" 
+                className="h-16 w-auto mx-auto opacity-90"
+                style={{
+                  filter: 'drop-shadow(0 1px 3px rgba(31, 31, 31, 0.1))'
+                }}
+              />
             </div>
-          </div>
+            
+            {/* Title and Subtitle */}
+            <div className="mb-12">
+              <h1 className="editorial-header-large text-center mb-4">
+                Try the Canary Testnet Demo
+              </h1>
+              <p className="editorial-body-large text-secondary max-w-sm mx-auto font-medium">
+                Truth protection through cryptographic deadman switches
+              </p>
+            </div>
 
-          {/* Cryptographic Pattern Accent */}
-          <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
-          
-          {/* Support Section */}
-          <div className="spacing-large">
-            <div className="text-center pt-8 border-t border-gray-200">
-              <p className="editorial-body text-sm text-muted spacing-tiny">
+            {/* Sign-in Buttons */}
+            <div className="space-y-4 max-w-sm mx-auto mb-16">
+              <button
+                className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => handleSignIn('Email')}
+                disabled={!ready}
+              >
+                {!ready ? 'Initializing...' : 'Sign in with Email'}
+              </button>
+              
+              <div className="text-center">
+                <div className="flex items-center gap-3 my-6">
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                  <span className="editorial-label-small">Advanced</span>
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                </div>
+                
+                <button
+                  className="editorial-button editorial-button-large w-full"
+                  onClick={() => handleSignIn('Web3 Wallet')}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                      <span>Connecting...</span>
+                    </div>
+                  ) : (
+                    'Connect Web3 Wallet'
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Support Section */}
+            <div className="pt-6 border-t border-gray-200">
+              <p className="editorial-body text-sm text-muted mb-3">
                 Support open-source truth protection
               </p>
               
-              <div className="flex items-center justify-center gap-6">
-                <button
-                  onClick={() => {
-                    const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
-                    navigator.clipboard.writeText(supportAddress).then(() => {
-                      toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
-                        duration: 6000,
-                        style: {
-                          background: '#10B981',
-                          color: 'white',
-                          maxWidth: '500px',
-                        },
-                      });
-                    }).catch(() => {
-                      toast.error('Failed to copy address');
+              <button
+                onClick={() => {
+                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                  navigator.clipboard.writeText(supportAddress).then(() => {
+                    toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
+                      duration: 6000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                        maxWidth: '500px',
+                      },
                     });
-                  }}
-                  className="flex items-center gap-2 text-xs text-muted hover:text-primary transition-colors"
-                  title="Click to copy donation address"
-                >
-                  💝 <span>Donate</span>
-                </button>
-              </div>
+                  }).catch(() => {
+                    toast.error('Failed to copy address');
+                  });
+                }}
+                className="flex items-center gap-2 text-xs text-muted hover:text-primary transition-colors mx-auto"
+                title="Click to copy donation address"
+              >
+                💝 <span>Donate</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1054,7 +1054,7 @@ export default function Home() {
                 <img 
                   src="/canary.png" 
                   alt="Canary" 
-                  className="h-8 w-auto"
+                  className="h-12 w-auto"
                   style={{
                     filter: 'drop-shadow(0 1px 4px rgba(0, 0, 0, 0.1))'
                   }}
