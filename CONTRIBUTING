@@ -1,0 +1,49 @@
+# Contributing to Canary
+
+Thank you for your interest in contributing to Canary — a privacy-first release mechanism for sensitive information.
+
+We welcome contributions from developers, researchers, designers, writers, and privacy advocates. Whether it's fixing a bug, suggesting a feature, improving documentation, or contributing to our mission — you're in the right place.
+
+---
+
+## 🛠️ How to Contribute
+
+### 1. Open an Issue
+- Spot a bug? Want to propose a feature? Start by opening an [Issue](https://github.com/TheThirdRoom/canary/issues).
+- Clearly describe the problem or idea.
+- If you're planning to submit code, mention that in the issue.
+
+### 2. Fork and Clone
+```bash
+git clone https://github.com/your-username/canary.git
+cd canary
+
+3. Set Up Locally
+	•	Follow the instructions in README.md to install dependencies and run the project locally.
+
+4. Create a New Branch
+git checkout -b your-feature-name
+
+5. Make Changes
+	•	Follow existing code style and structure.
+	•	Add tests or documentation where relevant.
+
+6. Commit and Push
+git commit -m "Brief description of your changes"
+git push origin your-feature-name
+
+7. Open a Pull Request
+	•	Go to the original repo: https://github.com/TheThirdRoom/canary
+	•	Click “Compare & pull request”
+	•	Explain your changes and link to the related issue.
+
+⸻
+
+📚 Contribution Areas
+
+We welcome help across multiple areas:
+	•	Core Code (TypeScript, Solidity, Cryptography)
+	•	UX/UI (Figma prototypes, design feedback)
+	•	Documentation (Clear guides for users and developers)
+	•	Security Review (Threat modeling, vulnerability hunting)
+	•	Outreach & Education (Writing blog posts, translating content)
