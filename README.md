@@ -1,6 +1,6 @@
 # Canary - Decentralized Deadman Switch
 
-Canary is a trusted, secure space for journalists, activists, and everyday citizens to automatically release critical information if they’re unable to speak for themselves. Think of it like a secure vault for your most critical stories, truths, or instructions. If you can’t personally unlock it—if you’re detained, missing, or unable—it shares access to a predetermined party automatically. It's a dead man switch app built with Next.js, TACo (Threshold Access Control), and IPFS for secure conditional file encryption and release.
+Canary is a trusted, secure space for journalists, activists, and everyday citizens to automatically release critical information if they’re unable to speak for themselves. Think of it like a secure vault for your most critical stories, truths, or instructions. If you can’t personally unlock it—if you’re detained, missing, or unable—it shares access to a predetermined party automatically.
 
 ## Features
 
