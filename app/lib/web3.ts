@@ -1,13 +1,13 @@
 import { http } from 'wagmi'
 import { createConfig } from '@privy-io/wagmi'
-import { mainnet, polygonAmoy } from 'wagmi/chains'
+import { polygonAmoy } from 'wagmi/chains'
 import { coinbaseWallet, metaMask, walletConnect } from 'wagmi/connectors'
 import type { CreateConnectorFn } from 'wagmi'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 
-// Note: We use the wallet's RPC provider instead of hardcoded endpoints
-// This ensures all contract interactions go through the connected wallet
+// Note: We use a dedicated RPC endpoint for Polygon Amoy to ensure reliable contract access
+// The wallet handles signing, but RPC calls go through a reliable endpoint
 
 // Create connectors array conditionally
 const connectors: CreateConnectorFn[] = [
@@ -27,12 +27,16 @@ if (projectId && projectId !== 'demo-project-id') {
   console.warn('🔶 WalletConnect disabled: No valid project ID found. Set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID in your environment variables.');
 }
 
+// Use public RPC endpoints as fallback when wallet doesn't have proper RPC configured
+const polygonAmoyRpcUrl = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY 
+  ? `https://polygon-amoy.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`
+  : 'https://rpc-amoy.polygon.technology/';
+
 export const config = createConfig({
-  chains: [mainnet, polygonAmoy],
+  chains: [polygonAmoy], // Only Polygon Amoy - Dossier.sol is deployed here
   connectors,
   transports: {
-    [mainnet.id]: http(), // Uses wallet's mainnet RPC
-    [polygonAmoy.id]: http(), // Uses wallet's Polygon Amoy RPC
+    [polygonAmoy.id]: http(polygonAmoyRpcUrl), // Use dedicated Polygon Amoy RPC
   },
 })
 

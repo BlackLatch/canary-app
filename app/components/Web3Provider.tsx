@@ -3,8 +3,16 @@
 import { PrivyProvider } from '@privy-io/react-auth';
 import { WagmiProvider } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SmartWalletsProvider } from '@privy-io/react-auth/smart-wallets';
 import { config } from '../lib/web3';
 import { useState } from 'react';
+
+// Wrapper component to filter out the delayedExecution prop
+const FilteredSmartWalletsProvider = ({ children }: { children: React.ReactNode }) => {
+  // SmartWalletsProvider doesn't accept any props except children
+  // This wrapper prevents any props from being passed down that might cause React warnings
+  return <SmartWalletsProvider>{children}</SmartWalletsProvider>;
+};
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -25,7 +33,10 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',
           requireUserPasswordOnCreate: false,
+          noPromptOnSignature: false,
+          // Smart wallets are configured in Privy dashboard with ZeroDev paymaster
         },
+        // IMPORTANT: Only use Polygon Amoy - Dossier.sol is deployed at 0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0
         defaultChain: {
           id: 80002,
           name: 'Polygon Amoy',
@@ -51,7 +62,9 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={config}>
-        {children}
+          <FilteredSmartWalletsProvider>
+            {children}
+          </FilteredSmartWalletsProvider>
         </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>

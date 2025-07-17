@@ -12,6 +12,10 @@ Canary is a trusted, secure space for journalists, activists, and everyday citiz
 - **Elegant UI**: Newspaper editorial design inspired interface
 - **Mobile Optimized**: Responsive design that works on all devices
 
+## Network Requirements
+
+**IMPORTANT**: This application operates exclusively on **Polygon Amoy testnet** (Chain ID: 80002). The smart contract is deployed at `0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0` on Polygon Amoy only. Ensure your wallet is connected to Polygon Amoy before creating or managing documents.
+
 ## Environment Variables
 
 The application requires the following environment variables to be set:
@@ -27,6 +31,16 @@ The application requires the following environment variables to be set:
 
 ### WalletConnect Configuration
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID for wallet connections
+
+### Blockchain Configuration
+- `NEXT_PUBLIC_POLYGON_AMOY_CONTRACT_ADDRESS`: The deployed Dossier contract address (default: `0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0`)
+- `NEXT_PUBLIC_ALCHEMY_API_KEY`: (Optional) Alchemy API key for reliable Polygon Amoy RPC access
+
+### Gasless Transactions
+This demo features **gasless transactions** on Polygon Amoy testnet, powered by ZeroDev paymaster.
+- Users don't need MATIC for gas fees
+- All transaction fees are sponsored
+- Seamless Web3 experience without the friction
 
 ### Environment
 - `NODE_ENV`: Set to 'development' or 'production'

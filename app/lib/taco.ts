@@ -7,6 +7,7 @@ import { uploadToPinata, PinataUploadResult } from './pinata';
 import { uploadToIPFS, IPFSUploadResult } from './ipfs';
 import { CANARY_DOSSIER_ADDRESS, CANARY_DOSSIER_ABI } from './contract';
 import { polygonAmoy } from 'wagmi/chains';
+import { getPrivyEthersProvider } from './ethers-adapter';
 
 // TACo Configuration
 const TACO_DOMAIN = domains.DEVNET;
@@ -114,15 +115,26 @@ class TacoService {
     condition: DeadmanCondition,
     description: string,
     dossierId: bigint,
-    userAddress: string
+    userAddress: string,
+    walletProvider?: any
   ): Promise<EncryptionResult> {
     await this.initialize();
 
-    if (!window.ethereum) {
-      throw new Error('No Web3 provider found');
+    // Get the ethers provider from Privy (handles embedded wallets)
+    const provider = await getPrivyEthersProvider(walletProvider);
+    
+    // Get the signer - for embedded wallets, we should use the default signer
+    // not the smart wallet address
+    console.log('🔐 Getting signer from provider...');
+    const signer = provider.getSigner(); // Don't pass address, let provider use its default
+    
+    // Log the actual signer address for debugging
+    try {
+      const signerAddress = await signer.getAddress();
+      console.log('📍 Signer address:', signerAddress);
+    } catch (error) {
+      console.warn('⚠️ Could not get signer address:', error);
     }
-
-    const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
     
     console.log('🔒 Using Dossier contract condition for maximum security');
     const tacoCondition = this.createDossierCondition(userAddress, dossierId);
@@ -138,12 +150,12 @@ class TacoService {
     });
 
     const messageKit = await encrypt(
-      web3Provider,
+      provider,
       TACO_DOMAIN,
       message,
       tacoCondition,
       RITUAL_ID,
-      web3Provider.getSigner()
+      signer
     );
 
     console.log('✅ Encryption successful with Dossier contract integration');
@@ -166,10 +178,6 @@ class TacoService {
   }
 
   async decryptFile(messageKit: any): Promise<Uint8Array> {
-    if (!window.ethereum) {
-      throw new Error('No Web3 provider found');
-    }
-
     // Clear any cached auth data
     try {
       localStorage.removeItem('siwe');
@@ -179,22 +187,23 @@ class TacoService {
       // Ignore storage errors
     }
 
-    const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-    await web3Provider.send("eth_requestAccounts", []);
+    // Get the ethers provider from Privy (handles embedded wallets)
+    const provider = await getPrivyEthersProvider();
+    const signer = provider.getSigner();
 
     console.log('🔓 Attempting decryption with contract verification...');
 
     const conditionContext = conditions.context.ConditionContext.fromMessageKit(messageKit);
     const authProvider = new EIP4361AuthProvider(
-      web3Provider,
-      web3Provider.getSigner(),
+      provider,
+      signer,
     );
     conditionContext.addAuthProvider(USER_ADDRESS_PARAM_DEFAULT, authProvider);
 
     // The TACo network will automatically verify the condition
     // The Dossier condition will call shouldDossierStayEncrypted
     const decryptedMessage = await decrypt(
-      web3Provider,
+      provider,
       TACO_DOMAIN,
       messageKit,
       conditionContext,
@@ -340,9 +349,10 @@ export async function encryptFileWithDossier(
   condition: DeadmanCondition,
   description: string = '',
   dossierId: bigint,
-  userAddress: string
+  userAddress: string,
+  walletProvider?: any
 ): Promise<EncryptionResult> {
-  return await tacoService.encryptFile(file, condition, description, dossierId, userAddress);
+  return await tacoService.encryptFile(file, condition, description, dossierId, userAddress, walletProvider);
 }
 
 // Storage functions remain unchanged

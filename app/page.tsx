@@ -8,9 +8,10 @@ import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWi
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { usePrivy, useWallets, useConnectWallet } from '@privy-io/react-auth';
 import { useSetActiveWallet } from '@privy-io/wagmi';
+import { useSmartWallets } from '@privy-io/react-auth/smart-wallets';
 import { polygonAmoy } from 'wagmi/chains';
-import { Address } from 'viem';
-import { ContractService, CANARY_DOSSIER_ADDRESS, Dossier } from './lib/contract';
+import { Address, encodeFunctionData } from 'viem';
+import { ContractService, CANARY_DOSSIER_ADDRESS, CANARY_DOSSIER_ABI, Dossier, isOnPolygonAmoy, getNetworkName } from './lib/contract';
 import toast, { Toaster } from 'react-hot-toast';
 
 // Extended dossier interface with accurate decryptable status
@@ -28,8 +29,16 @@ export default function Home() {
   const { wallets } = useWallets();
   const { setActiveWallet } = useSetActiveWallet();
   const { connectWallet } = useConnectWallet();
+  const { client: smartWalletClient } = useSmartWallets();
   
   const [signedIn, setSignedIn] = useState(false);
+  const [authMode, setAuthMode] = useState<'standard' | 'advanced'>(() => {
+    // Load auth mode from localStorage, default to standard
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('canary-auth-mode') as 'standard' | 'advanced') || 'standard';
+    }
+    return 'standard';
+  });
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [checkInInterval, setCheckInInterval] = useState('60'); // Default to 1 hour in minutes
@@ -85,6 +94,14 @@ export default function Home() {
   // Helper function to get current wallet address (wagmi or Privy)
   const getCurrentAddress = () => {
     return address || (wallets.length > 0 ? wallets[0]?.address : null);
+  };
+
+  // Helper function to set auth mode and persist to localStorage
+  const setAuthModeWithPersistence = (mode: 'standard' | 'advanced') => {
+    setAuthMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('canary-auth-mode', mode);
+    }
   };
 
   // Update current time every second for real-time countdown
@@ -162,26 +179,54 @@ export default function Home() {
 
     // Require wallet connection for dossier-only mode
     if (!isConnected || !address) {
-      toast.error('Please connect your wallet to create encrypted documents');
+      toast.error(authMode === 'standard' ? 'Please sign in to create documents' : 'Please connect your wallet to create encrypted documents');
       return;
     }
 
-    // Check if we're on the right network
-    if (chainId !== polygonAmoy.id) {
-      console.warn('⚠️ Wrong network! Please switch to Polygon Amoy');
-      toast.error('Please switch to Polygon Amoy network in your wallet');
+    // Check if we're on the right network - MUST be Polygon Amoy
+    if (!isOnPolygonAmoy(chainId)) {
+      const currentNetwork = getNetworkName(chainId);
+      console.warn(`⚠️ Wrong network! Currently on ${currentNetwork}, need Polygon Amoy`);
+      toast.error(`Please switch to Polygon Amoy network. Currently on ${currentNetwork}`);
       return;
+    }
+
+    // Check if smart wallet is available for gasless transactions
+    if (!smartWalletClient) {
+      console.warn('⚠️ Smart wallet not available, transactions will require gas');
     }
 
     setIsProcessing(true);
-    const processingToast = toast.loading('Creating encrypted document with dossier conditions...');
+    const processingToast = toast.loading(
+      authMode === 'standard' 
+        ? 'Securing your document...' 
+        : 'Creating encrypted document with dossier conditions...'
+    );
 
     try {
       console.log('🔐 Starting dossier-only encryption flow...');
       
+      // For standard mode, ensure the embedded wallet is ready
+      if (authMode === 'standard' && wallets.length === 0) {
+        toast.dismiss(processingToast);
+        toast.error('Please wait a moment for your account to be fully set up, then try again.');
+        setIsProcessing(false);
+        return;
+      }
+      
       // Step 1: Get next dossier ID
       console.log('🔍 Step 1: Getting next dossier ID...');
-      const userDossierIds = await ContractService.getUserDossierIds(address as Address);
+      // Determine which address to use based on auth mode
+      let queryAddress: string | null;
+      if (authMode === 'advanced') {
+        queryAddress = address; // Use Web3 wallet address
+        console.log('🔧 Advanced mode - using Web3 wallet for query:', queryAddress);
+      } else {
+        queryAddress = smartWalletClient?.account?.address || address;
+        console.log('🎯 Standard mode - using smart wallet for query:', queryAddress);
+      }
+      
+      const userDossierIds = await ContractService.getUserDossierIds(queryAddress as Address);
       const nextDossierId = BigInt(userDossierIds.length);
       console.log('🆔 Next dossier ID will be:', nextDossierId.toString());
       
@@ -191,15 +236,54 @@ export default function Home() {
         type: 'no_checkin',
         duration: `${checkInInterval} MINUTES`,
         dossierId: nextDossierId,
-        userAddress: address
+        userAddress: queryAddress
       };
+
+      // Get the wallet provider for encryption based on auth mode
+      let walletProvider = null;
+      if (authMode === 'standard') {
+        // Standard mode: Use Privy embedded wallet transparently
+        if (wallets.length > 0) {
+          const privyWallet = wallets.find(w => w.walletClientType === 'privy') || wallets[0];
+          if (privyWallet && typeof privyWallet.getEthereumProvider === 'function') {
+            try {
+              walletProvider = await privyWallet.getEthereumProvider();
+              console.log('✅ Using Privy embedded wallet provider');
+              
+              // Add a small delay to ensure wallet is fully initialized
+              await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (error) {
+              console.error('Failed to get wallet provider:', error);
+              toast.dismiss(processingToast);
+              toast.error('Your account is still being set up. Please wait a moment and try again.');
+              setIsProcessing(false);
+              return;
+            }
+          }
+        }
+        
+        // If we still don't have a wallet provider, the wallet isn't ready
+        if (!walletProvider) {
+          toast.dismiss(processingToast);
+          toast.error('Your account is still being set up. Please wait a moment and try again.');
+          setIsProcessing(false);
+          return;
+        }
+      } else {
+        // Advanced mode: Use the connected Web3 wallet provider
+        if (typeof window !== 'undefined' && window.ethereum) {
+          walletProvider = window.ethereum;
+          console.log('✅ Using Web3 wallet provider');
+        }
+      }
 
       const encryptionResult = await encryptFileWithDossier(
         uploadedFile,
         condition,
         name,
         nextDossierId,
-        address
+        queryAddress,
+        walletProvider
       );
       
       console.log('✅ File encrypted with Dossier contract condition');
@@ -213,38 +297,121 @@ export default function Home() {
       console.log('📝 Step 4: Creating dossier on-chain...');
       const dossierName = name || `Encrypted document #${nextDossierId.toString()}`;
       const checkInMinutes = parseInt(checkInInterval);
-      const recipients = [address];
+      // Recipients should match the address used for creation
+      const recipients = [queryAddress];
       const fileHashes = [traceJson.payload_uri];
       
       let dossierId: bigint;
       let contractTxHash: string;
       
       try {
-        const result = await ContractService.createDossier(
-          dossierName,
-          checkInMinutes,
-          recipients,
-          fileHashes
-        );
+        // Use smart wallet for gasless transaction only in standard mode
+        let result;
+        if (smartWalletClient && authMode === 'standard') {
+          // Create the transaction data
+          const txData = encodeFunctionData({
+            abi: CANARY_DOSSIER_ABI,
+            functionName: 'createDossier',
+            args: [dossierName, BigInt(checkInMinutes * 60), recipients, fileHashes]
+          });
+          
+          console.log('🚀 Using smart wallet for gasless transaction...');
+          const txHash = await smartWalletClient.sendTransaction({
+            account: smartWalletClient.account,
+            chain: polygonAmoy,
+            to: CANARY_DOSSIER_ADDRESS,
+            data: txData,
+          });
+          
+          console.log('✅ Transaction sent:', txHash);
+          
+          // Wait for transaction to be mined and get dossier ID
+          console.log('⏳ Waiting for transaction to be mined...');
+          let retries = 0;
+          let dossierId = null;
+          
+          while (retries < 10 && !dossierId) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            try {
+              // Query using smart wallet address
+              const smartAddress = smartWalletClient.account.address;
+              const dossierIds = await ContractService.getUserDossierIds(smartAddress as Address);
+              console.log(`📊 Attempt ${retries + 1}: Smart wallet ${smartAddress} has ${dossierIds.length} dossiers`);
+              
+              const previousCount = userDossierIds.length;
+              if (dossierIds.length > previousCount) {
+                dossierId = dossierIds[dossierIds.length - 1];
+                console.log('🆔 New dossier ID found:', dossierId?.toString());
+                break;
+              }
+            } catch (error) {
+              console.warn(`Attempt ${retries + 1} failed:`, error);
+            }
+            
+            retries++;
+          }
+          
+          if (!dossierId) {
+            console.warn('⚠️ Could not retrieve dossier ID immediately, but transaction was successful');
+            // Use the expected ID as fallback
+            dossierId = nextDossierId;
+          }
+          
+          result = { dossierId, txHash };
+        } else {
+          // Fallback to regular transaction
+          console.log('⚠️ Smart wallet not available, using regular transaction');
+          result = await ContractService.createDossier(
+            dossierName,
+            checkInMinutes,
+            recipients,
+            fileHashes
+          );
+        }
         
         dossierId = result.dossierId;
         contractTxHash = result.txHash;
         setCurrentDossierId(dossierId);
         
         console.log('✅ Dossier created on-chain!');
-        console.log('🆔 Dossier ID:', dossierId.toString());
+        console.log('🆔 Dossier ID:', dossierId?.toString() || 'Unknown');
         console.log('🔗 Contract TX:', contractTxHash);
         
         // Verify the ID matches our prediction
-        if (dossierId !== nextDossierId) {
+        if (dossierId && dossierId !== nextDossierId) {
           console.warn(`⚠️ Dossier ID mismatch: predicted ${nextDossierId}, got ${dossierId}`);
-        } else {
+        } else if (dossierId) {
           console.log('✅ Dossier ID prediction was correct!');
         }
         
       } catch (error) {
         console.error('❌ Failed to create dossier:', error);
-        toast.error(`Failed to create dossier: ${error}`, { id: processingToast });
+        
+        // Handle specific error types gracefully
+        let errorMessage = 'Failed to create document';
+        if (error instanceof Error) {
+          if (error.message.includes('rejected by user')) {
+            errorMessage = 'Transaction cancelled';
+            toast.dismiss(processingToast);
+            toast.info(errorMessage);
+            setIsProcessing(false);
+            return;
+          } else if (error.message.includes('insufficient funds')) {
+            errorMessage = 'Insufficient funds for transaction. Please add MATIC to your wallet.';
+          } else if (error.message.includes('Check-in interval must be between')) {
+            errorMessage = error.message;
+          } else if (error.message.includes('Maximum number of dossiers reached')) {
+            errorMessage = 'You have reached the maximum number of documents allowed.';
+          } else if (error.message.includes('Wrong network')) {
+            errorMessage = 'Please switch to Polygon Amoy network in your wallet.';
+          } else {
+            errorMessage = error.message || 'Failed to create document';
+          }
+        }
+        
+        toast.error(errorMessage, { id: processingToast });
+        setIsProcessing(false);
         return;
       }
 
@@ -254,14 +421,15 @@ export default function Home() {
       // Create enhanced trace JSON with dossier information
       const enhancedTraceJson = {
         ...traceJson,
-        dossier_id: dossierId.toString(),
+        dossier_id: dossierId?.toString() || 'pending',
         user_address: address,
         contract_address: CANARY_DOSSIER_ADDRESS,
         contract_chain_id: polygonAmoy.id.toString(),
         contract_tx_hash: contractTxHash,
         check_in_interval_minutes: checkInMinutes,
         condition_type: 'dossier_contract_verification',
-        encryption_method: 'dossier_only'
+        encryption_method: 'dossier_only',
+        gasless: !!smartWalletClient
       };
       
       setTraceJson(enhancedTraceJson);
@@ -276,7 +444,7 @@ export default function Home() {
         encryptionType: 'dossier-only',
         createdAt: new Date(),
         payloadUri: commitResult.payloadUri,
-        contractDossierId: dossierId.toString(),
+        contractDossierId: dossierId?.toString() || 'pending',
         contractTxHash: contractTxHash
       }]);
       
@@ -285,14 +453,17 @@ export default function Home() {
       
       // Add to activity log
       setActivityLog(prev => [
-        { type: `✅ Dossier #${dossierId.toString()} created with contract condition`, date: new Date().toLocaleString() },
+        { type: `✅ Dossier #${dossierId?.toString() || 'pending'} created with contract condition${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, date: new Date().toLocaleString() },
         { type: `🔒 File encrypted with Dossier-only condition`, date: new Date().toLocaleString() },
         { type: `📁 IPFS hash ${traceJson.payload_uri} stored on-chain`, date: new Date().toLocaleString() },
         { type: `📦 File committed to ${commitResult.storageType}`, date: new Date().toLocaleString() },
         ...prev
       ]);
       
-      toast.success('🎉 Document created with dossier-only encryption!', { id: processingToast });
+      const successMessage = authMode === 'standard'
+        ? `🎉 Document secured! Remember to check in every ${checkInInterval} days.`
+        : `🎉 Dossier #${dossierId} created! Check-in required every ${checkInInterval} days.`;
+      toast.success(successMessage, { id: processingToast });
       
       // Reset form and navigate back to documents view
       setShowCreateForm(false);
@@ -308,7 +479,12 @@ export default function Home() {
       console.error('Error in dossier encryption flow:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown encryption error';
       
-      toast.error(`Dossier encryption failed: ${errorMessage}`, { id: processingToast });
+      toast.error(
+        authMode === 'standard' 
+          ? 'Failed to secure your document. Please try again.' 
+          : `Dossier encryption failed: ${errorMessage}`, 
+        { id: processingToast }
+      );
       
       setActivityLog(prev => [
         { type: 'Dossier encryption failed', date: new Date().toLocaleString() },
@@ -451,14 +627,31 @@ export default function Home() {
 
   // Load user's dossiers from contract with accurate decryptable status
   const loadUserDossiers = async () => {
-    const currentAddress = address || (wallets.length > 0 ? wallets[0]?.address : null);
+    let currentAddress: string | null = null;
+    
+    // In advanced mode, use the connected Web3 wallet address
+    // In standard mode, use smart wallet if available, otherwise embedded wallet
+    if (authMode === 'advanced') {
+      currentAddress = address; // Web3 wallet address from wagmi
+      console.log('🔧 Advanced mode - using Web3 wallet address:', currentAddress);
+    } else {
+      // Standard mode: prefer smart wallet for gasless transactions
+      const smartWalletAddress = smartWalletClient?.account?.address;
+      const embeddedWalletAddress = wallets.length > 0 ? wallets[0]?.address : null;
+      currentAddress = smartWalletAddress || embeddedWalletAddress;
+      console.log('🎯 Standard mode - smart wallet:', smartWalletAddress, 'embedded:', embeddedWalletAddress);
+    }
+    
     if (!currentAddress) {
       console.log('No wallet address available for loading dossiers');
       return;
     }
     
     try {
-      console.log('📋 Loading user dossiers from contract for address:', currentAddress);
+      console.log('📋 Loading user dossiers from contract');
+      console.log('🔑 Auth mode:', authMode);
+      console.log('🎯 Using address:', currentAddress);
+      
       const dossierIds = await ContractService.getUserDossierIds(currentAddress as Address);
       
       const dossiers: DossierWithStatus[] = [];
@@ -514,18 +707,42 @@ export default function Home() {
 
       setIsCheckingIn(true);
       
+      // Show loading state first
+      const checkInToast = toast.loading(authMode === 'standard' ? 'Updating your documents...' : 'Checking in to all active documents...');
+      
       try {
         console.log('✅ Performing bulk on-chain check-in for all active dossiers...');
         
-        // Show loading state
-        const checkInToast = toast.loading('Checking in to all active documents...');
-        
-        // Use the efficient checkInAll function - single transaction for all dossiers
-        console.log('🚀 Using bulk check-in for efficiency...');
-        const txHash = await ContractService.checkInAll();
+        // Use smart wallet for gasless check-in only in standard mode
+        let txHash;
+        if (smartWalletClient && authMode === 'standard') {
+          console.log('🚀 Using smart wallet for gasless check-in...');
+          
+          // Create the transaction data for checkInAll
+          const txData = encodeFunctionData({
+            abi: CANARY_DOSSIER_ABI,
+            functionName: 'checkInAll',
+            args: []
+          });
+          
+          txHash = await smartWalletClient.sendTransaction({
+            account: smartWalletClient.account,
+            chain: polygonAmoy,
+            to: CANARY_DOSSIER_ADDRESS,
+            data: txData,
+          });
+        } else {
+          console.log('⚠️ Smart wallet not available, using regular transaction');
+          txHash = await ContractService.checkInAll();
+        }
         
         // Success - all active dossiers checked in with single transaction
-        toast.success(`✅ Successfully checked in to all ${activeDossiers.length} active documents!`, { id: checkInToast });
+        toast.success(
+          authMode === 'standard' 
+            ? `✅ All ${activeDossiers.length} documents updated!` 
+            : `✅ Successfully checked in to all ${activeDossiers.length} active documents!`, 
+          { id: checkInToast }
+        );
         
         setActivityLog(prev => [
           { type: `✅ Bulk check-in successful for ${activeDossiers.length} documents (TX: ${txHash.slice(0, 10)}...)`, date: now.toLocaleString() },
@@ -539,33 +756,49 @@ export default function Home() {
         console.error('❌ Bulk check-in failed:', error);
         
         // Enhanced error handling with specific messages
-        let errorMessage = 'Bulk check-in failed. Please try again.';
+        let errorMessage = 'Check-in failed. Please try again.';
+        let isUserRejection = false;
+        
         if (error instanceof Error) {
           if (error.message.includes('No dossiers found')) {
             errorMessage = 'No documents found to check in to.';
           } else if (error.message.includes('No active dossiers')) {
             errorMessage = 'No active documents found to check in to.';
-          } else if (error.message.includes('user rejected')) {
-            errorMessage = 'Transaction was rejected. Check-in cancelled.';
+          } else if (error.message.includes('user rejected') || error.message.includes('rejected by user')) {
+            errorMessage = 'Check-in cancelled';
+            isUserRejection = true;
           } else if (error.message.includes('insufficient funds')) {
-            errorMessage = 'Insufficient funds for transaction fees.';
+            errorMessage = 'Insufficient funds for transaction fees. Please add MATIC to your wallet.';
           } else if (error.message.includes('Network mismatch')) {
-            errorMessage = 'Please switch to Polygon Amoy network.';
+            errorMessage = 'Please switch to Polygon Amoy network in your wallet.';
           } else if (error.message.includes('wallet provider')) {
             errorMessage = 'Wallet connection issue. Please reconnect your wallet.';
+          } else if (error.message.includes('Both bulk and individual')) {
+            errorMessage = 'Network issue prevented check-in. Please try again.';
           }
         }
         
-        toast.error(errorMessage);
-        setActivityLog(prev => [
-          { type: `❌ Bulk check-in failed: ${errorMessage}`, date: now.toLocaleString() },
-          ...prev
-        ]);
+        // Handle user rejection more gracefully
+        if (isUserRejection) {
+          toast.dismiss(checkInToast);
+          toast.info(errorMessage);
+          // Don't log cancellations as failures
+          setActivityLog(prev => [
+            { type: `ℹ️ Check-in cancelled by user`, date: now.toLocaleString() },
+            ...prev
+          ]);
+        } else {
+          toast.error(errorMessage, { id: checkInToast });
+          setActivityLog(prev => [
+            { type: `❌ Check-in failed: ${errorMessage}`, date: now.toLocaleString() },
+            ...prev
+          ]);
+        }
       } finally {
         setIsCheckingIn(false);
       }
     } else if (!isConnected) {
-      toast.error('Please connect your wallet to check in');
+      toast.error(authMode === 'standard' ? 'Please sign in to update your documents' : 'Please connect your wallet to check in');
     } else if (!address) {
       toast.error('Wallet address not available');
     } else if (userDossiers.length === 0) {
@@ -724,6 +957,7 @@ export default function Home() {
     if (method === 'Web3 Wallet') {
       // Use Privy's connectWallet for external wallet connections
       console.log('Using Privy connectWallet for external wallet...');
+      setAuthModeWithPersistence('advanced'); // Set advanced mode for Web3 wallet
       try {
         connectWallet();
       } catch (error) {
@@ -732,6 +966,7 @@ export default function Home() {
     } else if (method === 'Email') {
       // Email sign-in via Privy
       console.log('Privy states:', { ready, authenticated, signedIn });
+      setAuthModeWithPersistence('standard'); // Set standard mode for email auth
       if (ready) {
         if (!authenticated) {
           console.log('Calling Privy login()...');
@@ -765,6 +1000,7 @@ export default function Home() {
   useEffect(() => {
     if (isConnected && !signedIn && !authenticated) {
       console.log('Auto-signing in wagmi wallet user...');
+      setAuthModeWithPersistence('advanced'); // User connected with Web3 wallet
       setSignedIn(true);
     }
   }, [isConnected, signedIn, authenticated]);
@@ -774,9 +1010,21 @@ export default function Home() {
     console.log('Auto sign-in effect triggered:', { ready, authenticated, signedIn });
     if (ready && authenticated && !signedIn) {
       console.log('Auto-signing in authenticated Privy user...');
+      setAuthModeWithPersistence('standard'); // User authenticated with email/Privy
       setSignedIn(true);
     }
   }, [ready, authenticated]);
+
+  // Log smart wallet status
+  useEffect(() => {
+    console.log('💜 Smart wallet status:', {
+      hasSmartWallet: !!smartWalletClient,
+      smartWalletAccount: smartWalletClient?.account?.address,
+      userSmartWallet: user?.smartWallet,
+      authenticated,
+      wallets: wallets.length
+    });
+  }, [smartWalletClient, user, authenticated, wallets]);
 
   // Auto-connect Privy embedded wallet to wagmi
   useEffect(() => {
@@ -822,7 +1070,17 @@ export default function Home() {
           console.error('❌ Failed to load contract constants:', error);
         });
     }
-  }, [isConnected, address, authenticated, wallets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address, authenticated, wallets, authMode]);
+
+  // Reload dossiers when smart wallet becomes available in standard mode
+  useEffect(() => {
+    if (smartWalletClient && signedIn && authMode === 'standard') {
+      console.log('🔄 Smart wallet now available in standard mode, reloading dossiers...');
+      loadUserDossiers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [smartWalletClient, signedIn, authMode]);
 
   // Show sign-in page if not signed in
   if (!signedIn) {
@@ -859,7 +1117,7 @@ export default function Home() {
             {/* Sign-in Buttons */}
             <div className="space-y-4 max-w-sm mx-auto mb-16">
               <button
-                className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 px-6 bg-black text-white font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
                 onClick={() => handleSignIn('Email')}
                 disabled={!ready}
               >
@@ -869,12 +1127,12 @@ export default function Home() {
               <div className="text-center">
                 <div className="flex items-center gap-3 my-6">
                   <div className="flex-1 h-px bg-gray-300"></div>
-                  <span className="editorial-label-small">Advanced</span>
+                  <span className="text-xs font-medium text-gray-500 tracking-widest">ADVANCED</span>
                   <div className="flex-1 h-px bg-gray-300"></div>
                 </div>
                 
                 <button
-                  className="editorial-button editorial-button-large w-full"
+                  className="w-full py-4 px-6 bg-white text-gray-900 font-medium text-base rounded border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => handleSignIn('Web3 Wallet')}
                   disabled={isPending}
                 >
@@ -936,7 +1194,6 @@ export default function Home() {
 
     return (
     <>
-      <Toaster position="top-center" />
       <div className="h-screen flex flex-col">
         {/* Global Fine Mesh Animation Styles */}
       <style>
@@ -1084,45 +1341,49 @@ export default function Home() {
               {/* Right: Wallet Status */}
               <div className="flex items-center gap-6">
                 
-                {/* Wallet Status */}
-                {(isConnected && address) || (authenticated && wallets.length > 0) ? (
+                {/* Authentication Status */}
+                {hasWalletConnection() ? (
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-gray-300 bg-white text-xs">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span className="monospace-accent text-gray-900">
-                        {address 
-                          ? `${address.slice(0, 6)}...${address.slice(-4)}` 
-                          : wallets[0]?.address 
-                            ? `${wallets[0].address.slice(0, 6)}...${wallets[0].address.slice(-4)}`
-                            : 'Wallet'
-                        }
-                        {!isConnected && authenticated && (
-                          <span className="text-xs opacity-75 ml-1">(Email)</span>
-                        )}
-                      </span>
-                    </div>
+                    {authMode === 'advanced' && address ? (
+                      // Advanced mode: Show wallet address
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-gray-300 bg-white text-xs">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="monospace-accent text-gray-900">
+                          {`${address.slice(0, 6)}...${address.slice(-4)}`}
+                        </span>
+                      </div>
+                    ) : authMode === 'standard' && authenticated ? (
+                      // Standard mode: Show user email or authenticated status
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-gray-300 bg-white text-xs">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="monospace-accent text-gray-900">
+                          {user?.email?.address || 'Signed In'}
+                        </span>
+                      </div>
+                    ) : null}
+                    
                     <button
                       onClick={() => {
-                        // Disconnect wagmi wallet
-                        if (isConnected) {
+                        // Disconnect based on mode
+                        if (authMode === 'advanced' && isConnected) {
                           disconnect();
                         }
-                        // Logout from Privy if authenticated
-                        if (authenticated) {
+                        if (authMode === 'standard' && authenticated) {
                           logout();
                         }
-                        // Reset local state
+                        // Reset state
                         setSignedIn(false);
+                        setAuthModeWithPersistence('standard');
                       }}
                       className="text-sm text-muted hover:text-primary transition-colors"
                     >
-                      Log out
+                      Sign Out
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-xs text-muted">
                     <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                    <span>Not Connected</span>
+                    <span>Not Signed In</span>
                   </div>
                 )}
               </div>
@@ -1438,11 +1699,28 @@ export default function Home() {
                                     <button
                                       onClick={async () => {
                                         try {
-                                          await ContractService.checkIn(dossier.id);
+                                          // Use smart wallet for gasless check-in only in standard mode
+                                          if (smartWalletClient && authMode === 'standard') {
+                                            const txData = encodeFunctionData({
+                                              abi: CANARY_DOSSIER_ABI,
+                                              functionName: 'checkIn',
+                                              args: [dossier.id]
+                                            });
+                                            
+                                            await smartWalletClient.sendTransaction({
+                                              account: smartWalletClient.account,
+                                              chain: polygonAmoy,
+                                              to: CANARY_DOSSIER_ADDRESS,
+                                              data: txData,
+                                            });
+                                          } else {
+                                            await ContractService.checkIn(dossier.id);
+                                          }
+                                          
                                           await loadUserDossiers();
                                           setActivityLog(prev => [
                                             { 
-                                              type: `Check-in performed for document #${dossier.id.toString()}`, 
+                                              type: `Check-in performed for document #${dossier.id.toString()}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
                                               date: new Date().toLocaleString() 
                                             },
                                             ...prev
@@ -1463,22 +1741,54 @@ export default function Home() {
                                     <button
                                       onClick={async () => {
                                         try {
-                                          if (dossier.isActive) {
-                                            await ContractService.deactivateDossier(dossier.id);
+                                          // Use smart wallet for gasless transaction only in standard mode
+                                          if (smartWalletClient && authMode === 'standard') {
+                                            const functionName = dossier.isActive ? 'deactivateDossier' : 'reactivateDossier';
+                                            const txData = encodeFunctionData({
+                                              abi: CANARY_DOSSIER_ABI,
+                                              functionName,
+                                              args: [dossier.id]
+                                            });
+                                            
+                                            await smartWalletClient.sendTransaction({
+                                              account: smartWalletClient.account,
+                                              chain: polygonAmoy,
+                                              to: CANARY_DOSSIER_ADDRESS,
+                                              data: txData,
+                                            });
                                           } else {
-                                            await ContractService.reactivateDossier(dossier.id);
+                                            if (dossier.isActive) {
+                                              await ContractService.deactivateDossier(dossier.id);
+                                            } else {
+                                              await ContractService.reactivateDossier(dossier.id);
+                                            }
                                           }
+                                          
                                           await loadUserDossiers();
                                           setActivityLog(prev => [
                                             { 
-                                              type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'deactivated' : 'resumed'}`, 
+                                              type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'deactivated' : 'resumed'}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
                                               date: new Date().toLocaleString() 
                                             },
                                             ...prev
                                           ]);
                                         } catch (error) {
                                           console.error('Failed to toggle document status:', error);
-                                          toast.error('Failed to update document status. Please try again.');
+                                          
+                                          // Handle specific error types gracefully
+                                          let errorMessage = 'Failed to update document status. Please try again.';
+                                          if (error instanceof Error) {
+                                            if (error.message.includes('rejected by user')) {
+                                              toast.info('Action cancelled');
+                                              return;
+                                            } else if (error.message.includes('insufficient funds')) {
+                                              errorMessage = 'Insufficient funds for transaction. Please add MATIC to your wallet.';
+                                            } else if (error.message.includes('Network')) {
+                                              errorMessage = 'Please ensure you are on Polygon Amoy network.';
+                                            }
+                                          }
+                                          
+                                          toast.error(errorMessage);
                                         }
                                       }}
                                       className="flex-1 editorial-button text-xs"
@@ -1689,7 +1999,7 @@ export default function Home() {
                     <div className="spacing-small">
                       <button
                         onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                        className="editorial-button text-sm"
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -2052,10 +2362,10 @@ export default function Home() {
                           {isProcessing ? (
                             <div className="flex items-center justify-center gap-3">
                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                              <span>Finalizing document...</span>
+                              <span>{authMode === 'standard' ? 'Securing your document...' : 'Finalizing document...'}</span>
                             </div>
                           ) : (
-                            'Finalize & Upload'
+                            authMode === 'standard' ? 'Secure Document' : 'Finalize & Upload'
                           )}
                         </button>
                       </div>

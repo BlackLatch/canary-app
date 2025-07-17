@@ -3,7 +3,9 @@ import { polygonAmoy } from 'wagmi/chains';
 import type { Address } from 'viem';
 import { config } from './web3'; // Use the main wagmi config
 
-// Deployed contract address on Polygon Amoy
+// Deployed contract address on Polygon Amoy (testnet)
+// IMPORTANT: This contract is ONLY deployed on Polygon Amoy, not on mainnet
+// All transactions must be on chain ID 80002 (Polygon Amoy)
 export const CANARY_DOSSIER_ADDRESS: Address = '0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0';
 
 // Contract ABI - generated from your simplified Dossier.sol
@@ -172,6 +174,18 @@ export interface Dossier {
   encryptedFileHashes: string[];
   recipients: Address[];
 }
+
+// Network validation helper
+export const isOnPolygonAmoy = (chainId: number | undefined): boolean => {
+  return chainId === polygonAmoy.id;
+};
+
+export const getNetworkName = (chainId: number | undefined): string => {
+  if (chainId === polygonAmoy.id) return 'Polygon Amoy';
+  if (chainId === 1) return 'Ethereum Mainnet';
+  if (chainId === 137) return 'Polygon Mainnet';
+  return `Unknown Network (${chainId})`;
+};
 
 export class ContractService {
   
