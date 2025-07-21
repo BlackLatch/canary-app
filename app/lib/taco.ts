@@ -58,6 +58,8 @@ export interface TraceJson {
   dossier_id: string;
   user_address: string;
   contract_address: string;
+  // File metadata
+  original_filename: string;
 }
 
 class TacoService {
@@ -329,6 +331,8 @@ class TacoService {
       dossier_id: condition.dossierId.toString(),
       user_address: condition.userAddress,
       contract_address: CANARY_DOSSIER_ADDRESS,
+      // File metadata
+      original_filename: commitResult.encryptionResult.originalFileName,
     };
   }
 

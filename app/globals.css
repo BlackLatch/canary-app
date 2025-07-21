@@ -37,6 +37,33 @@ html, body {
   --space-16: calc(var(--space-unit) * 16);
 }
 
+/* Dark mode variables */
+:root.dark {
+  /* New Dark Theme Color Palette - Eye-friendly & Professional */
+  --color-paper: #0B0C10;          /* BG Base - Nearly black but slightly warm/blue */
+  --color-paper-warm: #0F1115;     /* Slightly lighter variant */
+  --color-paper-neutral: #171A1F;  /* Card backgrounds */
+  --color-ink: #E0E0DC;            /* Text Primary - Gentle off-white */
+  --color-ink-light: #A3A3A3;      /* Text Secondary - Less important labels */
+  --color-ink-lighter: #808080;    /* Muted text */
+  --color-accent-mauve: #8FBCBB;    /* Accent - Muted teal */
+  --color-accent-blue: #C0E5A9;     /* Accent - Cool green */
+  --color-accent-green: #B8E994;    /* Success color */
+  --color-error: #FF6B6B;          /* Alert/Error - Softer red */
+  --color-success: #66FF99;        /* Success - Trust signal */
+}
+
+/* Body theming */
+:root.light body {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+:root.dark body {
+  background-color: #0B0C10;
+  color: #E0E0DC;
+}
+
 /* Enhanced Editorial Typography System */
 .editorial-header {
   font-family: var(--font-playfair);
@@ -224,13 +251,13 @@ html, body {
 }
 
 .status-active .status-dot {
-  background: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  background: #B8E994;
+  box-shadow: 0 0 0 2px rgba(184, 233, 148, 0.2);
 }
 
 .status-expired .status-dot {
-  background: #ef4444;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  background: #FF6B6B;
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
 .status-inactive .status-dot {
@@ -274,9 +301,9 @@ html, body {
 }
 
 .progress-step-completed {
-  background: #10b981;
-  border-color: #10b981;
-  color: white;
+  background: #B8E994;
+  border-color: #B8E994;
+  color: #0B0C10;
 }
 
 .progress-step-inactive {
@@ -418,17 +445,17 @@ html, body {
 }
 
 .mesh-background-dark {
-  background-color: #1a1a1a;
+  background-color: #0B0C10;
   background-image: 
     /* Fine cryptographic grid - primary */
-    linear-gradient(rgba(255, 255, 255, 0.04) 0.5px, transparent 0.5px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0.5px, transparent 0.5px),
+    linear-gradient(rgba(224, 224, 220, 0.04) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, rgba(224, 224, 220, 0.04) 0.5px, transparent 0.5px),
     /* Secondary pattern for depth */
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(rgba(224, 224, 220, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(224, 224, 220, 0.022) 1px, transparent 1px),
     /* Tertiary macro grid */
-    linear-gradient(rgba(255, 255, 255, 0.012) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 2px, transparent 2px);
+    linear-gradient(rgba(224, 224, 220, 0.012) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(224, 224, 220, 0.012) 2px, transparent 2px);
   background-size: 
     16px 16px,
     16px 16px,
@@ -476,7 +503,7 @@ html, body {
 }
 
 .text-muted {
-  color: #4a5568 !important;  /* Much darker than gray-500 */
+  color: #374151 !important;  /* Darker gray-700 for better contrast */
 }
 
 /* Enhanced Label Classes */
@@ -498,4 +525,256 @@ html, body {
   letter-spacing: 0.15em;
   color: var(--color-ink-light);
   margin-bottom: var(--space-2);
+}
+
+/* Dark mode specific styles */
+.dark {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* Dark mode backgrounds */
+.dark .bg-white {
+  background-color: var(--color-paper-warm);
+}
+
+.dark .bg-gray-50 {
+  background-color: var(--color-paper-neutral);
+}
+
+.dark .bg-gray-100 {
+  background-color: #262626;
+}
+
+.dark .bg-white\/80 {
+  background-color: rgba(20, 20, 20, 0.8);
+}
+
+/* Dark mode borders */
+.dark .border-gray-200 {
+  border-color: #333333;
+}
+
+.dark .border-gray-300 {
+  border-color: #404040;
+}
+
+.dark .border-gray-400 {
+  border-color: #525252;
+}
+
+/* Dark mode text colors */
+.dark .text-gray-900 {
+  color: #e5e5e5;
+}
+
+.dark .text-gray-700 {
+  color: #d1d5db;
+}
+
+.dark .text-gray-600 {
+  color: #9ca3af;
+}
+
+.dark .text-gray-500 {
+  color: #6b7280;
+}
+
+.dark .text-muted {
+  color: #9ca3af !important;
+}
+
+/* Dark mode hover states */
+.dark .hover\:bg-gray-50:hover {
+  background-color: #262626;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #333333;
+}
+
+.dark .hover\:bg-gray-800:hover {
+  background-color: #1f1f1f;
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: var(--color-paper-neutral);
+}
+
+/* Dark mode buttons */
+.dark .editorial-button {
+  background: var(--color-paper-warm);
+  color: var(--color-ink);
+  border-color: var(--color-ink-lighter);
+}
+
+.dark .editorial-button:hover {
+  background: var(--color-paper-neutral);
+  border-color: var(--color-accent-mauve);
+}
+
+.dark .editorial-button-primary {
+  background-color: var(--color-accent-blue);
+  color: var(--color-paper);
+  border-color: var(--color-accent-blue);
+}
+
+.dark .editorial-button-primary:hover {
+  background-color: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+}
+
+.dark .editorial-button-secondary {
+  border-color: var(--color-ink-light);
+  color: var(--color-ink);
+  background: transparent;
+}
+
+.dark .editorial-button-secondary:hover {
+  background-color: var(--color-paper-neutral);
+  border-color: var(--color-accent-mauve);
+}
+
+/* Dark mode cards */
+.dark .editorial-card {
+  background-color: var(--color-paper-warm);
+  border-color: #333333;
+}
+
+.dark .editorial-card-bordered {
+  background-color: var(--color-paper-warm);
+  border-color: #404040;
+}
+
+.dark .editorial-card-bordered:hover {
+  border-color: #525252;
+}
+
+/* Dark mode inputs */
+.dark .editorial-input {
+  background-color: #1a1a1a;
+  border-color: #404040;
+  color: #e5e5e5;
+}
+
+.dark .editorial-input:focus {
+  border-color: #e5e5e5;
+  box-shadow: 0 0 0 1px #e5e5e5;
+}
+
+/* Dark mode cryptographic patterns */
+.dark .crypto-grid-pattern {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(229, 229, 229, 0.08) 1px, transparent 0);
+}
+
+.dark .crypto-dot-matrix {
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(229, 229, 229, 0.05) 1px, transparent 0);
+}
+
+/* Dark mode progress */
+.dark .progress-rail {
+  background-color: #333333;
+}
+
+.dark .progress-step-inactive {
+  background-color: #1a1a1a;
+  border-color: #404040;
+  color: #6b7280;
+}
+
+/* Dark mode toasts */
+.dark .editorial-toast {
+  background-color: #1a1a1a !important;
+  color: #e5e5e5 !important;
+  border-color: #333333 !important;
+}
+
+/* Dark mode footer */
+.dark footer {
+  background-color: rgba(20, 20, 20, 0.8);
+  border-top-color: #333333;
+}
+
+/* Dark mode banner backgrounds */
+.dark .bg-green-50 {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.dark .border-green-200 {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.dark .text-green-700 {
+  color: #10b981;
+}
+
+.dark .text-green-600 {
+  color: #10b981;
+}
+
+/* Dark mode status colors */
+.dark .text-orange-600 {
+  color: #f59e0b;
+}
+
+.dark .text-orange-500 {
+  color: #f59e0b;
+}
+
+.dark .text-yellow-600 {
+  color: #eab308;
+}
+
+.dark .text-red-600 {
+  color: #ef4444;
+}
+
+/* Dark mode dividers */
+.dark .divide-gray-200 > * + * {
+  border-color: #333333;
+}
+
+/* Dark mode Create Document card */
+.dark .bg-gray-900 {
+  background-color: #262626;
+}
+
+.dark .hover\:bg-gray-800:hover {
+  background-color: #333333;
+}
+
+.dark .border-gray-800 {
+  border-color: #404040;
+}
+
+.dark .hover\:border-gray-700:hover {
+  border-color: #525252;
+}
+
+.dark .text-gray-300 {
+  color: #d1d5db;
+}
+
+.dark .hover\:text-gray-200:hover {
+  color: #e5e5e5;
+}
+
+.dark .hover\:text-gray-100:hover {
+  color: #f3f4f6;
+}
+
+/* Dark mode header */
+.dark header {
+  background-color: rgba(26, 26, 26, 0.8);
+  border-bottom-color: #333333;
+}
+
+/* Ensure crypto grid pattern is visible in dark mode */
+.dark .crypto-grid-pattern {
+  background-color: #1a1a1a;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(229, 229, 229, 0.08) 1px, transparent 0);
+  border-color: #333333;
 }

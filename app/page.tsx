@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle, Github } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle, Github, Sun, Moon, Mic, Video } from 'lucide-react';
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
+import { useTheme } from './lib/theme-context';
+import MediaRecorder from './components/MediaRecorder';
 
 
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
@@ -13,13 +15,14 @@ import { polygonAmoy } from 'wagmi/chains';
 import { Address, encodeFunctionData } from 'viem';
 import { ContractService, CANARY_DOSSIER_ADDRESS, CANARY_DOSSIER_ABI, Dossier, isOnPolygonAmoy, getNetworkName } from './lib/contract';
 import toast, { Toaster } from 'react-hot-toast';
+import { getMimeType } from './lib/mime-types';
 
 // Extended dossier interface with accurate decryptable status
 interface DossierWithStatus extends Dossier {
   isDecryptable: boolean;
 }
 
-export default function Home() {
+export default function Home(): JSX.Element {
   const { connectors, connect, isPending } = useConnect();
   
 
@@ -30,6 +33,7 @@ export default function Home() {
   const { setActiveWallet } = useSetActiveWallet();
   const { connectWallet } = useConnectWallet();
   const { client: smartWalletClient } = useSmartWallets();
+  const { theme, toggleTheme } = useTheme();
   
   const [signedIn, setSignedIn] = useState(false);
   const [authMode, setAuthMode] = useState<'standard' | 'advanced'>(() => {
@@ -83,8 +87,33 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
   const [showAlphaBanner, setShowAlphaBanner] = useState(true);
+  const [dummyMasterSwitch, setDummyMasterSwitch] = useState(true); // Dummy UI state for master switch
+  const [selectedDocument, setSelectedDocument] = useState<DossierWithStatus | null>(null);
+  const [documentDetailView, setDocumentDetailView] = useState(false);
+  const [showMediaRecorder, setShowMediaRecorder] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Document detail navigation
+  const openDocumentDetail = (document: DossierWithStatus) => {
+    setSelectedDocument(document);
+    setDocumentDetailView(true);
+  };
+
+  const closeDocumentDetail = () => {
+    setSelectedDocument(null);
+    setDocumentDetailView(false);
+  };
+
+  const intervalOptions = [
+    { value: '1', label: '1 Minute (Testing)' },
+    { value: '5', label: '5 Minutes' },
+    { value: '15', label: '15 Minutes' },
+    { value: '60', label: '1 Hour' },
+    { value: '360', label: '6 Hours' },
+    { value: '720', label: '12 Hours' },
+    { value: '1440', label: '24 Hours' }
+  ];
 
   // Helper function to check if we have a valid wallet connection (wagmi or Privy)
   const hasWalletConnection = () => {
@@ -295,7 +324,7 @@ export default function Home() {
       
       // Step 4: Create dossier on-chain
       console.log('📝 Step 4: Creating dossier on-chain...');
-      const dossierName = name || `Encrypted document #${nextDossierId.toString()}`;
+      const dossierName = name || `Encrypted file: ${traceJson.original_filename}`;
       const checkInMinutes = parseInt(checkInInterval);
       // Recipients should match the address used for creation
       const recipients = [queryAddress];
@@ -394,7 +423,7 @@ export default function Home() {
           if (error.message.includes('rejected by user')) {
             errorMessage = 'Transaction cancelled';
             toast.dismiss(processingToast);
-            toast.info(errorMessage);
+            toast(errorMessage);
             setIsProcessing(false);
             return;
           } else if (error.message.includes('insufficient funds')) {
@@ -588,7 +617,8 @@ export default function Home() {
       const extension = originalName.substring(originalName.lastIndexOf('.')) || '';
       const filename = `${baseName}-decrypted${extension}`;
       
-      const blob = new Blob([decryptedData]);
+      const mimeType = getMimeType(originalName);
+      const blob = new Blob([decryptedData], { type: mimeType });
       const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
@@ -781,7 +811,7 @@ export default function Home() {
         // Handle user rejection more gracefully
         if (isUserRejection) {
           toast.dismiss(checkInToast);
-          toast.info(errorMessage);
+          toast(errorMessage);
           // Don't log cancellations as failures
           setActivityLog(prev => [
             { type: `ℹ️ Check-in cancelled by user`, date: now.toLocaleString() },
@@ -1085,80 +1115,140 @@ export default function Home() {
   // Show sign-in page if not signed in
   if (!signedIn) {
     return (
-      <div className="fixed inset-0 mesh-background-light flex items-center justify-center" style={{ zoom: '0.8' }}>
-        {/* Cryptographic Pattern Accent */}
-        <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
-        
-        {/* Main Sign-in Area */}
-        <div className="max-w-xl w-full mx-auto px-8">
-          <div className="text-center">
-            {/* Logo - Centered Above Title */}
-            <div className="mb-8">
-              <img 
-                src="/canary.png" 
-                alt="Canary" 
-                className="h-16 w-auto mx-auto opacity-90"
-                style={{
-                  filter: 'drop-shadow(0 1px 3px rgba(31, 31, 31, 0.1))'
-                }}
-              />
-            </div>
-            
-            {/* Title and Subtitle */}
-            <div className="mb-12">
-              <h1 className="editorial-header-large text-center mb-4">
-                Try the Canary Testnet Demo
-              </h1>
-              <p className="editorial-body-large text-secondary max-w-sm mx-auto font-medium">
-                Truth protection through cryptographic deadman switches
-              </p>
-            </div>
-
-            {/* Sign-in Buttons */}
-            <div className="space-y-4 max-w-sm mx-auto mb-16">
-              <button
-                className="w-full py-4 px-6 bg-black text-white font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
-                onClick={() => handleSignIn('Email')}
-                disabled={!ready}
-              >
-                {!ready ? 'Initializing...' : 'Sign in with Email'}
-              </button>
+      <>
+        <Toaster position="top-right" />
+      <div className="h-screen flex flex-col">
+        <div className="flex-1 mesh-background-light dark:mesh-background-dark flex items-center justify-center relative">
+          {/* Theme Toggle - Top Right */}
+          <button
+            onClick={toggleTheme}
+            className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors z-10"
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            ) : (
+              <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            )}
+          </button>
+          
+          {/* Cryptographic Pattern Accent */}
+          <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
+          
+          {/* Main Sign-in Area */}
+          <div className="max-w-xl w-full mx-auto px-8">
+            <div className="text-center">
+              {/* Logo - Centered Above Title */}
+              <div className="mb-8">
+                <img 
+                  src="/canary.png" 
+                  alt="Canary" 
+                  className="h-16 w-auto mx-auto opacity-90"
+                  style={{
+                    filter: 'drop-shadow(0 1px 3px rgba(31, 31, 31, 0.1))'
+                  }}
+                />
+              </div>
               
-              <div className="text-center">
-                <div className="flex items-center gap-3 my-6">
-                  <div className="flex-1 h-px bg-gray-300"></div>
-                  <span className="text-xs font-medium text-gray-500 tracking-widest">ADVANCED</span>
-                  <div className="flex-1 h-px bg-gray-300"></div>
+              {/* Title and Subtitle */}
+              <div className="mb-12">
+                <h1 className="editorial-header-large text-center mb-4">
+                  Try the Canary Testnet Demo
+                </h1>
+                <p className="editorial-body-large text-secondary max-w-sm mx-auto font-medium">
+                  Truth protection through cryptographic deadman switches
+                </p>
+              </div>
+
+              {/* Sign-in Buttons */}
+              <div className="space-y-4 max-w-sm mx-auto mb-16">
+                <button
+                  className="w-full py-4 px-6 bg-black text-white font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSignIn('Email')}
+                  disabled={!ready}
+                >
+                  {!ready ? 'Initializing...' : 'Sign in with Email'}
+                </button>
+                
+                <div className="text-center">
+                  <div className="flex items-center gap-3 my-6">
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <span className="text-xs font-medium text-gray-500 tracking-widest">ADVANCED</span>
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                  </div>
+                  
+                  <button
+                    className="w-full py-4 px-6 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium text-base rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => handleSignIn('Web3 Wallet')}
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        <span>Connecting...</span>
+                      </div>
+                    ) : (
+                      'Connect Web3 Wallet'
+                    )}
+                  </button>
                 </div>
+              </div>
+
+              {/* Support Section */}
+              <div className="pt-6 border-t border-gray-200">
+                <p className="editorial-body text-sm text-muted mb-3">
+                  Support open-source truth protection
+                </p>
                 
                 <button
-                  className="w-full py-4 px-6 bg-white text-gray-900 font-medium text-base rounded border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => handleSignIn('Web3 Wallet')}
-                  disabled={isPending}
+                  onClick={() => {
+                    const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
+                    navigator.clipboard.writeText(supportAddress).then(() => {
+                      toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
+                        duration: 6000,
+                        style: {
+                          background: '#10B981',
+                          color: 'white',
+                          maxWidth: '500px',
+                        },
+                      });
+                    }).catch(() => {
+                      toast.error('Failed to copy address');
+                    });
+                  }}
+                  className="flex items-center gap-2 text-xs text-muted hover:text-primary transition-colors mx-auto"
+                  title="Click to copy donation address"
                 >
-                  {isPending ? (
-                    <div className="flex items-center justify-center gap-3">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                      <span>Connecting...</span>
-                    </div>
-                  ) : (
-                    'Connect Web3 Wallet'
-                  )}
+                  💝 <span>Donate</span>
                 </button>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Support Section */}
-            <div className="pt-6 border-t border-gray-200">
-              <p className="editorial-body text-sm text-muted mb-3">
-                Support open-source truth protection
-              </p>
+        {/* Footer */}
+        <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
+          <div className="max-w-7xl mx-auto px-6 py-3">
+            <div className="flex items-center justify-center gap-6">
+              <a
+                href="https://canary.tools"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Website</span>
+              </a>
               
-              <button
-                onClick={() => {
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
                   const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
                   navigator.clipboard.writeText(supportAddress).then(() => {
-                    toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
+                    toast.success('💝 Support address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
                       duration: 6000,
                       style: {
                         background: '#10B981',
@@ -1170,34 +1260,56 @@ export default function Home() {
                     toast.error('Failed to copy address');
                   });
                 }}
-                className="flex items-center gap-2 text-xs text-muted hover:text-primary transition-colors mx-auto"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
                 title="Click to copy donation address"
               >
-                💝 <span>Donate</span>
-              </button>
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span>Support</span>
+              </a>
+              
+              <a
+                href="https://github.com/TheThirdRoom/canary"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                <Github size={10} />
+                <span>Source</span>
+              </a>
+              
+              <a
+                href="mailto:contact@canary.tools"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>Contact</span>
+              </a>
+            </div>
+            
+            <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+              <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                © 2025 Canary. Truth protection through cryptographic deadman switches.
+              </p>
             </div>
           </div>
-        </div>
+        </footer>
       </div>
+      </>
     );
   }
-
-  const intervalOptions = [
-    { value: '1', label: '1 Minute (Testing)' },
-    { value: '5', label: '5 Minutes' },
-    { value: '15', label: '15 Minutes' },
-    { value: '60', label: '1 Hour' },
-    { value: '360', label: '6 Hours' },
-    { value: '720', label: '12 Hours' },
-    { value: '1440', label: '24 Hours' }
-  ];
-
-    return (
-    <>
-      <div className="h-screen flex flex-col">
+  
+  // Main app content for signed-in users
+  return (
+    <React.Fragment>
+      <Toaster position="top-right" />
+      <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
         {/* Global Fine Mesh Animation Styles */}
-      <style>
-        {`
+        <style>
+          {`
           @keyframes meshFloat {
             0% { 
               background-position: 
@@ -1274,40 +1386,40 @@ export default function Home() {
               72px 72px !important;
             animation: meshFloat 20s ease-in-out infinite !important;
           }
-        `}
-      </style>
-      
-      {/* Alpha Status Indicator */}
-      {showAlphaBanner && (
-        <div className="bg-gray-50 border-b border-gray-200 flex-shrink-0">
+          `}
+        </style>
+        
+        {/* Alpha Status Indicator */}
+        {showAlphaBanner && (
+        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-center justify-between h-12">
               <div className="w-4 h-4"></div>
               <div className="flex items-center justify-center flex-1">
-                <span className="text-xs text-muted font-medium">
+                <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
                   Testnet demo · No production guarantees · Use at your own risk
                 </span>
               </div>
               <button
                 onClick={() => setShowAlphaBanner(false)}
-                className="text-xs text-muted hover:text-primary transition-colors w-4 h-4 flex items-center justify-center flex-shrink-0"
+                className="text-xs text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors w-4 h-4 flex items-center justify-center flex-shrink-0"
                 aria-label="Close banner"
               >
                 ×
               </button>
             </div>
           </div>
-        </div>
-      )}
-      
-      <div className="flex-1" style={{ zoom: '0.8' }}>
+          </div>
+        )}
+        
+        <div className="flex-1" style={{ zoom: '0.8' }}>
         
         {/* Header */}
-        <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm" style={{ marginTop: '0px' }}>
+        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`} style={{ marginTop: '0px' }}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between h-10">
               {/* Left: Logo */}
-              <div className="w-32 flex items-center">
+              <div className="flex items-center">
                 <img 
                   src="/canary.png" 
                   alt="Canary" 
@@ -1318,45 +1430,60 @@ export default function Home() {
                 />
               </div>
               
-              {/* Center: Main Navigation */}
-              <nav className="flex items-center gap-8 h-full">
-                <button 
-                  onClick={() => setCurrentView('checkin')}
-                  className={`nav-link ${
-                    currentView === 'checkin' ? 'nav-link-active' : ''
-                  }`}
+              {/* Right: Navigation and Wallet Status */}
+              <div className="flex items-center gap-8">
+                {/* Main Navigation */}
+                <nav className="flex items-center gap-6 h-full">
+                  <button 
+                    onClick={() => setCurrentView('checkin')}
+                    className={`nav-link ${
+                      currentView === 'checkin' ? 'nav-link-active' : ''
+                    }`}
+                  >
+                    Check In
+                  </button>
+                  <button 
+                    onClick={() => setCurrentView('documents')}
+                    className={`nav-link ${
+                      currentView === 'documents' ? 'nav-link-active' : ''
+                    }`}
+                  >
+                    Documents
+                  </button>
+                </nav>
+                
+                {/* Wallet Status and Theme Toggle */}
+                <div className="flex items-center gap-6">
+                
+                {/* Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                  title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                 >
-                  Check In
+                  {theme === 'light' ? (
+                    <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  ) : (
+                    <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  )}
                 </button>
-                <button 
-                  onClick={() => setCurrentView('documents')}
-                  className={`nav-link ${
-                    currentView === 'documents' ? 'nav-link-active' : ''
-                  }`}
-                >
-                  Documents
-                </button>
-              </nav>
-              
-              {/* Right: Wallet Status */}
-              <div className="flex items-center gap-6">
                 
                 {/* Authentication Status */}
                 {hasWalletConnection() ? (
                   <div className="flex items-center gap-4">
                     {authMode === 'advanced' && address ? (
                       // Advanced mode: Show wallet address
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-gray-300 bg-white text-xs">
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`}>
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        <span className="monospace-accent text-gray-900">
+                        <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           {`${address.slice(0, 6)}...${address.slice(-4)}`}
                         </span>
                       </div>
                     ) : authMode === 'standard' && authenticated ? (
                       // Standard mode: Show user email or authenticated status
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-gray-300 bg-white text-xs">
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`}>
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        <span className="monospace-accent text-gray-900">
+                        <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           {user?.email?.address || 'Signed In'}
                         </span>
                       </div>
@@ -1386,39 +1513,134 @@ export default function Home() {
                     <span>Not Signed In</span>
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </div>
         </header>
 
+      <div className="flex-1 overflow-auto">
       {currentView === 'checkin' ? (
         // Check In View - Editorial Layout
+        <div className={`min-h-screen ${theme === 'light' ? 'mesh-background-light' : 'mesh-background-dark'}`}>
         <div className="max-w-5xl mx-auto px-6 py-8">
           {/* Main Check-in Interface */}
           <div className="text-center spacing-section">
-            {/* Status Overview */}
-            <div className="spacing-medium">
-                                <div className="editorial-label spacing-tiny">
-                    {hasWalletConnection() && userDossiers.length > 0 ? 'System Status' : 'Connection Required'}
+            {/* Master Switch */}
+            {hasWalletConnection() && userDossiers.length > 0 && (
+              <div className="flex justify-center spacing-large">
+                <div className="text-center">
+                  {/* Master Toggle Label */}
+                  <div className={`editorial-label-small font-semibold mb-4 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                    SYSTEM CONTROL
                   </div>
               
-              <div className={`editorial-header-large ${getCountdownTime().color} monospace-accent`}>
-                {getCountdownTime().display}
+                  {/* Large Master Toggle Switch */}
+                  <div className="relative flex justify-center mb-4">
+                    <div 
+                      className={`relative w-32 h-16 transition-all duration-300 cursor-pointer ${
+                        dummyMasterSwitch
+                          ? theme === 'light' 
+                            ? 'bg-gray-800' 
+                            : 'bg-gray-700'
+                          : theme === 'light'
+                            ? 'bg-gray-300'
+                            : 'bg-gray-600'
+                      }`}
+                      onClick={() => {
+                        setDummyMasterSwitch(!dummyMasterSwitch);
+                      }}
+                    >
+                      {/* Toggle Knob */}
+                      <div 
+                        className={`absolute top-2 w-12 h-12 bg-white transition-all duration-300 transform shadow-lg ${
+                          dummyMasterSwitch
+                            ? 'translate-x-16'
+                            : 'translate-x-2'
+                        }`}
+                      ></div>
+                      
+                      {/* ON/OFF Labels */}
+                      <div className="absolute inset-0 flex items-center justify-between px-4 text-white text-sm font-bold uppercase tracking-wider">
+                        <span className={`transition-opacity ${
+                          dummyMasterSwitch ? 'opacity-100' : 'opacity-40'
+                        }`}>ON</span>
+                        <span className={`transition-opacity ${
+                          dummyMasterSwitch ? 'opacity-40' : 'opacity-100'
+                        }`}>OFF</span>
+                      </div>
+                    </div>
               </div>
               
-              {getCountdownTime().expired && (
-                <div className="status-indicator status-expired justify-center spacing-small">
-                  <div className="status-dot"></div>
-                  <span>Release condition met</span>
+                  {/* Status Display */}
+                  <div className="space-y-2">
+                    <div className={`editorial-header text-lg font-bold uppercase tracking-wider ${
+                      dummyMasterSwitch
+                        ? theme === 'light' ? 'text-green-700' : 'text-green-400'
+                        : theme === 'light' ? 'text-red-700' : 'text-red-400'
+                    }`}>
+                      {dummyMasterSwitch ? 'ACTIVE' : 'INACTIVE'}
+                </div>
+                    
+                    {!dummyMasterSwitch && (
+                      <div className={`text-sm font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        System offline • Toggle to activate
+                      </div>
+                    )}
+                  </div>
+                </div>
                 </div>
               )}
-              
-              {hasWalletConnection() && userDossiers.length > 0 && (
-                <div className="editorial-body text-sm">
-                  {userDossiers.filter(d => d.isActive).length} active documents protected
-                </div>
-              )}
+
+            {/* Dashboard Status Cards */}
+            {hasWalletConnection() && userDossiers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto spacing-medium">
+                {/* System Status Card */}
+                <div className={`p-5 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold monospace-accent ${getCountdownTime().color}`}>
+                      {getCountdownTime().display}
+                    </div>
+                    <div className={`editorial-label-small mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                      SYSTEM STATUS
+                    </div>
+                  </div>
             </div>
+
+                {/* Last Check-in Card */}
+                <div className={`p-5 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                      {getTimeSinceLastCheckIn()}
+                    </div>
+                    <div className={`editorial-label-small mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                      LAST CHECK-IN
+                    </div>
+                  </div>
+                </div>
+
+                {/* Protected Documents Card */}
+                <div className={`p-5 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                      {userDossiers.filter(d => d.isActive).length}
+                    </div>
+                    <div className={`editorial-label-small mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                      ACTIVE DOCUMENTS
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="spacing-medium">
+                <div className="editorial-label spacing-tiny text-gray-700 dark:text-gray-300">
+                  Connection Required
+                </div>
+                <div className="editorial-header-large text-gray-600 dark:text-gray-400 monospace-accent">
+                  DISCONNECTED
+                </div>
+              </div>
+            )}
             
             {/* Action Interface */}
             <div className="max-w-md mx-auto spacing-medium">
@@ -1479,30 +1701,13 @@ export default function Home() {
               )}
             </div>
             
-            {/* System Information Grid */}
-            {hasWalletConnection() && userDossiers.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto spacing-medium">
-                <div className="text-center">
-                                      <div className="editorial-label-small spacing-tiny">Last Check-in</div>
-                    <div className="monospace-accent text-sm font-bold text-primary">{getTimeSinceLastCheckIn()}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="editorial-label-small spacing-tiny">Status</div>
-                    <div className="monospace-accent text-sm font-bold text-primary">{getRemainingTime().display}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="editorial-label-small spacing-tiny">Protected</div>
-                    <div className="monospace-accent text-sm font-bold text-primary">{userDossiers.filter(d => d.isActive).length} docs</div>
-                </div>
-              </div>
-            )}
             
             {/* Connection Prompt */}
             {!hasWalletConnection() && (
               <div className="editorial-card max-w-md mx-auto text-center">
                 <div className="spacing-small">
-                  <h3 className="editorial-header">Connect to Begin</h3>
-                  <p className="editorial-body text-sm">
+                  <h3 className="editorial-header text-gray-900 dark:text-gray-100">Connect to Begin</h3>
+                  <p className="editorial-body text-sm text-gray-700 dark:text-gray-300">
                     Connect your wallet or sign in with email to start protecting your documents with cryptographic deadman switches.
                   </p>
                 </div>
@@ -1516,25 +1721,579 @@ export default function Home() {
             )}
           </div>
         </div>
+        </div>
       ) : (
         // Documents View - Normal Container
+        <div className={`min-h-screen ${theme === 'light' ? 'mesh-background-light' : 'mesh-background-dark'}`}>
         <div className="max-w-7xl mx-auto px-4 py-6">
-          {!showCreateForm ? (
+          {documentDetailView && selectedDocument ? (
+            // Document Detail View
+            <div className="spacing-section">
+              {/* Navigation Header */}
+              <div className="mb-6">
+                <button
+                  onClick={closeDocumentDetail}
+                  className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                    theme === 'light' 
+                      ? 'text-gray-600 hover:text-gray-900' 
+                      : 'text-gray-400 hover:text-gray-100'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to Documents
+                </button>
+              </div>
+
+              {/* Document Detail Content */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Information Panel */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Document Overview */}
+                  <div className="editorial-card">
+                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 pr-4">
+                          <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-2">
+                            {selectedDocument.name.replace('Encrypted file: ', '')}
+                          </h1>
+                          <div className="flex items-center gap-4">
+                            <div className={`status-indicator text-xs ${
+                              (() => {
+                                if (!selectedDocument.isActive) return 'status-inactive';
+                                
+                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                const isTimeExpired = remainingMs <= 0;
+                                
+                                return isTimeExpired ? 'status-expired' : 'status-active';
+                              })()
+                            }`}>
+                              <div className="status-dot"></div>
+                              <span>
+                                {(() => {
+                                  if (!selectedDocument.isActive) return 'Inactive';
+                                  
+                                  const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                  const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                  const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                  const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                  const isTimeExpired = remainingMs <= 0;
+                                  
+                                  return isTimeExpired ? 'Expired' : 'Active';
+                                })()}
+                              </span>
+                            </div>
+                            <div className={`text-xs font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                              Document #{selectedDocument.id.toString()}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Decryptable Status Badge */}
+                        {selectedDocument.isDecryptable && selectedDocument.encryptedFileHashes.length > 0 && (
+                          <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 ${
+                            theme === 'light' 
+                              ? 'bg-green-100 text-green-700 border border-green-200' 
+                              : 'bg-green-900/20 text-green-400 border border-green-800'
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${theme === 'light' ? 'bg-green-600' : 'bg-green-400'}`}></div>
+                            READY TO DECRYPT
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Document Stats Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          {selectedDocument.encryptedFileHashes.length}
+                        </div>
+                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Files
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          {selectedDocument.recipients.length}
+                        </div>
+                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Recipients
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          {Math.floor(Number(selectedDocument.checkInInterval) / 3600)}h
+                        </div>
+                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Interval
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-2xl font-bold monospace-accent ${
+                          (() => {
+                            const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                            const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                            const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                            const remainingMs = intervalMs - timeSinceLastCheckIn;
+                            
+                            if (!selectedDocument.isActive) return theme === 'light' ? 'text-gray-500' : 'text-gray-500';
+                            if (remainingMs <= 0) return theme === 'light' ? 'text-red-700' : 'text-red-400';
+                            if (remainingMs < 2 * 60 * 60 * 1000) return theme === 'light' ? 'text-orange-600' : 'text-orange-400';
+                            return theme === 'light' ? 'text-green-700' : 'text-green-400';
+                          })()
+                        }`}>
+                          {(() => {
+                            if (!selectedDocument.isActive) return '--';
+                            
+                            const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                            const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                            const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                            const remainingMs = intervalMs - timeSinceLastCheckIn;
+                            
+                            if (remainingMs <= 0) return '0h';
+                            
+                            const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+                            return `${remainingHours}h`;
+                          })()}
+                        </div>
+                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Remaining
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timing Information */}
+                  <div className="editorial-card">
+                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Timing & Schedule</h3>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                            Check-in Interval
+                          </div>
+                          <div className={`text-lg font-semibold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                            {(() => {
+                              const hours = Math.floor(Number(selectedDocument.checkInInterval) / 3600);
+                              const minutes = Math.floor((Number(selectedDocument.checkInInterval) % 3600) / 60);
+                              if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+                              if (hours > 0) return `${hours} hours`;
+                              return `${minutes} minutes`;
+                            })()}
+                          </div>
+                        </div>
+                        <div>
+                          <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                            Last Check-in
+                          </div>
+                          <div className={`text-lg font-semibold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                            {new Date(Number(selectedDocument.lastCheckIn) * 1000).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Time Remaining Display */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'} mb-2`}>
+                          Current Status
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {(() => {
+                            if (!selectedDocument.isActive) {
+                              return (
+                                <>
+                                  <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                                  <span className={`text-lg font-semibold ${theme === 'light' ? 'text-gray-500' : 'text-gray-500'}`}>
+                                    Document Inactive
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                            const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                            const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                            const remainingMs = intervalMs - timeSinceLastCheckIn;
+                            
+                            if (remainingMs <= 0) {
+                              return (
+                                <>
+                                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+                                  <span className={`text-lg font-semibold ${theme === 'light' ? 'text-red-700' : 'text-red-400'}`}>
+                                    Expired • Ready for Decryption
+                                  </span>
+                                </>
+                              );
+                            }
+                            
+                            const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+                            const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                            
+                            let statusColor = 'bg-green-500';
+                            let textColor = theme === 'light' ? 'text-green-700' : 'text-green-400';
+                            
+                            if (remainingMs < 2 * 60 * 60 * 1000) {
+                              statusColor = 'bg-orange-500';
+                              textColor = theme === 'light' ? 'text-orange-600' : 'text-orange-400';
+                            }
+                            if (remainingMs < 30 * 60 * 1000) {
+                              statusColor = 'bg-red-500';
+                              textColor = theme === 'light' ? 'text-red-700' : 'text-red-400';
+                            }
+                            
+                            return (
+                              <>
+                                <div className={`w-3 h-3 rounded-full ${statusColor}`}></div>
+                                <span className={`text-lg font-semibold ${textColor}`}>
+                                  {remainingHours > 0 ? `${remainingHours}h ${remainingMinutes}m remaining` : `${remainingMinutes}m remaining`}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* File Information */}
+                  <div className="editorial-card">
+                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Encrypted Files</h3>
+                    <div className="space-y-3">
+                      {selectedDocument.encryptedFileHashes.map((hash, index) => (
+                        <div key={index} className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-700 bg-gray-800'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                File #{index + 1}
+                              </div>
+                              <div className={`text-xs monospace-accent ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'} break-all`}>
+                                {hash}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(hash);
+                                toast.success('Hash copied to clipboard');
+                              }}
+                              className={`ml-2 p-1 rounded text-xs ${
+                                theme === 'light'
+                                  ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                              }`}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Panel */}
+                <div className="space-y-6">
+                  {/* Quick Actions */}
+                  <div className="editorial-card">
+                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
+                    <div className="space-y-3">
+                      {/* Check In Button */}
+                      {selectedDocument.isActive && (
+                        <button
+                                                     onClick={async (e) => {
+                             e.stopPropagation();
+                             await handleCheckIn();
+                           }}
+                          disabled={isCheckingIn}
+                          className="editorial-button-primary w-full"
+                        >
+                          {isCheckingIn ? 'Checking In...' : 'Check In'}
+                        </button>
+                      )}
+                      
+                      {/* Decrypt Button */}
+                      {(() => {
+                        const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                        const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                        const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                        const remainingMs = intervalMs - timeSinceLastCheckIn;
+                        const isTimeExpired = remainingMs <= 0;
+                        const shouldShowButton = (isTimeExpired || selectedDocument.isDecryptable) && selectedDocument.encryptedFileHashes.length > 0;
+                        
+                        return shouldShowButton ? (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              // Add decrypt logic here (reuse from the card view)
+                              let decryptToast: any;
+                              try {
+                                console.log('🔓 Attempting decryption for dossier:', selectedDocument.id.toString());
+                                
+                                if (selectedDocument.encryptedFileHashes.length > 0) {
+                                  const fileHash = selectedDocument.encryptedFileHashes[0];
+                                  if (!fileHash) {
+                                    throw new Error('No encrypted file hash found in dossier');
+                                  }
+                                  
+                                  console.log('🔓 Attempting to decrypt expired document...');
+                                  decryptToast = toast.loading('Decrypting expired document...');
+                                  
+                                  // Step 1: Fetch encrypted data from IPFS
+                                  const ipfsHash = fileHash.replace('ipfs://', '');
+                                  const ipfsGateways = [
+                                    `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+                                    `https://ipfs.io/ipfs/${ipfsHash}`,
+                                    `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+                                  ];
+                                  
+                                  let retrievedData: Uint8Array | null = null;
+                                  let gatewayUsed = '';
+                                  
+                                  for (const gateway of ipfsGateways) {
+                                    try {
+                                      console.log(`🌐 Trying gateway: ${gateway}`);
+                                      const response = await fetch(gateway);
+                                      if (response.ok) {
+                                        const arrayBuffer = await response.arrayBuffer();
+                                        retrievedData = new Uint8Array(arrayBuffer);
+                                        gatewayUsed = gateway;
+                                        console.log(`✅ Successfully retrieved data from: ${gateway}`);
+                                        break;
+                                      } else {
+                                        console.log(`❌ Gateway failed with status ${response.status}: ${gateway}`);
+                                      }
+                                    } catch (error) {
+                                      console.log(`❌ Gateway error: ${gateway}`, error);
+                                    }
+                                  }
+                                  
+                                  if (!retrievedData) {
+                                    throw new Error('Failed to retrieve encrypted data from IPFS using any gateway');
+                                  }
+                                  
+                                  console.log(`📥 Successfully retrieved encrypted data:`);
+                                  console.log(`   - IPFS hash: ${ipfsHash}`);
+                                  console.log(`   - Gateway used: ${gatewayUsed}`);
+                                  console.log(`   - Data length: ${retrievedData.length} bytes`);
+                                  
+                                  // Step 2a: Initialize TACo before reconstruction
+                                  console.log(`🔧 Initializing TACo...`);
+                                  const { tacoService } = await import('./lib/taco');
+                                  await tacoService.initialize();
+                                  console.log(`✅ TACo initialized`);
+                                  
+                                  // Step 2b: Import and reconstruct MessageKit  
+                                  const { ThresholdMessageKit } = await import('@nucypher/taco');
+                                  console.log(`🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`);
+                                  
+                                  const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
+                                  console.log(`✅ MessageKit reconstructed successfully`);
+                                  
+                                  // Step 3: Decrypt using TACo  
+                                  const decryptedData = await tacoService.decryptFile(messageKit);
+                                  
+                                  // Step 4: Download the decrypted file
+                                  const originalFileName = selectedDocument.name.replace('Encrypted file: ', '') || 'decrypted-document';
+                                  const mimeType = getMimeType(originalFileName);
+                                  const blob = new Blob([decryptedData], { type: mimeType });
+                                  const url = URL.createObjectURL(blob);
+                                  
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = originalFileName;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  URL.revokeObjectURL(url);
+                                  
+                                  toast.success('🎉 Document decrypted and downloaded successfully!', { id: decryptToast });
+                                  
+                                  setActivityLog(prev => [
+                                    { 
+                                      type: `🔓 Document #${selectedDocument.id.toString()} decrypted and downloaded`, 
+                                      date: new Date().toLocaleString() 
+                                    },
+                                    ...prev
+                                  ]);
+                                } else {
+                                  toast.error(`No encrypted files found in this dossier. Dossier #${selectedDocument.id.toString()} appears to be empty or corrupted.`);
+                                }
+                              } catch (error) {
+                                console.error('❌ Decryption failed:', error);
+                                toast.error(`Failed to decrypt document: ${error}`, { id: decryptToast });
+                              }
+                            }}
+                            className={`w-full py-3 px-4 border-2 editorial-button transition-all duration-200 ${
+                              theme === 'light'
+                                ? 'border-red-600 text-red-700 hover:bg-red-600 hover:text-white hover:border-red-700'
+                                : 'border-red-500 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                              </svg>
+                              <span>Decrypt Document</span>
+                            </div>
+                          </button>
+                        ) : null;
+                      })()}
+                      
+                      {/* Pause/Resume Button */}
+                      <button
+                                                 onClick={async (e) => {
+                           e.stopPropagation();
+                           try {
+                             if (selectedDocument.isActive) {
+                               await ContractService.deactivateDossier(selectedDocument.id);
+                             } else {
+                               await ContractService.reactivateDossier(selectedDocument.id);
+                             }
+                             
+                             await loadUserDossiers();
+                             setActivityLog(prev => [
+                               { 
+                                 type: `Document #${selectedDocument.id.toString()} ${selectedDocument.isActive ? 'deactivated' : 'resumed'}`, 
+                                 date: new Date().toLocaleString() 
+                               },
+                               ...prev
+                             ]);
+                           } catch (error) {
+                             console.error('Failed to toggle document status:', error);
+                             toast.error('Failed to update document status. Please try again.');
+                           }
+                         }}
+                        className="w-full editorial-button"
+                      >
+                        {selectedDocument.isActive ? 'Pause Document' : 'Resume Document'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Recipients List */}
+                  <div className="editorial-card">
+                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Recipients</h3>
+                    <div className="space-y-2">
+                      {selectedDocument.recipients.map((recipient, index) => (
+                        <div key={index} className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-700 bg-gray-800'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className={`text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                                Recipient #{index + 1}
+                              </div>
+                              <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'} break-all`}>
+                                {recipient}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(recipient);
+                                toast.success('Address copied to clipboard');
+                              }}
+                              className={`ml-2 p-1 rounded text-xs ${
+                                theme === 'light'
+                                  ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                              }`}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Security Information */}
+                  <div className="editorial-card">
+                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Security Details</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Contract Address
+                        </span>
+                        <span className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          {CANARY_DOSSIER_ADDRESS.slice(0, 8)}...{CANARY_DOSSIER_ADDRESS.slice(-6)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Network
+                        </span>
+                        <span className={`text-sm ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          Polygon Amoy Testnet
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Encryption
+                        </span>
+                        <span className={`text-sm ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          TACo Threshold
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : !showCreateForm ? (
             <>
               {/* Your Documents */}
               {hasWalletConnection() && (
                 <div className="spacing-section">
-                  <div className="flex justify-between items-center spacing-medium">
-                    <div>
-                      <h2 className="editorial-header">Protected Documents</h2>
-                      <p className="editorial-body text-sm text-secondary font-medium">
-                        {userDossiers.length > 0 
-                          ? `${userDossiers.filter(d => d.isActive).length} active, ${userDossiers.length} total`
-                          : 'No documents created yet'
-                        }
-                      </p>
+                  <div className="spacing-medium">
+                    <div className="flex items-center justify-between">
+                      {/* Left side: Title and Stats */}
+                      <div className="flex items-center gap-6">
+                      <h2 className="editorial-header text-gray-900 dark:text-gray-100">Protected Documents</h2>
+                        
+                        {userDossiers.length > 0 && (
+                          <div className="flex items-center gap-8">
+                            {/* Active Documents Card */}
+                            <div className={`px-4 py-3 border transition-all ${theme === 'light' ? 'border-gray-300 hover:border-gray-400' : 'border-gray-600 hover:border-gray-500'}`}>
+                              <div className="flex items-center gap-3">
+                                <div className={`text-2xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`} style={{ fontFamily: 'var(--font-playfair)' }}>
+                                  {userDossiers.filter(d => d.isActive).length}
+                                </div>
+                                <div>
+                                  <div className={`text-xs font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                                    ACTIVE
+                                  </div>
+                                  <div className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-500'}`}>
+                                    DOCUMENTS
+                                  </div>
+                                </div>
+                              </div>
                     </div>
                     
+                            {/* Total Documents Card */}
+                            <div className={`px-4 py-3 border transition-all ${theme === 'light' ? 'border-gray-300 hover:border-gray-400' : 'border-gray-600 hover:border-gray-500'}`}>
+                              <div className="flex items-center gap-3">
+                                <div className={`text-2xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`} style={{ fontFamily: 'var(--font-playfair)' }}>
+                                  {userDossiers.length}
+                                </div>
+                                <div>
+                                  <div className={`text-xs font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                                    TOTAL
+                                  </div>
+                                  <div className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-500'}`}>
+                                    DOCUMENTS
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Right side: Show All Button */}
                     {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
                       <button
                         onClick={() => setShowInactiveDocuments(!showInactiveDocuments)}
@@ -1547,24 +2306,49 @@ export default function Home() {
                     )}
                   </div>
                   
-                  <div className="crypto-grid-pattern bg-gray-50 p-8 border border-gray-200">
+                    {userDossiers.length === 0 && (
+                      <div className={`mt-4 p-6 rounded-lg border-2 border-dashed text-center ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-gray-800'}`}>
+                        <div className={`text-sm font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          No documents created yet
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {/* Add New Document Card - Always shown */}
                       <div 
                         onClick={() => setShowCreateForm(true)}
-                        className="bg-gray-900 hover:bg-gray-800 cursor-pointer group min-h-[220px] transition-all duration-200 shadow-lg hover:shadow-xl border-2 border-gray-800 hover:border-gray-700"
+                        className={`cursor-pointer group min-h-[180px] transition-all duration-200 shadow-lg hover:shadow-xl border-2 ${
+                          theme === 'light' 
+                            ? 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400' 
+                            : 'bg-gray-800 hover:bg-gray-700 border-gray-600 hover:border-gray-500'
+                        }`}
                       >
                         <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                          <div className="text-gray-300 group-hover:text-white transition-colors mb-6">
+                          <div className={`transition-colors mb-6 ${
+                            theme === 'light' 
+                              ? 'text-gray-600 group-hover:text-gray-800' 
+                              : 'text-gray-300 group-hover:text-white'
+                          }`}>
                             <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                           </div>
                           <div>
-                            <h3 className="text-xl font-semibold text-white group-hover:text-gray-100 transition-colors mb-3" style={{ fontFamily: 'var(--font-playfair)', color: 'white' }}>
+                            <h3 className={`text-xl font-semibold transition-colors mb-3 ${
+                              theme === 'light' 
+                                ? 'text-gray-900 group-hover:text-gray-800' 
+                                : 'text-white group-hover:text-gray-100'
+                            }`} style={{ fontFamily: 'var(--font-playfair)' }}>
                               Create Document
                             </h3>
-                            <p className="text-sm text-gray-300 group-hover:text-gray-200 transition-colors" style={{ color: '#d1d5db' }}>
+                            <p className={`text-sm transition-colors ${
+                              theme === 'light' 
+                                ? 'text-gray-600 group-hover:text-gray-700' 
+                                : 'text-gray-300 group-hover:text-gray-200'
+                            }`}>
                               Encrypt and protect a new file with cryptographic deadman switches
                             </p>
                           </div>
@@ -1581,8 +2365,19 @@ export default function Home() {
                           const remainingMs = intervalMs - timeSinceLastCheckIn;
                           const isExpired = remainingMs <= 0;
                           
+                          // Calculate grace period stats
+                          const gracePeriodMs = contractConstants?.gracePeriod ? Number(contractConstants.gracePeriod) * 1000 : 3600000; // Default 1 hour
+                          const totalTimeWithGrace = intervalMs + gracePeriodMs;
+                          const remainingWithGraceMs = totalTimeWithGrace - timeSinceLastCheckIn;
+                          const inGracePeriod = remainingMs <= 0 && remainingWithGraceMs > 0;
+                          const fullyExpired = remainingWithGraceMs <= 0;
+                          
                           let timeColor = 'text-green-600';
-                          if (remainingMs < 5 * 60 * 1000) {
+                          if (fullyExpired) {
+                            timeColor = 'text-red-600';
+                          } else if (inGracePeriod) {
+                            timeColor = 'text-orange-600';
+                          } else if (remainingMs < 5 * 60 * 1000) {
                             timeColor = 'text-red-600';
                           } else if (remainingMs < 30 * 60 * 1000) {
                             timeColor = 'text-orange-500';
@@ -1591,12 +2386,29 @@ export default function Home() {
                           }
                           
                           let timeDisplay = '';
+                          let graceDisplay = '';
+                          
                           if (!dossier.isActive) {
                             timeDisplay = 'Deactivated';
                             timeColor = 'text-muted';
-                          } else if (isExpired) {
-                            timeDisplay = '⚠ EXPIRED';
+                          } else if (fullyExpired) {
+                            timeDisplay = '⚠ FULLY EXPIRED';
                             timeColor = 'text-red-600';
+                          } else if (inGracePeriod) {
+                            timeDisplay = '⚠ IN GRACE PERIOD';
+                            // Calculate remaining grace time
+                            const graceRemainingMs = remainingWithGraceMs;
+                            const graceHours = Math.floor(graceRemainingMs / (1000 * 60 * 60));
+                            const graceMinutes = Math.floor((graceRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                            const graceSeconds = Math.floor((graceRemainingMs % (1000 * 60)) / 1000);
+                            
+                            if (graceHours > 0) {
+                              graceDisplay = `${graceHours}H ${graceMinutes}M remaining`;
+                            } else if (graceMinutes > 0) {
+                              graceDisplay = `${graceMinutes}M ${graceSeconds}S remaining`;
+                            } else {
+                              graceDisplay = `${graceSeconds}S remaining`;
+                            }
                           } else {
                             const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
                             const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -1614,19 +2426,42 @@ export default function Home() {
                           return (
                             <div
                               key={dossier.id.toString()}
-                              className="editorial-card-bordered hover:border-gray-900 min-h-[220px] flex flex-col"
+                              onClick={() => openDocumentDetail(dossier)}
+                              className="editorial-card-bordered hover:border-gray-900 dark:hover:border-gray-400 min-h-[180px] flex flex-col cursor-pointer transition-transform hover:scale-[1.02]"
                             >
+                              {/* Decryptable Status */}
+                              {dossier.isDecryptable && dossier.encryptedFileHashes.length > 0 && (
+                                <div className={`border-l-2 pl-4 pr-4 py-3 mb-4 ${theme === 'light' ? 'border-l-green-600 bg-green-50/50' : 'border-l-green-400 bg-green-900/20'}`}>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`status-dot ${theme === 'light' ? 'bg-green-600' : 'bg-green-400'}`} style={{boxShadow: theme === 'light' ? '0 0 0 2px rgba(34, 197, 94, 0.2)' : '0 0 0 2px rgba(74, 222, 128, 0.2)'}}></div>
+                                      <div>
+                                        <div className={`editorial-label-small ${theme === 'light' ? 'text-green-700' : 'text-green-400'}`}>
+                                          READY TO DECRYPT
+                                        </div>
+                                        <div className={`text-xs ${theme === 'light' ? 'text-green-600' : 'text-green-300'}`}>
+                                          Conditions met • Document available
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <svg className={`w-4 h-4 ${theme === 'light' ? 'text-green-600' : 'text-green-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              )}
+                              
                               {/* Card Header */}
-                              <div className="border-b border-gray-200 pb-3 mb-3">
+                              <div className="border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
                                 <div className="flex justify-between items-start">
-                                  <h3 className="editorial-header text-sm" title={dossier.name.replace('Encrypted file: ', '')}>
+                                  <h3 className="editorial-header text-primary flex-1 pr-4" title={dossier.name.replace('Encrypted file: ', '')}>
                                     {(() => {
                                       const displayName = dossier.name.replace('Encrypted file: ', '');
-                                      return displayName.length > 32 ? `${displayName.substring(0, 32)}...` : displayName;
+                                      return displayName.length > 28 ? `${displayName.substring(0, 28)}...` : displayName;
                                     })()}
                                   </h3>
                                   
-                                  <div className={`status-indicator text-xs ${
+                                  <div className={`status-indicator flex-shrink-0 ${
                                     (() => {
                                       if (!dossier.isActive) return 'status-inactive';
                                       
@@ -1657,45 +2492,30 @@ export default function Home() {
                                 </div>
                               </div>
                               
-                              {/* Card Body */}
-                              <div className="flex-1 mb-3">
+                              {/* Card Body - Simplified */}
+                              <div className="flex-1 mb-4">
                                 {/* Time Display */}
-                                <div className="text-center mb-3">
-                                  <div className="editorial-label-small mb-1">Time Remaining</div>
-                                  <div className={`editorial-header ${timeColor} monospace-accent text-lg`}>
+                                <div className="text-center">
+                                  <div className="editorial-label-small text-secondary mb-2">Time Remaining</div>
+                                  <div className={`${timeColor} monospace-accent text-xl font-bold`}>
                                     {timeDisplay}
                                   </div>
-                                </div>
-                                
-                                {/* Metadata Grid */}
-                                <div className="grid grid-cols-2 gap-3 text-center pt-3 border-t border-gray-200">
-                                  <div>
-                                    <div className="editorial-label-small">Interval</div>
-                                    <div className="monospace-accent text-sm font-semibold text-primary">
-                                      {Number(dossier.checkInInterval / BigInt(60))}m
+                                  {/* Grace Period Display - Simplified */}
+                                  {graceDisplay && (
+                                    <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                      <div className={`text-xs font-medium ${theme === 'light' ? 'text-orange-600' : 'text-orange-400'}`}>
+                                        Grace: {graceDisplay}
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div>
-                                    <div className="editorial-label-small">Files</div>
-                                    <div className="monospace-accent text-sm font-semibold text-primary">
-                                      {dossier.encryptedFileHashes.length}
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="text-center pt-2 border-t border-gray-200">
-                                  <div className="editorial-label-small">Last Check-in</div>
-                                  <div className="monospace-accent text-xs">
-                                    {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })} {new Date(Number(dossier.lastCheckIn) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                               
                               {/* Card Footer - Action Buttons */}
-                              <div className="border-t border-gray-200 pt-4 mt-auto">
+                              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-auto">
                                 <div className="space-y-3">
                                   {/* Primary Actions */}
-                                  <div className="flex gap-2">
+                                  <div className="flex gap-3">
                                     <button
                                       onClick={async () => {
                                         try {
@@ -1731,8 +2551,10 @@ export default function Home() {
                                         }
                                       }}
                                       disabled={!dossier.isActive}
-                                      className={`flex-1 editorial-button text-xs ${
-                                        dossier.isActive ? 'editorial-button-primary' : ''
+                                      className={`flex-1 py-2 px-4 text-xs font-semibold border-2 transition-all ${
+                                        dossier.isActive 
+                                          ? 'editorial-button-primary' 
+                                          : 'editorial-button'
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                       Check In
@@ -1778,9 +2600,9 @@ export default function Home() {
                                           // Handle specific error types gracefully
                                           let errorMessage = 'Failed to update document status. Please try again.';
                                           if (error instanceof Error) {
-                                            if (error.message.includes('rejected by user')) {
-                                              toast.info('Action cancelled');
-                                              return;
+                                                                        if (error.message.includes('rejected by user')) {
+                              toast('Action cancelled');
+                              return;
                                             } else if (error.message.includes('insufficient funds')) {
                                               errorMessage = 'Insufficient funds for transaction. Please add MATIC to your wallet.';
                                             } else if (error.message.includes('Network')) {
@@ -1791,7 +2613,7 @@ export default function Home() {
                                           toast.error(errorMessage);
                                         }
                                       }}
-                                      className="flex-1 editorial-button text-xs"
+                                      className="flex-1 py-2 px-4 text-xs font-semibold editorial-button"
                                     >
                                       {dossier.isActive ? 'Pause' : 'Resume'}
                                     </button>
@@ -1895,7 +2717,8 @@ export default function Home() {
                                               
                                               // Step 4: Download the decrypted file
                                               const originalFileName = dossier.name.replace('Encrypted file: ', '') || 'decrypted-document';
-                                              const blob = new Blob([decryptedData]);
+                                              const mimeType = getMimeType(originalFileName);
+                                              const blob = new Blob([decryptedData], { type: mimeType });
                                               const url = URL.createObjectURL(blob);
                                               
                                               const link = document.createElement('a');
@@ -1947,10 +2770,17 @@ export default function Home() {
                                           ]);
                                         }
                                       }}
-                                      className="w-full editorial-button text-xs border-red-600 text-red-700 hover:bg-red-600 hover:text-white hover:border-red-600"
+                                      className={`w-full py-3 px-4 border-2 font-semibold text-xs uppercase tracking-wider transition-all duration-200 ${
+                                        theme === 'light'
+                                          ? 'border-red-600 text-red-700 hover:bg-red-600 hover:text-white hover:border-red-700'
+                                          : 'border-red-500 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-400'
+                                      }`}
+                                      style={{
+                                        fontFamily: 'var(--font-crimson)'
+                                      }}
                                     >
                                       <div className="flex items-center justify-center gap-2">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
                                         </svg>
                                         <span>Decrypt</span>
@@ -1987,11 +2817,11 @@ export default function Home() {
                 >
                   ← Back to Documents
                 </button>
-                <h2 className="editorial-header text-2xl font-bold">Document Creation</h2>
+                <h2 className="editorial-header text-2xl font-bold text-gray-900 dark:text-gray-100">Document Creation</h2>
                 <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
               
-              <div className="crypto-grid-pattern bg-gray-50 p-8 border border-gray-200">
+              <div className={`p-8 border rounded-lg ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
                 {/* Progress Indicator */}
                 <div className="spacing-large">
                   {/* Back Button */}
@@ -1999,7 +2829,11 @@ export default function Home() {
                     <div className="spacing-small">
                       <button
                         onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                        className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded transition-colors duration-200 ${
+                          theme === 'light' 
+                            ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400' 
+                            : 'text-gray-300 bg-gray-700 border border-gray-600 hover:bg-gray-600 hover:border-gray-500'
+                        }`}
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -2048,7 +2882,7 @@ export default function Home() {
                   </div>
                   
                   <div className="text-center">
-                    <h3 className="editorial-header text-xl text-gray-900 font-bold">
+                    <h3 className={`editorial-header text-xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                       {currentStep === 1 ? 'Document Name' :
                        currentStep === 2 ? 'File Upload' :
                        currentStep === 3 ? 'Check-in Frequency' :
@@ -2056,7 +2890,7 @@ export default function Home() {
                        currentStep === 5 ? 'Review & Encrypt' :
                        'Finalize & Upload'}
                     </h3>
-                    <p className="editorial-body text-sm text-gray-700 font-semibold">
+                    <p className={`editorial-body text-sm font-semibold ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
                       Step {currentStep} of 6
                     </p>
                   </div>
@@ -2068,7 +2902,7 @@ export default function Home() {
                   {currentStep === 1 && (
                     <div className="text-center spacing-medium">
                       <div className="spacing-medium">
-                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
+                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           Give your encrypted document a memorable name for easy identification.
                         </p>
                       </div>
@@ -2081,7 +2915,7 @@ export default function Home() {
                           onChange={(e) => setName(e.target.value)}
                           autoFocus
                         />
-                        <p className="editorial-body text-sm text-gray-700 spacing-tiny font-medium">
+                        <p className={`editorial-body text-sm spacing-tiny font-medium ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
                           This helps identify the document in your protected collection
                         </p>
                       </div>
@@ -2092,34 +2926,98 @@ export default function Home() {
                   {currentStep === 2 && (
                     <div className="text-center spacing-medium">
                       <div className="spacing-medium">
-                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
-                          Select the file you want to encrypt and protect with the deadman switch.
+                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          Select or record the content you want to encrypt and protect with the deadman switch.
                         </p>
                       </div>
-                      <div className="max-w-md mx-auto">
-                        <div
-                          className="bg-gray-50 border-2 border-gray-300 hover:border-gray-900 hover:bg-white text-center py-12 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md"
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <Upload className="mx-auto spacing-small text-secondary group-hover:text-primary transition-colors" size={48} />
-                          <div className="spacing-small">
-                            <p className="editorial-header text-lg text-gray-900 group-hover:text-black transition-colors font-semibold">
-                              {uploadedFile ? uploadedFile.name : 'Drop your file here'}
-                            </p>
-                            <p className="editorial-body text-sm text-gray-700 group-hover:text-gray-900 transition-colors font-medium">
-                              {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
-                            </p>
+                      
+                      {!showMediaRecorder ? (
+                        <div className="max-w-md mx-auto space-y-4">
+                          {/* File Upload Option */}
+                          <div
+                            className={`border-2 text-center py-8 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
+                              theme === 'light' 
+                                ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
+                                : 'bg-gray-800 border-gray-600 hover:border-gray-400 hover:bg-gray-700'
+                            }`}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="mx-auto spacing-small text-secondary group-hover:text-primary transition-colors" size={32} />
+                            <div className="spacing-small">
+                              <p className={`editorial-header text-base font-semibold transition-colors ${
+                                theme === 'light' 
+                                  ? 'text-gray-900 group-hover:text-black' 
+                                  : 'text-gray-100 group-hover:text-white'
+                              }`}>
+                                {uploadedFile ? uploadedFile.name : 'Upload File'}
+                              </p>
+                              <p className={`editorial-body text-xs font-medium transition-colors ${
+                                theme === 'light' 
+                                  ? 'text-gray-700 group-hover:text-gray-900' 
+                                  : 'text-gray-300 group-hover:text-gray-100'
+                              }`}>
+                                {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
+                              </p>
+                            </div>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
                           </div>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            onChange={handleFileUpload}
-                            className="hidden"
+                          
+                          {/* OR Divider */}
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-widest">OR</span>
+                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                          </div>
+                          
+                          {/* Recording Options */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => setShowMediaRecorder(true)}
+                              className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
+                                theme === 'light' 
+                                  ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
+                                  : 'bg-gray-800 border-gray-600 hover:border-gray-400 hover:bg-gray-700'
+                              } flex flex-col items-center gap-2`}
+                            >
+                              <Mic className="w-6 h-6 text-blue-600" />
+                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                Voice Recording
+                              </span>
+                            </button>
+                            
+                            <button
+                              onClick={() => setShowMediaRecorder(true)}
+                              className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
+                                theme === 'light' 
+                                  ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
+                                  : 'bg-gray-800 border-gray-600 hover:border-gray-400 hover:bg-gray-700'
+                              } flex flex-col items-center gap-2`}
+                            >
+                              <Video className="w-6 h-6 text-red-600" />
+                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                Video Recording
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="max-w-2xl mx-auto">
+                          <MediaRecorder
+                            onFileReady={(file: File) => {
+                              setUploadedFile(file);
+                              setShowMediaRecorder(false);
+                            }}
+                            onCancel={() => setShowMediaRecorder(false)}
                           />
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -2161,19 +3059,19 @@ export default function Home() {
                       <div className="max-w-lg mx-auto space-y-4">
                         <div 
                           className={`editorial-card-bordered cursor-pointer transition-all ${
-                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50' : 'hover:border-gray-600'
+                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50 dark:bg-gray-800' : 'hover:border-gray-600 dark:hover:border-gray-400'
                           }`}
                           onClick={() => setReleaseMode('public')}
                         >
                           <div className="flex items-start">
                             <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
-                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900' : 'border-gray-400'
+                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900 dark:bg-gray-100' : 'border-gray-400'
                             }`}>
-                              {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
+                              {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 scale-50"></div>}
                             </div>
                             <div>
-                              <h4 className="editorial-header text-sm">Public Release</h4>
-                              <p className="editorial-body text-sm text-secondary font-medium">
+                              <h4 className="editorial-header text-sm text-gray-900 dark:text-gray-100">Public Release</h4>
+                              <p className="editorial-body text-sm text-secondary font-medium text-gray-600 dark:text-gray-400">
                                 Document will be made publicly accessible when triggered
                               </p>
                             </div>
@@ -2182,18 +3080,18 @@ export default function Home() {
                         
                         <div 
                           className={`editorial-card-bordered cursor-pointer transition-all ${
-                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50' : 'hover:border-gray-600'
+                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50 dark:bg-gray-800' : 'hover:border-gray-600 dark:hover:border-gray-400'
                           }`}
                           onClick={() => setReleaseMode('contacts')}
                         >
                           <div className="flex items-start">
                             <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
-                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900' : 'border-gray-400'
+                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900 dark:bg-gray-100' : 'border-gray-400'
                             }`}>
-                              {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
+                              {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 scale-50"></div>}
                             </div>
                             <div className="flex-1">
-                              <h4 className="editorial-header text-sm">Emergency Contacts</h4>
+                              <h4 className="editorial-header text-sm text-gray-900 dark:text-gray-100">Emergency Contacts</h4>
                               <p className="editorial-body text-sm text-secondary font-medium spacing-small">
                                 Document will be sent to specific people when triggered
                               </p>
@@ -2244,35 +3142,35 @@ export default function Home() {
                   {currentStep === 5 && (
                     <div className="text-center spacing-medium">
                       <div className="spacing-medium">
-                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
+                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           Please review your settings before encrypting the document.
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
-                        <div className="editorial-card border-gray-300 text-left space-y-4">
+                        <div className="editorial-card border-gray-300 dark:border-gray-600 text-left space-y-4">
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">Document Name</span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">File</span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">File</span>
                             <span className="editorial-body text-sm text-primary font-semibold">{uploadedFile?.name || 'No file selected'}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">Check-in Frequency</span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Check-in Frequency</span>
                             <span className="monospace-accent text-sm text-primary font-semibold">
                               {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">Release Mode</span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Release Mode</span>
                             <span className="editorial-body text-sm text-primary font-semibold">
                               {releaseMode === 'public' ? 'Public Release' : 'Emergency Contacts'}
                             </span>
                           </div>
                           {releaseMode === 'contacts' && (
                             <div className="pt-3 border-t border-gray-200">
-                              <div className="editorial-label-small spacing-tiny">Emergency Contacts</div>
+                              <div className="editorial-label-small spacing-tiny text-gray-700 dark:text-gray-300">Emergency Contacts</div>
                               {emergencyContacts.filter(c => c.trim()).map((contact, index) => (
                                 <div key={index} className="editorial-body text-sm text-primary font-semibold monospace-accent">
                                   • {contact}
@@ -2329,28 +3227,28 @@ export default function Home() {
                   {currentStep === 6 && (
                     <div className="text-center spacing-medium">
                       <div className="spacing-medium">
-                        <p className="editorial-body text-gray-900 max-w-md mx-auto font-semibold">
+                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           This is the final step. Your document will be encrypted, uploaded, and registered on the blockchain.
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
                         <div className="editorial-card border-gray-300 text-left space-y-4 spacing-medium">
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">Document Name</span>
+                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">File</span>
+                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>File</span>
                             <span className="editorial-body text-sm text-primary font-semibold">{uploadedFile?.name || 'No file selected'}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">Check-in Frequency</span>
+                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Check-in Frequency</span>
                             <span className="monospace-accent text-sm text-primary font-semibold">
                               {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small">Release Mode</span>
+                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Release Mode</span>
                             <span className="editorial-body text-sm text-primary font-semibold capitalize">{releaseMode}</span>
                           </div>
                         </div>
@@ -2375,7 +3273,7 @@ export default function Home() {
 
                 {/* Navigation */}
                 {currentStep < 6 && !traceJson && (
-                  <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+                  <div className={`flex justify-between mt-8 pt-6 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
                     <button
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                       disabled={currentStep === 1}
@@ -2409,18 +3307,20 @@ export default function Home() {
             </div>
           )}
         </div>
-      )}
         </div>
+      )}
+      </div>
+      </div>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm flex-shrink-0">
+      <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-center gap-6">
             <a
               href="https://canary.tools"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+              className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
             >
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2446,7 +3346,7 @@ export default function Home() {
                   toast.error('Failed to copy address');
                 });
               }}
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+              className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               title="Click to copy donation address"
             >
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2459,7 +3359,7 @@ export default function Home() {
               href="https://github.com/TheThirdRoom/canary"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+              className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
             >
               <Github size={10} />
               <span>Source</span>
@@ -2467,7 +3367,7 @@ export default function Home() {
             
             <a
               href="mailto:contact@canary.tools"
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
+              className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
             >
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -2476,14 +3376,14 @@ export default function Home() {
             </a>
           </div>
           
-          <div className="text-center mt-2 pt-2 border-t border-gray-200">
-            <p className="text-xs text-muted">
-              © 2024 Canary. Truth protection through cryptographic deadman switches.
+          <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+            <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+              © 2025 Canary. Truth protection through cryptographic deadman switches.
             </p>
           </div>
         </div>
       </footer>
-    </div>
-    </>
+      </div>
+    </React.Fragment>
   );
 }

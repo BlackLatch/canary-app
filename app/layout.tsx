@@ -3,6 +3,7 @@ import { Playfair_Display, Crimson_Text } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from './components/Web3Provider';
 import { Toaster } from 'react-hot-toast';
+import { ThemeProvider } from './lib/theme-context';
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -29,12 +30,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var savedTheme = localStorage.getItem('theme');
+                  var theme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                  document.documentElement.classList.add(theme);
+                } catch (e) {
+                  document.documentElement.classList.add('light');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
-        className={`${playfair.variable} ${crimson.variable} antialiased text-gray-900 h-full`}
+        className={`${playfair.variable} ${crimson.variable} antialiased h-full`}
       >
-        <Web3Provider>
-          {children}
-        </Web3Provider>
+        <ThemeProvider>
+          <Web3Provider>
+            {children}
+          </Web3Provider>
+        </ThemeProvider>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -42,7 +62,7 @@ export default function RootLayout({
             className: 'editorial-toast',
             style: {
               background: '#ffffff',
-              color: '#111827',
+              color: '#0B0C10',
               border: '2px solid #e5e7eb',
               borderRadius: '0px',
               fontSize: '15px',
@@ -55,34 +75,34 @@ export default function RootLayout({
             },
             success: {
               style: {
-                border: '2px solid #10b981',
+                border: '2px solid #B8E994',
                 background: '#f0fdf4',
                 color: '#166534',
               },
               iconTheme: {
-                primary: '#10b981',
+                primary: '#B8E994',
                 secondary: '#ffffff',
               },
             },
             error: {
               style: {
-                border: '2px solid #ef4444',
+                border: '2px solid #FF6B6B',
                 background: '#fef2f2',
                 color: '#991b1b',
               },
               iconTheme: {
-                primary: '#ef4444',
+                primary: '#FF6B6B',
                 secondary: '#ffffff',
               },
             },
             loading: {
               style: {
-                border: '2px solid #111827',
+                border: '2px solid #C0E5A9',
                 background: '#f9fafb',
-                color: '#111827',
+                color: '#0B0C10',
               },
               iconTheme: {
-                primary: '#111827',
+                primary: '#C0E5A9',
                 secondary: '#ffffff',
               },
             },
