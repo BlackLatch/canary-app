@@ -1194,34 +1194,7 @@ export default function Home(): JSX.Element {
                 </div>
               </div>
 
-              {/* Support Section */}
-              <div className="pt-6 border-t border-gray-200">
-                <p className="editorial-body text-sm text-muted mb-3">
-                  Support open-source truth protection
-                </p>
-                
-                <button
-                  onClick={() => {
-                    const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
-                    navigator.clipboard.writeText(supportAddress).then(() => {
-                      toast.success('💝 Donation address copied to clipboard!\n\nETH/Polygon: ' + supportAddress, {
-                        duration: 6000,
-                        style: {
-                          background: '#10B981',
-                          color: 'white',
-                          maxWidth: '500px',
-                        },
-                      });
-                    }).catch(() => {
-                      toast.error('Failed to copy address');
-                    });
-                  }}
-                  className="flex items-center gap-2 text-xs text-muted hover:text-primary transition-colors mx-auto"
-                  title="Click to copy donation address"
-                >
-                  💝 <span>Donate</span>
-                </button>
-              </div>
+
             </div>
           </div>
         </div>
@@ -1240,6 +1213,16 @@ export default function Home(): JSX.Element {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>Website</span>
+              </a>
+              
+              <a
+                href="/docs"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Docs</span>
               </a>
               
               <a
@@ -1526,25 +1509,21 @@ export default function Home(): JSX.Element {
         <div className="max-w-5xl mx-auto px-6 py-8">
           {/* Main Check-in Interface */}
           <div className="text-center spacing-section">
-            {/* Master Switch */}
-            {hasWalletConnection() && userDossiers.length > 0 && (
-              <div className="flex justify-center spacing-large">
-                <div className="text-center">
-                  {/* Master Toggle Label */}
-                  <div className={`editorial-label-small font-semibold mb-4 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                    SYSTEM CONTROL
+            
+            {/* Primary Control - Combined Master Switch & Check-In */}
+            {hasWalletConnection() && (
+              <div className="max-w-lg mx-auto spacing-medium">
+                {/* Master Switch & System Status */}
+                <div className="spacing-small">
+                  <div className="editorial-label-small text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wider">
+                    System Control
                   </div>
-              
-                  {/* Large Master Toggle Switch */}
-                  <div className="relative flex justify-center mb-4">
+                  
+                  <div className="flex justify-center mb-4">
                     <div 
-                      className={`relative w-32 h-16 transition-all duration-300 cursor-pointer ${
+                      className={`relative w-32 h-16 cursor-pointer transition-all duration-300 ${
                         dummyMasterSwitch
-                          ? theme === 'light' 
-                            ? 'bg-gray-800' 
-                            : 'bg-gray-700'
-                          : theme === 'light'
-                            ? 'bg-gray-300'
+                            ? 'bg-gray-700'
                             : 'bg-gray-600'
                       }`}
                       onClick={() => {
@@ -1570,103 +1549,92 @@ export default function Home(): JSX.Element {
                         }`}>OFF</span>
                       </div>
                     </div>
-              </div>
-              
+                  </div>
+                  
                   {/* Status Display */}
-                  <div className="space-y-2">
-                    <div className={`editorial-header text-lg font-bold uppercase tracking-wider ${
-                      dummyMasterSwitch
-                        ? theme === 'light' ? 'text-green-700' : 'text-green-400'
-                        : theme === 'light' ? 'text-red-700' : 'text-red-400'
-                    }`}>
-                      {dummyMasterSwitch ? 'ACTIVE' : 'INACTIVE'}
-                </div>
-                    
-                    {!dummyMasterSwitch && (
-                      <div className={`text-sm font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                        System offline • Toggle to activate
-                      </div>
-                    )}
-                  </div>
-                </div>
-                </div>
-              )}
-
-            {/* Dashboard Status Cards */}
-            {hasWalletConnection() && userDossiers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto spacing-medium">
-                {/* System Status Card */}
-                <div className={`p-5 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold monospace-accent ${getCountdownTime().color}`}>
-                      {getCountdownTime().display}
-                    </div>
-                    <div className={`editorial-label-small mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                      SYSTEM STATUS
-                    </div>
-                  </div>
-            </div>
-
-                {/* Last Check-in Card */}
-                <div className={`p-5 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                      {getTimeSinceLastCheckIn()}
-                    </div>
-                    <div className={`editorial-label-small mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                      LAST CHECK-IN
-                    </div>
+                  <div className={`text-center editorial-header text-lg font-bold uppercase tracking-wider mb-6 ${
+                    dummyMasterSwitch
+                      ? theme === 'light' ? 'text-green-700' : 'text-green-400'
+                      : theme === 'light' ? 'text-red-700' : 'text-red-400'
+                  }`}>
+                    {dummyMasterSwitch ? 'ACTIVE' : 'INACTIVE'}
                   </div>
                 </div>
 
-                {/* Protected Documents Card */}
-                <div className={`p-5 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                      {userDossiers.filter(d => d.isActive).length}
+                {/* Primary Action Button - Integrated */}
+                <div className="flex justify-center">
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={isCheckingIn || !hasWalletConnection() || userDossiers.filter(d => d.isActive).length === 0}
+                    className={`editorial-button-primary editorial-button-large px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      hasWalletConnection() && userDossiers.filter(d => d.isActive).length > 0 && !isCheckingIn
+                        ? theme === 'light'
+                          ? 'bg-gray-900 text-white hover:bg-gray-800'
+                          : 'bg-gray-100 text-gray-900 hover:bg-white'
+                        : ''
+                    }`}
+                  >
+                  {isCheckingIn ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                      <span>Checking In...</span>
                     </div>
-                    <div className={`editorial-label-small mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                      ACTIVE DOCUMENTS
+                  ) : (
+                    <div className="flex items-center justify-center gap-3">
+                      <CheckCircle size={20} />
+                      <span>Check In Now</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="spacing-medium">
-                <div className="editorial-label spacing-tiny text-gray-700 dark:text-gray-300">
-                  Connection Required
-                </div>
-                <div className="editorial-header-large text-gray-600 dark:text-gray-400 monospace-accent">
-                  DISCONNECTED
+                  )}
+                </button>
                 </div>
               </div>
             )}
-            
-            {/* Action Interface */}
-            <div className="max-w-md mx-auto spacing-medium">
-              <button
-                onClick={handleCheckIn}
-                disabled={isCheckingIn || !hasWalletConnection() || userDossiers.filter(d => d.isActive).length === 0}
-                className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed spacing-small"
-                style={{ 
-                  backgroundColor: hasWalletConnection() && userDossiers.filter(d => d.isActive).length > 0 && !isCheckingIn ? 'var(--color-ink)' : undefined,
-                  color: hasWalletConnection() && userDossiers.filter(d => d.isActive).length > 0 && !isCheckingIn ? 'white' : undefined
-                }}
-              >
-                {isCheckingIn ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                    <span>Checking In...</span>
+
+            {/* Minimal Status Indicators */}
+            {hasWalletConnection() && userDossiers.length > 0 && (
+              <div className="max-w-4xl mx-auto spacing-medium">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* System Status - Compact */}
+                  <div className={`p-4 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
+                    <div className="text-center">
+                      <div className={`text-lg font-bold monospace-accent ${getCountdownTime().color}`}>
+                        {getCountdownTime().display}
+                      </div>
+                      <div className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        SYSTEM STATUS
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-3">
-                    <CheckCircle size={20} />
-                    <span>Check In Now</span>
+
+                  {/* Last Check-in - Compact */}
+                  <div className={`p-4 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
+                    <div className="text-center">
+                      <div className={`text-lg font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                        {getTimeSinceLastCheckIn()}
+                      </div>
+                      <div className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        LAST CHECK-IN
+                      </div>
+                    </div>
                   </div>
-                )}
-              </button>
-              
-              {/* Secondary Actions */}
+
+                  {/* Active Documents - Compact */}
+                  <div className={`p-4 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
+                    <div className="text-center">
+                      <div className={`text-lg font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                        {userDossiers.filter(d => d.isActive).length}
+                      </div>
+                      <div className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        ACTIVE DOCUMENTS
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Minimal Utility Actions */}
+            <div className="max-w-sm mx-auto spacing-medium">
               {hasWalletConnection() && userDossiers.length > 0 && (
                 <button
                   onClick={() => {
@@ -1700,8 +1668,7 @@ export default function Home(): JSX.Element {
                 </button>
               )}
             </div>
-            
-            
+
             {/* Connection Prompt */}
             {!hasWalletConnection() && (
               <div className="editorial-card max-w-md mx-auto text-center">
@@ -1719,7 +1686,7 @@ export default function Home(): JSX.Element {
                 </button>
               </div>
             )}
-          </div>
+            </div>
         </div>
         </div>
       ) : (
@@ -1793,79 +1760,11 @@ export default function Home(): JSX.Element {
                           </div>
                         </div>
                         
-                        {/* Decryptable Status Badge */}
-                        {selectedDocument.isDecryptable && selectedDocument.encryptedFileHashes.length > 0 && (
-                          <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 ${
-                            theme === 'light' 
-                              ? 'bg-green-100 text-green-700 border border-green-200' 
-                              : 'bg-green-900/20 text-green-400 border border-green-800'
-                          }`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${theme === 'light' ? 'bg-green-600' : 'bg-green-400'}`}></div>
-                            READY TO DECRYPT
-                          </div>
-                        )}
+
                       </div>
                     </div>
 
-                    {/* Document Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {selectedDocument.encryptedFileHashes.length}
-                        </div>
-                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Files
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {selectedDocument.recipients.length}
-                        </div>
-                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Recipients
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className={`text-2xl font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {Math.floor(Number(selectedDocument.checkInInterval) / 3600)}h
-                        </div>
-                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Interval
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className={`text-2xl font-bold monospace-accent ${
-                          (() => {
-                            const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
-                            const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
-                            const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                            const remainingMs = intervalMs - timeSinceLastCheckIn;
-                            
-                            if (!selectedDocument.isActive) return theme === 'light' ? 'text-gray-500' : 'text-gray-500';
-                            if (remainingMs <= 0) return theme === 'light' ? 'text-red-700' : 'text-red-400';
-                            if (remainingMs < 2 * 60 * 60 * 1000) return theme === 'light' ? 'text-orange-600' : 'text-orange-400';
-                            return theme === 'light' ? 'text-green-700' : 'text-green-400';
-                          })()
-                        }`}>
-                          {(() => {
-                            if (!selectedDocument.isActive) return '--';
-                            
-                            const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
-                            const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
-                            const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                            const remainingMs = intervalMs - timeSinceLastCheckIn;
-                            
-                            if (remainingMs <= 0) return '0h';
-                            
-                            const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-                            return `${remainingHours}h`;
-                          })()}
-                        </div>
-                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Remaining
-                        </div>
-                      </div>
-                    </div>
+
                   </div>
 
                   {/* Timing Information */}
@@ -1897,66 +1796,7 @@ export default function Home(): JSX.Element {
                         </div>
                       </div>
                       
-                      {/* Time Remaining Display */}
-                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'} mb-2`}>
-                          Current Status
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {(() => {
-                            if (!selectedDocument.isActive) {
-                              return (
-                                <>
-                                  <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                                  <span className={`text-lg font-semibold ${theme === 'light' ? 'text-gray-500' : 'text-gray-500'}`}>
-                                    Document Inactive
-                                  </span>
-                                </>
-                              );
-                            }
-                            
-                            const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
-                            const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
-                            const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                            const remainingMs = intervalMs - timeSinceLastCheckIn;
-                            
-                            if (remainingMs <= 0) {
-                              return (
-                                <>
-                                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                                  <span className={`text-lg font-semibold ${theme === 'light' ? 'text-red-700' : 'text-red-400'}`}>
-                                    Expired • Ready for Decryption
-                                  </span>
-                                </>
-                              );
-                            }
-                            
-                            const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-                            const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-                            
-                            let statusColor = 'bg-green-500';
-                            let textColor = theme === 'light' ? 'text-green-700' : 'text-green-400';
-                            
-                            if (remainingMs < 2 * 60 * 60 * 1000) {
-                              statusColor = 'bg-orange-500';
-                              textColor = theme === 'light' ? 'text-orange-600' : 'text-orange-400';
-                            }
-                            if (remainingMs < 30 * 60 * 1000) {
-                              statusColor = 'bg-red-500';
-                              textColor = theme === 'light' ? 'text-red-700' : 'text-red-400';
-                            }
-                            
-                            return (
-                              <>
-                                <div className={`w-3 h-3 rounded-full ${statusColor}`}></div>
-                                <span className={`text-lg font-semibold ${textColor}`}>
-                                  {remainingHours > 0 ? `${remainingHours}h ${remainingMinutes}m remaining` : `${remainingMinutes}m remaining`}
-                                </span>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </div>
+
                     </div>
                   </div>
 
@@ -2005,12 +1845,12 @@ export default function Home(): JSX.Element {
                       {/* Check In Button */}
                       {selectedDocument.isActive && (
                         <button
-                                                     onClick={async (e) => {
-                             e.stopPropagation();
-                             await handleCheckIn();
-                           }}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleCheckIn();
+                          }}
                           disabled={isCheckingIn}
-                          className="editorial-button-primary w-full"
+                          className="w-full py-3 px-4 editorial-button-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isCheckingIn ? 'Checking In...' : 'Check In'}
                         </button>
@@ -2128,17 +1968,13 @@ export default function Home(): JSX.Element {
                                 toast.error(`Failed to decrypt document: ${error}`, { id: decryptToast });
                               }
                             }}
-                            className={`w-full py-3 px-4 border-2 editorial-button transition-all duration-200 ${
-                              theme === 'light'
-                                ? 'border-red-600 text-red-700 hover:bg-red-600 hover:text-white hover:border-red-700'
-                                : 'border-red-500 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-400'
-                            }`}
+                            className="w-full py-3 px-4 editorial-button"
                           >
                             <div className="flex items-center justify-center gap-2">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
-                              <span>Decrypt Document</span>
+                              <span>Download</span>
                             </div>
                           </button>
                         ) : null;
@@ -2170,7 +2006,19 @@ export default function Home(): JSX.Element {
                          }}
                         className="w-full editorial-button"
                       >
-                        {selectedDocument.isActive ? 'Pause Document' : 'Resume Document'}
+                        <div className="flex items-center justify-center gap-2">
+                          {selectedDocument.isActive ? (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <rect x="6" y="4" width="4" height="16" />
+                              <rect x="14" y="4" width="4" height="16" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <polygon points="8,5 8,19 19,12" />
+                            </svg>
+                          )}
+                          <span>{selectedDocument.isActive ? 'Pause Document' : 'Resume Document'}</span>
+                        </div>
                       </button>
                     </div>
                   </div>
@@ -2210,36 +2058,7 @@ export default function Home(): JSX.Element {
                     </div>
                   </div>
 
-                  {/* Security Information */}
-                  <div className="editorial-card">
-                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Security Details</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Contract Address
-                        </span>
-                        <span className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {CANARY_DOSSIER_ADDRESS.slice(0, 8)}...{CANARY_DOSSIER_ADDRESS.slice(-6)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Network
-                        </span>
-                        <span className={`text-sm ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          Polygon Amoy Testnet
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Encryption
-                        </span>
-                        <span className={`text-sm ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          TACo Threshold
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -2254,43 +2073,7 @@ export default function Home(): JSX.Element {
                       <div className="flex items-center gap-6">
                       <h2 className="editorial-header text-gray-900 dark:text-gray-100">Protected Documents</h2>
                         
-                        {userDossiers.length > 0 && (
-                          <div className="flex items-center gap-8">
-                            {/* Active Documents Card */}
-                            <div className={`px-4 py-3 border transition-all ${theme === 'light' ? 'border-gray-300 hover:border-gray-400' : 'border-gray-600 hover:border-gray-500'}`}>
-                              <div className="flex items-center gap-3">
-                                <div className={`text-2xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`} style={{ fontFamily: 'var(--font-playfair)' }}>
-                                  {userDossiers.filter(d => d.isActive).length}
-                                </div>
-                                <div>
-                                  <div className={`text-xs font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                                    ACTIVE
-                                  </div>
-                                  <div className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-500'}`}>
-                                    DOCUMENTS
-                                  </div>
-                                </div>
-                              </div>
-                    </div>
-                    
-                            {/* Total Documents Card */}
-                            <div className={`px-4 py-3 border transition-all ${theme === 'light' ? 'border-gray-300 hover:border-gray-400' : 'border-gray-600 hover:border-gray-500'}`}>
-                              <div className="flex items-center gap-3">
-                                <div className={`text-2xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`} style={{ fontFamily: 'var(--font-playfair)' }}>
-                                  {userDossiers.length}
-                                </div>
-                                <div>
-                                  <div className={`text-xs font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                                    TOTAL
-                                  </div>
-                                  <div className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-500'}`}>
-                                    DOCUMENTS
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+
                       </div>
                       
                       {/* Right side: Show All Button */}
@@ -2429,28 +2212,6 @@ export default function Home(): JSX.Element {
                               onClick={() => openDocumentDetail(dossier)}
                               className="editorial-card-bordered hover:border-gray-900 dark:hover:border-gray-400 min-h-[180px] flex flex-col cursor-pointer transition-transform hover:scale-[1.02]"
                             >
-                              {/* Decryptable Status */}
-                              {dossier.isDecryptable && dossier.encryptedFileHashes.length > 0 && (
-                                <div className={`border-l-2 pl-4 pr-4 py-3 mb-4 ${theme === 'light' ? 'border-l-green-600 bg-green-50/50' : 'border-l-green-400 bg-green-900/20'}`}>
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`status-dot ${theme === 'light' ? 'bg-green-600' : 'bg-green-400'}`} style={{boxShadow: theme === 'light' ? '0 0 0 2px rgba(34, 197, 94, 0.2)' : '0 0 0 2px rgba(74, 222, 128, 0.2)'}}></div>
-                                      <div>
-                                        <div className={`editorial-label-small ${theme === 'light' ? 'text-green-700' : 'text-green-400'}`}>
-                                          READY TO DECRYPT
-                                        </div>
-                                        <div className={`text-xs ${theme === 'light' ? 'text-green-600' : 'text-green-300'}`}>
-                                          Conditions met • Document available
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <svg className={`w-4 h-4 ${theme === 'light' ? 'text-green-600' : 'text-green-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                                    </svg>
-                                  </div>
-                                </div>
-                              )}
-                              
                               {/* Card Header */}
                               <div className="border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
                                 <div className="flex justify-between items-start">
@@ -2615,7 +2376,19 @@ export default function Home(): JSX.Element {
                                       }}
                                       className="flex-1 py-2 px-4 text-xs font-semibold editorial-button"
                                     >
-                                      {dossier.isActive ? 'Pause' : 'Resume'}
+                                      <div className="flex items-center justify-center gap-1">
+                                        {dossier.isActive ? (
+                                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                            <rect x="6" y="4" width="4" height="16" />
+                                            <rect x="14" y="4" width="4" height="16" />
+                                          </svg>
+                                        ) : (
+                                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                            <polygon points="8,5 8,19 19,12" />
+                                          </svg>
+                                        )}
+                                        <span>{dossier.isActive ? 'Pause' : 'Resume'}</span>
+                                      </div>
                                     </button>
                                   </div>
                                   
@@ -2770,20 +2543,13 @@ export default function Home(): JSX.Element {
                                           ]);
                                         }
                                       }}
-                                      className={`w-full py-3 px-4 border-2 font-semibold text-xs uppercase tracking-wider transition-all duration-200 ${
-                                        theme === 'light'
-                                          ? 'border-red-600 text-red-700 hover:bg-red-600 hover:text-white hover:border-red-700'
-                                          : 'border-red-500 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-400'
-                                      }`}
-                                      style={{
-                                        fontFamily: 'var(--font-crimson)'
-                                      }}
+                                      className="w-full py-3 px-4 editorial-button"
                                     >
                                       <div className="flex items-center justify-center gap-2">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
-                                        <span>Decrypt</span>
+                                        <span>Download</span>
                                       </div>
                                     </button>
                                   ) : null}
@@ -3326,6 +3092,16 @@ export default function Home(): JSX.Element {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Website</span>
+            </a>
+            
+            <a
+              href="/docs"
+              className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+            >
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Docs</span>
             </a>
             
             <a
