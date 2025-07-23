@@ -24,6 +24,8 @@
     "@privy-io/wagmi": "^0.2.12",
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-query": "^5.80.7",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "ethers": "^5.7.2",
@@ -35,6 +37,7 @@
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
     "tailwindcss": "^4",
+    "typescript": "^5",
     "viem": "^2.31.2",
     "wagmi": "^2.15.6"
   },
@@ -48,8 +51,6 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
@@ -65,7 +66,6 @@
     "raw-loader": "^4.0.2",
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
-    "typescript": "^5",
     "url": "^0.11.4",
     "vitest": "^3.2.4"
   }
