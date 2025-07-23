@@ -38,6 +38,9 @@
     "viem": "^2.31.2",
     "wagmi": "^2.15.6"
   },
+  "overrides": {
+    "ox": "0.8.1"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@testing-library/dom": "^10.4.0",
