@@ -5,7 +5,7 @@ import { Upload, Shield, Download, Copy, AlertCircle, Github, Sun, Moon, Mic, Vi
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import { useTheme } from './lib/theme-context';
 import MediaRecorder from './components/MediaRecorder';
-
+import { useSearchParams } from 'next/navigation';
 
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { usePrivy, useWallets, useConnectWallet } from '@privy-io/react-auth';
@@ -24,7 +24,7 @@ interface DossierWithStatus extends Dossier {
 
 const Home = () => {
   const { connectors, connect, isPending } = useConnect();
-  
+  const searchParams = useSearchParams();
 
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
@@ -94,6 +94,16 @@ const Home = () => {
   const [showMediaRecorder, setShowMediaRecorder] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle URL query parameter for view selection
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'documents') {
+      setCurrentView('documents');
+    } else if (view === 'checkin') {
+      setCurrentView('checkin');
+    }
+  }, [searchParams]);
 
   // Document detail navigation
   const openDocumentDetail = (document: DossierWithStatus) => {
@@ -1112,22 +1122,10 @@ const Home = () => {
   // Show sign-in page if not signed in
   if (!signedIn) {
     return (
-      <div>
+      <div className="light">
         <Toaster position="top-right" />
         <div className="h-screen flex flex-col">
-          <div className="flex-1 bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative">
-          {/* Theme Toggle - Top Right */}
-          <button
-            onClick={toggleTheme}
-            className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors z-10"
-            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          >
-            {theme === 'light' ? (
-              <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            ) : (
-              <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            )}
-          </button>
+          <div className="flex-1 bg-gray-50 flex items-center justify-center relative">
           
           {/* Cryptographic Pattern Accent */}
           <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
@@ -1175,7 +1173,7 @@ const Home = () => {
                   </div>
                   
                   <button
-                    className="w-full py-4 px-6 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium text-base rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 px-6 bg-white text-gray-900 font-medium text-base rounded border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => handleSignIn('Web3 Wallet')}
                     disabled={isPending}
                   >
@@ -1197,14 +1195,14 @@ const Home = () => {
         </div>
 
         {/* Footer */}
-        <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
+        <footer className="border-t backdrop-blur-sm flex-shrink-0 border-gray-200 bg-white/80">
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-center gap-6">
               <a
                 href="https://canary.tools"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1216,7 +1214,7 @@ const Home = () => {
                 href="https://docs.canaryapp.io"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1242,7 +1240,7 @@ const Home = () => {
                     toast.error('Failed to copy address');
                   });
                 }}
-                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
                 title="Click to copy donation address"
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1255,7 +1253,7 @@ const Home = () => {
                 href="https://github.com/TheThirdRoom/canary"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
               >
                 <Github size={10} />
                 <span>Source</span>
@@ -1263,7 +1261,7 @@ const Home = () => {
               
               <a
                 href="mailto:contact@canary.tools"
-                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
+                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -1272,8 +1270,8 @@ const Home = () => {
               </a>
             </div>
             
-            <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
-              <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+            <div className="text-center mt-2 pt-2 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
                 © 2025 Canary. Truth protection through cryptographic deadman switches.
               </p>
             </div>
@@ -1520,9 +1518,9 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Status Information - Clean List Style like Impact Feed */}
-              <div className="space-y-0">
-                {/* System Status Row */}
+              {/* Status Information - Horizontal Grid on Desktop */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* System Status Card */}
                 <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -1544,8 +1542,8 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Last Check-in Row */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between mt-4" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                {/* Last Check-in Card */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
                       Last Check-in
@@ -1559,8 +1557,8 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Active Documents Row */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between mt-4" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                {/* Active Documents Card */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
                       Active Documents
@@ -2619,7 +2617,8 @@ const Home = () => {
                     setEmergencyContacts(['']);
                     setReleaseMode('public');
                   }}
-                  className="editorial-button text-sm font-semibold"
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-sm font-semibold"
+                  style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                 >
                   ← Back to Documents
                 </button>
@@ -2627,7 +2626,7 @@ const Home = () => {
                 <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
               
-              <div className={`p-6 border rounded-lg ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
+              <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-lg" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                 {/* Progress Indicator */}
                 <div className="spacing-medium">
                   {/* Back Button */}
@@ -2719,7 +2718,8 @@ const Home = () => {
                         <input
                           type="text"
                           placeholder="Enter document name..."
-                          className="editorial-input text-center text-lg font-semibold"
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                          style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           onKeyDown={(e) => {
@@ -2845,7 +2845,8 @@ const Home = () => {
                       </div>
                       <div className="max-w-sm mx-auto">
                         <select 
-                          className="editorial-input monospace-accent text-center cursor-pointer text-lg font-semibold"
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg monospace-accent text-center cursor-pointer text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                          style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                           value={checkInInterval}
                           onChange={(e) => setCheckInInterval(e.target.value)}
                         >
@@ -2916,7 +2917,8 @@ const Home = () => {
                                       <input
                                         type="text"
                                         placeholder="Email address or Ethereum address"
-                                        className="flex-1 editorial-input text-sm"
+                                        className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                                        style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                                         value={contact}
                                         onChange={(e) => {
                                           const newContacts = [...emergencyContacts];
@@ -2935,7 +2937,7 @@ const Home = () => {
                                             const newContacts = emergencyContacts.filter((_, i) => i !== index);
                                             setEmergencyContacts(newContacts);
                                           }}
-                                          className="editorial-button text-xs border-red-600 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
+                                          className="px-2 py-1 border border-red-600 rounded-lg text-xs text-red-600 hover:bg-red-600 hover:text-white transition-colors"
                                         >
                                           Remove
                                         </button>
@@ -2944,7 +2946,7 @@ const Home = () => {
                                   ))}
                                   <button
                                     onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
-                                    className="editorial-button text-sm"
+                                    className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-sm"
                                   >
                                     + Add contact
                                   </button>
@@ -3005,7 +3007,7 @@ const Home = () => {
                             <button
                               onClick={processCanaryTrigger}
                               disabled={!uploadedFile || isProcessing || !name.trim()}
-                              className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-full px-6 py-4 border border-gray-900 dark:border-gray-200 rounded-lg bg-gray-900 dark:bg-transparent text-white dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-900 transition-colors font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isProcessing ? (
                                 <div className="flex items-center justify-center gap-3">
@@ -3033,7 +3035,7 @@ const Home = () => {
                                 setEmergencyContacts(['']);
                                 setReleaseMode('public');
                               }}
-                              className="editorial-button w-full"
+                              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                             >
                               Create New Document
                             </button>
@@ -3096,7 +3098,8 @@ const Home = () => {
                     <button
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                       disabled={currentStep === 1}
-                      className="editorial-button disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}
                     >
                       Previous
                     </button>
@@ -3116,7 +3119,8 @@ const Home = () => {
                         }
                         setCurrentStep(Math.min(6, currentStep + 1));
                       }}
-                      className="editorial-button-primary editorial-button-large px-8 py-4"
+                      className="px-6 py-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                      style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}
                     >
                       {currentStep === 5 ? 'Finalize' : 'Next'}
                     </button>

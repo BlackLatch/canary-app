@@ -693,3 +693,18 @@ html, body {
     transform: translateX(100%);
   }
 }
+
+/* Input placeholder styling */
+.light input::placeholder,
+.light textarea::placeholder,
+.light select::placeholder {
+  color: #6b7280; /* gray-500 for better visibility */
+  opacity: 1;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark select::placeholder {
+  color: #9ca3af; /* gray-400 */
+  opacity: 1;
+}

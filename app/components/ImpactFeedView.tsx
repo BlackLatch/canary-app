@@ -21,14 +21,16 @@ interface ImpactFeedViewProps {
 export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
   const [feedDossiers, setFeedDossiers] = useState<FeedDossier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
   const { address } = useAccount();
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadFeed = async () => {
       try {
-        setLoading(true);
         const dossiers: FeedDossier[] = [];
         
         // In production, this would query DossierCreated events from all users
@@ -58,11 +60,20 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
         // Sort by creation time (newest first)
         dossiers.sort((a, b) => Number(b.dossier.lastCheckIn) - Number(a.dossier.lastCheckIn));
         
-        setFeedDossiers(dossiers);
+        if (isMounted) {
+          setFeedDossiers(dossiers);
+          // Only update loading state on first load
+          if (!hasLoadedOnce) {
+            setLoading(false);
+            setHasLoadedOnce(true);
+          }
+        }
       } catch (error) {
         console.error('Failed to load feed:', error);
-      } finally {
-        setLoading(false);
+        if (isMounted && !hasLoadedOnce) {
+          setLoading(false);
+          setHasLoadedOnce(true);
+        }
       }
     };
 
@@ -70,8 +81,12 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
     
     // Refresh every 30 seconds to update countdowns
     const interval = setInterval(loadFeed, 30000);
-    return () => clearInterval(interval);
-  }, [address]);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [address, hasLoadedOnce]);
 
   const filteredDossiers = feedDossiers.filter(item => {
     if (filter === 'unlocked') return item.isUnlocked;
