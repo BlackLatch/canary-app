@@ -166,14 +166,7 @@ const Home = () => {
 
   // Apply background to body based on current view
   useEffect(() => {
-    const body = document.body;
-    body.classList.remove('guide-dark', 'guide-light');
-    body.classList.add('guide-light');
-    
-    // Cleanup function to remove classes when component unmounts
-    return () => {
-      body.classList.remove('guide-dark', 'guide-light');
-    };
+    // Clean theme setup - no mesh backgrounds
   }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1118,7 +1111,7 @@ const Home = () => {
       <div>
         <Toaster position="top-right" />
         <div className="h-screen flex flex-col">
-          <div className="flex-1 mesh-background-light dark:mesh-background-dark flex items-center justify-center relative">
+          <div className="flex-1 bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative">
           {/* Theme Toggle - Top Right */}
           <button
             onClick={toggleTheme}
@@ -1292,87 +1285,6 @@ const Home = () => {
     <div>
       <Toaster position="top-right" />
       <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
-        {/* Global Fine Mesh Animation Styles */}
-        <style>
-          {`
-          @keyframes meshFloat {
-            0% { 
-              background-position: 
-                0px 0px,
-                0px 0px,
-                0px 0px,
-                0px 0px,
-                0px 0px,
-                0px 0px;
-            }
-            33% { 
-              background-position: 
-                4px 4px,
-                -4px 4px,
-                12px 12px,
-                -12px 12px,
-                24px 24px,
-                -24px 24px;
-            }
-            66% { 
-              background-position: 
-                8px -4px,
-                -8px -4px,
-                24px -12px,
-                -24px -12px,
-                48px -24px,
-                -48px -24px;
-            }
-            100% { 
-              background-position: 
-                12px 0px,
-                -12px 0px,
-                36px 0px,
-                -36px 0px,
-                72px 0px,
-                -72px 0px;
-            }
-          }
-          
-          body.guide-dark {
-            background-color: #1a1a1a !important;
-            background-image: 
-              linear-gradient(rgba(255, 255, 255, 0.035) 0.5px, transparent 0.5px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0.5px, transparent 0.5px),
-              linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-              linear-gradient(rgba(255, 255, 255, 0.008) 2px, transparent 2px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.008) 2px, transparent 2px) !important;
-            background-size: 
-              12px 12px,
-              12px 12px,
-              36px 36px,
-              36px 36px,
-              72px 72px,
-              72px 72px !important;
-            animation: meshFloat 20s ease-in-out infinite !important;
-          }
-          
-          body.guide-light {
-            background-color: #fefefe !important;
-            background-image: 
-              linear-gradient(rgba(0, 0, 0, 0.015) 0.5px, transparent 0.5px),
-              linear-gradient(90deg, rgba(0, 0, 0, 0.015) 0.5px, transparent 0.5px),
-              linear-gradient(rgba(0, 0, 0, 0.008) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 0, 0, 0.008) 1px, transparent 1px),
-              linear-gradient(rgba(0, 0, 0, 0.003) 2px, transparent 2px),
-              linear-gradient(90deg, rgba(0, 0, 0, 0.003) 2px, transparent 2px) !important;
-            background-size: 
-              12px 12px,
-              12px 12px,
-              36px 36px,
-              36px 36px,
-              72px 72px,
-              72px 72px !important;
-            animation: meshFloat 20s ease-in-out infinite !important;
-          }
-          `}
-        </style>
         
         {/* Alpha Status Indicator */}
         {showAlphaBanner && (
@@ -1513,7 +1425,7 @@ const Home = () => {
       <div className="flex-1 overflow-auto">
       {currentView === 'checkin' ? (
         // Check In View - Editorial Layout
-        <div className={`min-h-screen ${theme === 'light' ? 'mesh-background-light' : 'mesh-background-dark'}`}>
+        <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'}`}>
         <div className="max-w-5xl mx-auto px-6 py-8">
           {/* Main Check-in Interface */}
           <div className="text-center spacing-section">
@@ -1699,7 +1611,7 @@ const Home = () => {
         </div>
       ) : (
         // Documents View - Normal Container
-        <div className={`min-h-screen ${theme === 'light' ? 'mesh-background-light' : 'mesh-background-dark'}`}>
+        <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'}`}>
         <div className="max-w-7xl mx-auto px-4 py-6">
           {documentDetailView && selectedDocument ? (
             // Document Detail View

@@ -82,7 +82,7 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${theme === 'light' ? 'mesh-background-light' : 'mesh-background-dark'}`}>
+      <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="animate-pulse">
             <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-12"></div>

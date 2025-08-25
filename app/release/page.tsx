@@ -54,13 +54,7 @@ function ReleaseDetailContent() {
   const [isWrongNetwork, setIsWrongNetwork] = useState(false);
 
   useEffect(() => {
-    // Apply theme-based background class
-    document.body.classList.remove('guide-dark', 'guide-light');
-    document.body.classList.add(theme === 'dark' ? 'guide-dark' : 'guide-light');
-    
-    return () => {
-      document.body.classList.remove('guide-dark', 'guide-light');
-    };
+    // Clean theme setup - no mesh backgrounds
   }, [theme]);
 
   useEffect(() => {
