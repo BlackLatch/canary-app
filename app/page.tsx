@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle, Github, Sun, Moon, Mic, Video } from 'lucide-react';
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import { useTheme } from './lib/theme-context';
 import MediaRecorder from './components/MediaRecorder';
+import ImpactFeedView from './components/ImpactFeedView';
 
 
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
@@ -22,7 +23,7 @@ interface DossierWithStatus extends Dossier {
   isDecryptable: boolean;
 }
 
-export default function Home(): JSX.Element {
+const Home = () => {
   const { connectors, connect, isPending } = useConnect();
   
 
@@ -82,7 +83,7 @@ export default function Home(): JSX.Element {
   const [currentStep, setCurrentStep] = useState(1);
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>(['']);
   const [releaseMode, setReleaseMode] = useState<'public' | 'contacts'>('public');
-  const [currentView, setCurrentView] = useState<'checkin' | 'documents'>('checkin');
+  const [currentView, setCurrentView] = useState<'checkin' | 'documents' | 'feed'>('checkin');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
@@ -1004,7 +1005,7 @@ export default function Home(): JSX.Element {
         } else if (!signedIn) {
           console.log('User already authenticated, setting signedIn to true');
           setSignedIn(true);
-    } else {
+        } else {
           console.log('User already signed in');
         }
       } else {
@@ -1115,10 +1116,10 @@ export default function Home(): JSX.Element {
   // Show sign-in page if not signed in
   if (!signedIn) {
     return (
-      <>
+      <div>
         <Toaster position="top-right" />
-      <div className="h-screen flex flex-col">
-        <div className="flex-1 mesh-background-light dark:mesh-background-dark flex items-center justify-center relative">
+        <div className="h-screen flex flex-col">
+          <div className="flex-1 mesh-background-light dark:mesh-background-dark flex items-center justify-center relative">
           {/* Theme Toggle - Top Right */}
           <button
             onClick={toggleTheme}
@@ -1216,7 +1217,9 @@ export default function Home(): JSX.Element {
               </a>
               
               <a
-                href="/docs"
+                href="https://docs.canaryapp.io"
+                target="_blank"
+                rel="noopener noreferrer"
                 className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1281,13 +1284,13 @@ export default function Home(): JSX.Element {
           </div>
         </footer>
       </div>
-      </>
-    );
+    </div>
+  );
   }
   
   // Main app content for signed-in users
   return (
-    <React.Fragment>
+    <div>
       <Toaster position="top-right" />
       <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
         {/* Global Fine Mesh Animation Styles */}
@@ -1392,7 +1395,7 @@ export default function Home(): JSX.Element {
               </button>
             </div>
           </div>
-          </div>
+        </div>
         )}
         
         <div className="flex-1" style={{ zoom: '0.8' }}>
@@ -1432,6 +1435,14 @@ export default function Home(): JSX.Element {
                     }`}
                   >
                     Documents
+                  </button>
+                  <button 
+                    onClick={() => setCurrentView('feed')}
+                    className={`nav-link ${
+                      currentView === 'feed' ? 'nav-link-active' : ''
+                    }`}
+                  >
+                    Impact Feed
                   </button>
                 </nav>
                 
@@ -1689,6 +1700,9 @@ export default function Home(): JSX.Element {
             </div>
         </div>
         </div>
+      ) : currentView === 'feed' ? (
+        // Impact Feed View
+        <ImpactFeedView theme={theme} />
       ) : (
         // Documents View - Normal Container
         <div className={`min-h-screen ${theme === 'light' ? 'mesh-background-light' : 'mesh-background-dark'}`}>
@@ -2587,9 +2601,9 @@ export default function Home(): JSX.Element {
                 <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
               
-              <div className={`p-8 border rounded-lg ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
+              <div className={`p-6 border rounded-lg ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
                 {/* Progress Indicator */}
-                <div className="spacing-large">
+                <div className="spacing-medium">
                   {/* Back Button */}
                   {currentStep > 1 && !traceJson && (
                     <div className="spacing-small">
@@ -2609,31 +2623,34 @@ export default function Home(): JSX.Element {
                     </div>
                   )}
                   
-                  <div className="spacing-medium">
+                  <div className="spacing-small">
                     <div className="relative">
                       {/* Progress Rail */}
-                      <div className="absolute top-4 left-4 right-4 progress-rail"></div>
+                      <div className={`absolute top-2 left-0 right-0 h-0.5 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-700'}`}></div>
                       
                       {/* Progress Fill */}
-                      <div className="absolute top-4 left-4 right-4 progress-rail">
-                        <div 
-                          className="progress-fill" 
-                          style={{ width: `${((currentStep - 1) / 5) * 100}%` }}
-                        ></div>
+                      <div className={`absolute top-2 left-0 h-0.5 transition-all duration-300 ease-out ${theme === 'light' ? 'bg-gray-900' : 'bg-gray-100'}`}
+                           style={{ width: `${((currentStep - 1) / 5) * 100}%` }}>
                       </div>
                       
                       {/* Steps container */}
                       <div className="flex items-start justify-between relative z-10">
                         {[1, 2, 3, 4, 5, 6].map((step) => (
                           <div key={step} className="flex flex-col items-center">
-                            <div className={`progress-step ${
-                              step === currentStep ? 'progress-step-active' :
-                              step < currentStep ? 'progress-step-completed' :
-                              'progress-step-inactive'
+                            <div className={`w-6 h-6 flex items-center justify-center text-xs editorial-body transition-all duration-200 ${
+                              step === currentStep 
+                                ? theme === 'light' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
+                                : step < currentStep 
+                                ? theme === 'light' ? 'bg-gray-600 text-white' : 'bg-gray-500 text-white'
+                                : theme === 'light' ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-gray-800 text-gray-500 border border-gray-700'
                             }`}>
                               {step < currentStep ? '✓' : step}
                             </div>
-                            <div className="mt-3 text-xs editorial-body text-gray-700 text-center w-16 font-semibold">
+                            <div className={`mt-2 text-xs editorial-label-small text-center w-12 tracking-wide ${
+                              step === currentStep 
+                                ? theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                                : theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                            }`}>
                               {step === 1 ? 'Name' :
                                step === 2 ? 'Upload' :
                                step === 3 ? 'Interval' :
@@ -2663,7 +2680,7 @@ export default function Home(): JSX.Element {
                 </div>
 
                 {/* Step Content */}
-                <div className="min-h-[280px] max-w-2xl mx-auto">
+                <div className="min-h-[200px] max-w-2xl mx-auto">
                   {/* Step 1: Document Name */}
                   {currentStep === 1 && (
                     <div className="text-center spacing-medium">
@@ -2679,6 +2696,11 @@ export default function Home(): JSX.Element {
                           className="editorial-input text-center text-lg font-semibold"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && name.trim()) {
+                              setCurrentStep(Math.min(6, currentStep + 1));
+                            }
+                          }}
                           autoFocus
                         />
                         <p className={`editorial-body text-sm spacing-tiny font-medium ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
@@ -2875,6 +2897,11 @@ export default function Home(): JSX.Element {
                                           newContacts[index] = e.target.value;
                                           setEmergencyContacts(newContacts);
                                         }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && contact.trim()) {
+                                            setCurrentStep(Math.min(6, currentStep + 1));
+                                          }
+                                        }}
                                       />
                                       {emergencyContacts.length > 1 && (
                                         <button
@@ -3063,7 +3090,7 @@ export default function Home(): JSX.Element {
                         }
                         setCurrentStep(Math.min(6, currentStep + 1));
                       }}
-                      className="editorial-button-primary"
+                      className="editorial-button-primary editorial-button-large px-8 py-4"
                     >
                       {currentStep === 5 ? 'Finalize' : 'Next'}
                     </button>
@@ -3075,7 +3102,6 @@ export default function Home(): JSX.Element {
         </div>
         </div>
       )}
-      </div>
       </div>
 
       {/* Footer */}
@@ -3095,7 +3121,9 @@ export default function Home(): JSX.Element {
             </a>
             
             <a
-              href="/docs"
+              href="https://docs.canaryapp.io"
+              target="_blank"
+              rel="noopener noreferrer"
               className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
             >
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3160,6 +3188,9 @@ export default function Home(): JSX.Element {
         </div>
       </footer>
       </div>
-    </React.Fragment>
+    </div>
+    </div>
   );
 }
+
+export default Home;

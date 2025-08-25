@@ -8,6 +8,7 @@ import { uploadToIPFS, IPFSUploadResult } from './ipfs';
 import { CANARY_DOSSIER_ADDRESS, CANARY_DOSSIER_ABI } from './contract';
 import { polygonAmoy } from 'wagmi/chains';
 import { getPrivyEthersProvider } from './ethers-adapter';
+import { switchToPolygonAmoy } from './network-switch';
 
 // TACo Configuration
 const TACO_DOMAIN = domains.DEVNET;
@@ -192,6 +193,52 @@ class TacoService {
     // Get the ethers provider from Privy (handles embedded wallets)
     const provider = await getPrivyEthersProvider();
     const signer = provider.getSigner();
+    
+    // Check if we're on the correct chain
+    try {
+      const network = await provider.getNetwork();
+      console.log('🔗 Current network:', network.chainId, 'Type:', typeof network.chainId);
+      console.log('🔗 Expected network:', polygonAmoy.id, 'Type:', typeof polygonAmoy.id);
+      
+      // Convert both to Numbers for comparison to handle both BigInt and number types
+      const currentChainId = Number(network.chainId);
+      const expectedChainId = Number(polygonAmoy.id);
+      
+      if (currentChainId !== expectedChainId) {
+        console.error(`❌ Wrong network! Expected Polygon Amoy (${expectedChainId}), got ${currentChainId}`);
+        
+        // Attempt to switch networks automatically
+        console.log('🔄 Attempting to switch to Polygon Amoy...');
+        try {
+          await switchToPolygonAmoy();
+          
+          // Wait a moment for the switch to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Get updated provider after network switch
+          const updatedProvider = await getPrivyEthersProvider();
+          const updatedNetwork = await updatedProvider.getNetwork();
+          
+          if (Number(updatedNetwork.chainId) === Number(polygonAmoy.id)) {
+            console.log('✅ Successfully switched to Polygon Amoy');
+            // Continue with the updated provider
+            return this.decryptFile(messageKit); // Recursive call with correct network
+          } else {
+            throw new Error(`Network switch failed. Still on chain ${updatedNetwork.chainId}`);
+          }
+        } catch (switchError) {
+          console.error('Failed to switch network:', switchError);
+          throw new Error(`Please switch to Polygon Amoy testnet (Chain ID: ${polygonAmoy.id}) to decrypt this content.`);
+        }
+      }
+    } catch (networkError) {
+      console.error('Failed to check network:', networkError);
+      // If it's our custom error, re-throw it
+      if (networkError instanceof Error && networkError.message.includes('switch to Polygon Amoy')) {
+        throw networkError;
+      }
+      // Otherwise continue and let TACo handle it
+    }
 
     console.log('🔓 Attempting decryption with contract verification...');
 

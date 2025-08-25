@@ -2,6 +2,7 @@ import { readContract, writeContract, waitForTransactionReceipt, getAccount } fr
 import { polygonAmoy } from 'wagmi/chains';
 import type { Address } from 'viem';
 import { config } from './web3'; // Use the main wagmi config
+import { ensureCorrectNetwork } from './network-switch';
 
 // Deployed contract address on Polygon Amoy (testnet)
 // IMPORTANT: This contract is ONLY deployed on Polygon Amoy, not on mainnet
@@ -292,11 +293,24 @@ export class ContractService {
         return result;
       }
 
-      // Check network
+      // Check network and attempt to switch if needed
       if (account.chainId !== polygonAmoy.id) {
-        result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${polygonAmoy.id}`);
-        result.isValid = false;
-        return result;
+        console.log(`🔗 Wrong network detected. Attempting to switch...`);
+        const switched = await ensureCorrectNetwork();
+        
+        if (!switched) {
+          result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${polygonAmoy.id}`);
+          result.isValid = false;
+          return result;
+        }
+        
+        // Re-check account after switch
+        const updatedAccount = getAccount(config);
+        if (updatedAccount.chainId !== polygonAmoy.id) {
+          result.errors.push(`Failed to switch network. Still on: ${updatedAccount.chainId}`);
+          result.isValid = false;
+          return result;
+        }
       }
 
       // Process parameters exactly as they would be sent to contract

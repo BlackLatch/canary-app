@@ -5,14 +5,40 @@ import { WagmiProvider } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SmartWalletsProvider } from '@privy-io/react-auth/smart-wallets';
 import { config } from '../lib/web3';
-import { useState } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 
 // Wrapper component to filter out the delayedExecution prop
-const FilteredSmartWalletsProvider = ({ children }: { children: React.ReactNode }) => {
+const FilteredSmartWalletsProvider = ({ children, ...rest }: { children: React.ReactNode; [key: string]: any }) => {
   // SmartWalletsProvider doesn't accept any props except children
-  // This wrapper prevents any props from being passed down that might cause React warnings
+  // Filter out any props that might cause React warnings
+  // Only pass children to SmartWalletsProvider
   return <SmartWalletsProvider>{children}</SmartWalletsProvider>;
 };
+
+// Suppress console warnings immediately on module load
+if (typeof window !== 'undefined') {
+  const originalError = console.error;
+  console.error = (...args: any[]) => {
+    // Check all arguments for the problematic prop warning
+    const shouldSuppress = args.some((arg: any) => {
+      if (typeof arg === 'string') {
+        return (
+          arg.includes('delayedExecution') ||
+          arg.includes('`delayedExecution`') ||
+          (arg.includes('React does not recognize') && arg.includes('delayedExecution'))
+        );
+      }
+      return false;
+    });
+    
+    if (shouldSuppress) {
+      // Suppress this specific warning as it's from Privy/Turnstile library
+      return;
+    }
+    
+    originalError.apply(console, args);
+  };
+}
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());

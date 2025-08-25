@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning={true}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -39,8 +39,11 @@ export default function RootLayout({
                   var savedTheme = localStorage.getItem('theme');
                   var theme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                   document.documentElement.classList.add(theme);
+                  // Also set a data attribute to prevent flashing
+                  document.documentElement.setAttribute('data-theme', theme);
                 } catch (e) {
                   document.documentElement.classList.add('light');
+                  document.documentElement.setAttribute('data-theme', 'light');
                 }
               })();
             `,
@@ -49,6 +52,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${playfair.variable} ${crimson.variable} antialiased h-full`}
+        suppressHydrationWarning={true}
       >
         <ThemeProvider>
           <Web3Provider>
