@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ContractService, type Dossier } from '@/app/lib/contract';
 import { getMimeType } from '@/app/lib/mime-types';
@@ -13,7 +13,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useAccount } from 'wagmi';
 import { switchToPolygonAmoy } from '@/app/lib/network-switch';
 
-export default function ReleaseDetail() {
+function ReleaseDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const user = searchParams.get('user') as Address | null;
@@ -599,5 +599,18 @@ export default function ReleaseDetail() {
         />
       )}
     </div>
+  );
+}
+
+// Wrapper component with Suspense boundary for Next.js 15
+export default function ReleaseDetail() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    }>
+      <ReleaseDetailContent />
+    </Suspense>
   );
 }
