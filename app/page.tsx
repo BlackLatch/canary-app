@@ -5,7 +5,6 @@ import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle, Github, Sun, 
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import { useTheme } from './lib/theme-context';
 import MediaRecorder from './components/MediaRecorder';
-import ImpactFeedView from './components/ImpactFeedView';
 
 
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
@@ -83,7 +82,7 @@ const Home = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>(['']);
   const [releaseMode, setReleaseMode] = useState<'public' | 'contacts'>('public');
-  const [currentView, setCurrentView] = useState<'checkin' | 'documents' | 'feed'>('checkin');
+  const [currentView, setCurrentView] = useState<'checkin' | 'documents'>('checkin');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
@@ -1436,14 +1435,12 @@ const Home = () => {
                   >
                     Documents
                   </button>
-                  <button 
-                    onClick={() => setCurrentView('feed')}
-                    className={`nav-link ${
-                      currentView === 'feed' ? 'nav-link-active' : ''
-                    }`}
+                  <a 
+                    href="/feed"
+                    className="nav-link"
                   >
                     Impact Feed
-                  </button>
+                  </a>
                 </nav>
                 
                 {/* Wallet Status and Theme Toggle */}
@@ -1700,9 +1697,6 @@ const Home = () => {
             </div>
         </div>
         </div>
-      ) : currentView === 'feed' ? (
-        // Impact Feed View
-        <ImpactFeedView theme={theme} />
       ) : (
         // Documents View - Normal Container
         <div className={`min-h-screen ${theme === 'light' ? 'mesh-background-light' : 'mesh-background-dark'}`}>
