@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, Fragment } from 'react';
-import { Upload, Shield, Download, Copy, CheckCircle, AlertCircle, Github, Sun, Moon, Mic, Video } from 'lucide-react';
+import { Upload, Shield, Download, Copy, AlertCircle, Github, Sun, Moon, Mic, Video } from 'lucide-react';
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import { useTheme } from './lib/theme-context';
 import MediaRecorder from './components/MediaRecorder';
@@ -53,6 +53,7 @@ const Home = () => {
   const [isCommitting, setIsCommitting] = useState(false);
 
   const [userDossiers, setUserDossiers] = useState<DossierWithStatus[]>([]);
+  const [isLoadingDossiers, setIsLoadingDossiers] = useState(true);
   const [currentDossierId, setCurrentDossierId] = useState<bigint | null>(null);
   const [contractConstants, setContractConstants] = useState<{
     minInterval: bigint;
@@ -650,6 +651,7 @@ const Home = () => {
 
   // Load user's dossiers from contract with accurate decryptable status
   const loadUserDossiers = async () => {
+    setIsLoadingDossiers(true);
     let currentAddress: string | null = null;
     
     // In advanced mode, use the connected Web3 wallet address
@@ -707,10 +709,12 @@ const Home = () => {
       }
       
       setUserDossiers(dossiers);
+      setIsLoadingDossiers(false);
       console.log(`✅ Loaded ${dossiers.length} dossiers with accurate decryptable status`);
       
     } catch (error) {
       console.error('❌ Failed to load dossiers:', error);
+      setIsLoadingDossiers(false);
     }
   };
 
@@ -880,7 +884,7 @@ const Home = () => {
       
       // If no active dossiers, show inactive status
       if (activeDossiers.length === 0) {
-        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-muted' };
+        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-gray-500 dark:text-gray-400' };
       }
       
       // Check if any dossier is decryptable (expired)
@@ -900,7 +904,7 @@ const Home = () => {
     }
     
     // If not connected, show disconnected status
-    return { expired: false, display: 'DISCONNECTED', color: 'text-muted' };
+    return { expired: false, display: 'DISCONNECTED', color: 'text-gray-500 dark:text-gray-400' };
   };
 
   const getCountdownTime = () => {
@@ -910,7 +914,7 @@ const Home = () => {
       
       // If no active dossiers, show inactive status
       if (activeDossiers.length === 0) {
-        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-muted' };
+        return { expired: false, display: 'NO ACTIVE DOSSIERS', color: 'text-gray-500 dark:text-gray-400' };
       }
       
       // Find the dossier with the shortest remaining time
@@ -932,7 +936,7 @@ const Home = () => {
       
       // If any dossier has expired, show expired status
       if (hasExpiredDossier) {
-        return { expired: true, display: '⚠ EXPIRED', color: 'text-red-600' };
+        return { expired: true, display: '⚠ EXPIRED', color: 'text-red-600 dark:text-red-400' };
       }
       
       // If we have a valid remaining time, format it
@@ -941,13 +945,13 @@ const Home = () => {
         const remainingMinutes = Math.floor((shortestRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
         const remainingSeconds = Math.floor((shortestRemainingMs % (1000 * 60)) / 1000);
         
-        let color = 'text-green-600';
+        let color = 'text-gray-900 dark:text-gray-100';
         if (shortestRemainingMs < 5 * 60 * 1000) {
-          color = 'text-red-600';
+          color = 'text-red-600 dark:text-red-400';
         } else if (shortestRemainingMs < 30 * 60 * 1000) {
-          color = 'text-orange-500';
+          color = 'text-orange-600 dark:text-orange-400';
         } else if (shortestRemainingMs < 2 * 60 * 60 * 1000) {
-          color = 'text-yellow-600';
+          color = 'text-yellow-700 dark:text-yellow-400';
         }
         
         let display = '';
@@ -969,7 +973,7 @@ const Home = () => {
     }
     
     // If not connected, show disconnected status
-    return { expired: false, display: 'DISCONNECTED', color: 'text-muted' };
+    return { expired: false, display: 'DISCONNECTED', color: 'text-gray-500 dark:text-gray-400' };
   };
 
 
@@ -1288,7 +1292,7 @@ const Home = () => {
         
         {/* Alpha Status Indicator */}
         {showAlphaBanner && (
-        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
+        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-black border-gray-700'}`}>
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-center justify-between h-12">
               <div className="w-4 h-4"></div>
@@ -1424,195 +1428,242 @@ const Home = () => {
 
       <div className="flex-1 overflow-auto">
       {currentView === 'checkin' ? (
-        // Check In View - Editorial Layout
-        <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'}`}>
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          {/* Main Check-in Interface */}
-          <div className="text-center spacing-section">
+        // Check In View - Matching Impact Feed Layout
+        <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Page Header - Like Impact Feed */}
+          <div className="mb-12 border-b border-gray-200 dark:border-gray-700 pb-8">
+            <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
+              CHECK IN
+            </h1>
+            <p className="editorial-body text-gray-600 dark:text-gray-400">
+              Maintain your system status and manage your encrypted documents
+            </p>
+          </div>
             
-            {/* Primary Control - Combined Master Switch & Check-In */}
-            {hasWalletConnection() && (
-              <div className="max-w-lg mx-auto spacing-medium">
-                {/* Master Switch & System Status */}
-                <div className="spacing-small">
-                  <div className="editorial-label-small text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wider">
-                    System Control
-                  </div>
-                  
-                  <div className="flex justify-center mb-4">
-                    <div 
-                      className={`relative w-32 h-16 cursor-pointer transition-all duration-300 ${
-                        dummyMasterSwitch
-                            ? 'bg-gray-700'
-                            : 'bg-gray-600'
-                      }`}
-                      onClick={() => {
-                        setDummyMasterSwitch(!dummyMasterSwitch);
-                      }}
-                    >
-                      {/* Toggle Knob */}
-                      <div 
-                        className={`absolute top-2 w-12 h-12 bg-white transition-all duration-300 transform shadow-lg ${
-                          dummyMasterSwitch
-                            ? 'translate-x-16'
-                            : 'translate-x-2'
-                        }`}
-                      ></div>
-                      
-                      {/* ON/OFF Labels */}
-                      <div className="absolute inset-0 flex items-center justify-between px-4 text-white text-sm font-bold uppercase tracking-wider">
-                        <span className={`transition-opacity ${
-                          dummyMasterSwitch ? 'opacity-100' : 'opacity-40'
-                        }`}>ON</span>
-                        <span className={`transition-opacity ${
-                          dummyMasterSwitch ? 'opacity-40' : 'opacity-100'
-                        }`}>OFF</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Status Display */}
-                  <div className={`text-center editorial-header text-lg font-bold uppercase tracking-wider mb-6 ${
-                    dummyMasterSwitch
-                      ? theme === 'light' ? 'text-green-700' : 'text-green-400'
-                      : theme === 'light' ? 'text-red-700' : 'text-red-400'
-                  }`}>
-                    {dummyMasterSwitch ? 'ACTIVE' : 'INACTIVE'}
-                  </div>
-                </div>
-
-                {/* Primary Action Button - Integrated */}
-                <div className="flex justify-center">
+          {hasWalletConnection() && userDossiers.length > 0 ? (
+            <div>
+              {/* Combined System Control Card */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-12" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                {/* System Control Header */}
+                <div className="px-6 py-5 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                  <span className="editorial-label text-gray-700 dark:text-gray-400">
+                    SYSTEM CONTROL
+                  </span>
+                  {/* Toggle Switch */}
                   <button
-                    onClick={handleCheckIn}
-                    disabled={isCheckingIn || !hasWalletConnection() || userDossiers.filter(d => d.isActive).length === 0}
-                    className={`editorial-button-primary editorial-button-large px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      hasWalletConnection() && userDossiers.filter(d => d.isActive).length > 0 && !isCheckingIn
-                        ? theme === 'light'
-                          ? 'bg-gray-900 text-white hover:bg-gray-800'
-                          : 'bg-gray-100 text-gray-900 hover:bg-white'
-                        : ''
+                    onClick={() => setDummyMasterSwitch(!dummyMasterSwitch)}
+                    className={`relative w-14 h-7 rounded-full transition-colors duration-200 ${
+                      dummyMasterSwitch ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   >
+                    <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
+                      dummyMasterSwitch ? 'translate-x-7' : 'translate-x-0'
+                    }`} />
+                    <span className={`absolute inset-0 flex items-center ${
+                      dummyMasterSwitch ? 'justify-start pl-2' : 'justify-end pr-2'
+                    }`}>
+                      <span className="text-[10px] font-bold text-white">
+                        {dummyMasterSwitch ? 'ON' : 'OFF'}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+                
+                {/* Status and Check-in Section - Inside the same card */}
+                <div className="px-6 py-8 text-center">
+                <h2 
+                  className={`text-5xl font-bold mb-10 ${
+                    dummyMasterSwitch 
+                      ? 'dark:text-white' 
+                      : 'dark:text-gray-500'
+                  }`}
+                  style={{ 
+                    color: dummyMasterSwitch 
+                      ? (typeof window !== 'undefined' && !document.documentElement.classList.contains('dark') ? '#000000' : undefined)
+                      : (typeof window !== 'undefined' && !document.documentElement.classList.contains('dark') ? '#9ca3af' : undefined)
+                  }}
+                >
+                  {dummyMasterSwitch ? 'ACTIVE' : 'INACTIVE'}
+                </h2>
+
+                {/* Check In Button - Prominent with thin border */}
+                <button
+                  onClick={handleCheckIn}
+                  disabled={isCheckingIn || !dummyMasterSwitch || userDossiers.filter(d => d.isActive).length === 0}
+                  className={`max-w-md mx-auto block px-12 py-6 rounded-lg font-semibold text-lg transition-all ${
+                    dummyMasterSwitch && !isCheckingIn
+                      ? 'hover:bg-gray-50 dark:hover:bg-gray-800' 
+                      : 'cursor-not-allowed'
+                  }`}
+                  style={{ 
+                    backgroundColor: dummyMasterSwitch && !isCheckingIn ? (theme === 'light' ? 'white' : '#000000') : (theme === 'light' ? '#f9fafb' : '#111111'),
+                    color: dummyMasterSwitch && !isCheckingIn ? (theme === 'light' ? '#111827' : 'white') : (theme === 'light' ? '#9ca3af' : '#6b7280'),
+                    border: '1px solid',
+                    borderColor: dummyMasterSwitch && !isCheckingIn ? (theme === 'light' ? '#e5e7eb' : 'white') : (theme === 'light' ? '#e5e7eb' : '#374151')
+                  }}
+                >
                   {isCheckingIn ? (
                     <div className="flex items-center justify-center gap-3">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-current border-t-transparent"></div>
                       <span>Checking In...</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-3">
-                      <CheckCircle size={20} />
+                      <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
                       <span>Check In Now</span>
                     </div>
                   )}
                 </button>
                 </div>
               </div>
-            )}
 
-            {/* Minimal Status Indicators */}
-            {hasWalletConnection() && userDossiers.length > 0 && (
-              <div className="max-w-4xl mx-auto spacing-medium">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* System Status - Compact */}
-                  <div className={`p-4 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
-                    <div className="text-center">
-                      <div className={`text-lg font-bold monospace-accent ${getCountdownTime().color}`}>
-                        {getCountdownTime().display}
+              {/* Status Information - Clean List Style like Impact Feed */}
+              <div className="space-y-0">
+                {/* System Status Row */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      getCountdownTime().display === 'EXPIRED' 
+                        ? 'bg-red-500 animate-pulse' 
+                        : 'bg-green-500'
+                    }`} />
+                    <div>
+                      <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
+                        System Status
                       </div>
-                      <div className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                        SYSTEM STATUS
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                        {getCountdownTime().display === 'EXPIRED' ? 'Check-in required' : 'System healthy'}
                       </div>
                     </div>
                   </div>
+                  <div className={`text-sm font-medium ${getCountdownTime().color}`}>
+                    {getCountdownTime().display}
+                  </div>
+                </div>
 
-                  {/* Last Check-in - Compact */}
-                  <div className={`p-4 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
-                    <div className="text-center">
-                      <div className={`text-lg font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                        {getTimeSinceLastCheckIn()}
-                      </div>
-                      <div className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                        LAST CHECK-IN
-                      </div>
+                {/* Last Check-in Row */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between mt-4" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div>
+                    <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
+                      Last Check-in
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                      Time since last activity
                     </div>
                   </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 monospace-accent">
+                    {getTimeSinceLastCheckIn()}
+                  </div>
+                </div>
 
-                  {/* Active Documents - Compact */}
-                  <div className={`p-4 border transition-all ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
-                    <div className="text-center">
-                      <div className={`text-lg font-bold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                        {userDossiers.filter(d => d.isActive).length}
-                      </div>
-                      <div className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                        ACTIVE DOCUMENTS
-                      </div>
+                {/* Active Documents Row */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between mt-4" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div>
+                    <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
+                      Active Documents
                     </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                      Protected with encryption
+                    </div>
+                  </div>
+                  <div className="text-lg font-bold" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
+                    {userDossiers.filter(d => d.isActive).length}
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Minimal Utility Actions */}
-            <div className="max-w-sm mx-auto spacing-medium">
-              {hasWalletConnection() && userDossiers.length > 0 && (
+              {/* Share Status Button - Matching Impact Feed style */}
+              <div className="mt-8">
                 <button
                   onClick={() => {
                     const currentAddress = getCurrentAddress();
                     const shareUrl = `${window.location.origin}/share/${currentAddress}`;
                     navigator.clipboard.writeText(shareUrl).then(() => {
-                      toast.success('📋 Share link copied to clipboard!', {
+                      toast.success('Share link copied!', {
                         duration: 3000,
-                        style: {
-                          background: '#10B981',
-                          color: 'white',
-                        },
                       });
-                      setActivityLog(prev => [
-                        { type: `📤 Share link copied: ${shareUrl}`, date: new Date().toLocaleString() },
-                        ...prev
-                      ]);
                     }).catch(() => {
                       toast.error('Failed to copy share link');
                     });
                   }}
-                  className="editorial-button w-full text-sm"
-                  title={`Copy shareable link: ${window.location.origin}/share/${getCurrentAddress()?.slice(0,6)}...${getCurrentAddress()?.slice(-4)}`}
+                  className="w-full py-4 px-6 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                  style={{ 
+                    backgroundColor: theme === 'light' ? 'white' : '#000000',
+                    color: theme === 'light' ? '#000000' : '#d1d5db'
+                  }}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                     </svg>
-                    <span>Share Status</span>
+                    <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>Share Status</span>
                   </div>
                 </button>
-              )}
+              </div>
             </div>
+          ) : !hasWalletConnection() ? (
 
-            {/* Connection Prompt */}
-            {!hasWalletConnection() && (
-              <div className="editorial-card max-w-md mx-auto text-center">
-                <div className="spacing-small">
-                  <h3 className="editorial-header text-gray-900 dark:text-gray-100">Connect to Begin</h3>
-                  <p className="editorial-body text-sm text-gray-700 dark:text-gray-300">
-                    Connect your wallet or sign in with email to start protecting your documents with cryptographic deadman switches.
-                  </p>
+            // Connection Prompt - Clean style
+            <div>
+              <div className="text-center py-16 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-black">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
                 </div>
+                <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
+                  Connect to Begin
+                </h3>
+                <p className="editorial-body text-gray-600 dark:text-gray-400 mb-6">
+                  Connect your wallet or sign in with email to start protecting your documents
+                </p>
                 <button
                   onClick={() => setCurrentView('documents')}
-                  className="editorial-button-primary"
+                  className="editorial-button editorial-button-primary inline-flex items-center gap-2"
                 >
-                  Get Started
+                  <span className="font-medium">Get Started</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
-            )}
             </div>
+          ) : (
+            // No Documents State - Clean style
+            <div>
+              <div className="text-center py-16 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-black">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
+                  No Active Documents
+                </h3>
+                <p className="editorial-body text-gray-600 dark:text-gray-400 mb-6">
+                  Create your first encrypted document to get started
+                </p>
+                <button
+                  onClick={() => setCurrentView('documents')}
+                  className="editorial-button editorial-button-primary inline-flex items-center gap-2"
+                >
+                  <span className="font-medium">Create Document</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         </div>
       ) : (
-        // Documents View - Normal Container
-        <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'}`}>
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        // Documents View - Matching Impact Feed Layout
+        <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+        <div className="max-w-7xl mx-auto px-6 py-8">
           {documentDetailView && selectedDocument ? (
             // Document Detail View
             <div className="spacing-section">
@@ -1638,7 +1689,7 @@ const Home = () => {
                 {/* Main Information Panel */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Document Overview */}
-                  <div className="editorial-card">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                     <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-4">
@@ -1688,7 +1739,7 @@ const Home = () => {
                   </div>
 
                   {/* Timing Information */}
-                  <div className="editorial-card">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Timing & Schedule</h3>
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1721,7 +1772,7 @@ const Home = () => {
                   </div>
 
                   {/* File Information */}
-                  <div className="editorial-card">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Encrypted Files</h3>
                     <div className="space-y-3">
                       {selectedDocument.encryptedFileHashes.map((hash, index) => (
@@ -1759,7 +1810,7 @@ const Home = () => {
                 {/* Action Panel */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  <div className="editorial-card">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
                     <div className="space-y-3">
                       {/* Check In Button */}
@@ -1944,7 +1995,7 @@ const Home = () => {
                   </div>
 
                   {/* Recipients List */}
-                  <div className="editorial-card">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Recipients</h3>
                     <div className="space-y-2">
                       {selectedDocument.recipients.map((recipient, index) => (
@@ -1984,50 +2035,117 @@ const Home = () => {
             </div>
           ) : !showCreateForm ? (
             <>
-              {/* Your Documents */}
-              {hasWalletConnection() && (
+              {/* Page Header - Like Impact Feed */}
+              <div className="mb-12 border-b border-gray-200 dark:border-gray-700 pb-8">
+                <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
+                  DOCUMENTS
+                </h1>
+                <p className="editorial-body text-gray-600 dark:text-gray-400">
+                  Create and manage encrypted documents with conditional release triggers
+                </p>
+              </div>
+
+              {/* Documents Content */}
+              {hasWalletConnection() && isLoadingDossiers ? (
+                // Loading Animation for Documents
+                <div className="space-y-6">
+                  {/* Filter skeleton */}
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="animate-pulse">
+                      <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-32"></div>
+                    </div>
+                    <div className="animate-pulse">
+                      <div className="h-9 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-24"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Document cards skeleton with shimmer */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="relative min-h-[180px] border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        {/* Shimmer effect */}
+                        <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 dark:via-white/5 to-transparent"></div>
+                        
+                        <div className="p-6">
+                          {/* Header skeleton */}
+                          <div className="border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
+                            <div className="flex justify-between items-start">
+                              <div className="animate-pulse flex-1">
+                                <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-3/4 mb-2"></div>
+                              </div>
+                              <div className="animate-pulse">
+                                <div className="h-5 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-16"></div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Body skeleton */}
+                          <div className="text-center animate-pulse">
+                            <div className="h-4 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-24 mx-auto mb-2"></div>
+                            <div className="h-8 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-32 mx-auto mb-4"></div>
+                          </div>
+                          
+                          {/* Footer skeleton */}
+                          <div className="flex justify-between items-center animate-pulse">
+                            <div className="h-3 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-20"></div>
+                            <div className="h-3 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-20"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : hasWalletConnection() && (
                 <div className="spacing-section">
                   <div className="spacing-medium">
-                    <div className="flex items-center justify-between">
-                      {/* Left side: Title and Stats */}
+                    {/* Filter Controls */}
+                    <div className="flex items-center justify-between mb-8">
                       <div className="flex items-center gap-6">
-                      <h2 className="editorial-header text-gray-900 dark:text-gray-100">Protected Documents</h2>
-                        
-
+                        <span className="editorial-label text-gray-500 dark:text-gray-400">
+                          {userDossiers.filter(d => showInactiveDocuments || d.isActive).length} DOCUMENT{userDossiers.filter(d => showInactiveDocuments || d.isActive).length !== 1 ? 'S' : ''}
+                        </span>
                       </div>
                       
                       {/* Right side: Show All Button */}
-                    {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
-                      <button
-                        onClick={() => setShowInactiveDocuments(!showInactiveDocuments)}
-                        className={`editorial-button text-sm ${
-                          showInactiveDocuments ? 'editorial-button-primary' : ''
-                        }`}
-                      >
-                        {showInactiveDocuments ? 'Hide Inactive' : 'Show All'}
-                      </button>
-                    )}
-                  </div>
-                  
+                      {userDossiers.length > 0 && userDossiers.some(d => !d.isActive) && (
+                        <button
+                          onClick={() => setShowInactiveDocuments(!showInactiveDocuments)}
+                          className={`px-4 py-2 text-sm font-medium border rounded-lg transition-colors ${
+                            showInactiveDocuments 
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' 
+                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750'
+                          }`}
+                        >
+                          {showInactiveDocuments ? 'Hide Inactive' : 'Show All'}
+                        </button>
+                      )}
+                    </div>
+                    
                     {userDossiers.length === 0 && (
-                      <div className={`mt-4 p-6 rounded-lg border-2 border-dashed text-center ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-gray-800'}`}>
-                        <div className={`text-sm font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          No documents created yet
+                      <div className="text-center py-16 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-black">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
+                          <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
                         </div>
+                        <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
+                          No Documents Yet
+                        </h3>
+                        <p className="editorial-body text-gray-600 dark:text-gray-400">
+                          Create your first encrypted document to get started
+                        </p>
                       </div>
                     )}
                   </div>
                   
-                  <div className="p-8">
+                  {userDossiers.length > 0 && (
+                  <div className="">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {/* Add New Document Card - Always shown */}
                       <div 
                         onClick={() => setShowCreateForm(true)}
-                        className={`cursor-pointer group min-h-[180px] transition-all duration-200 shadow-lg hover:shadow-xl border-2 ${
-                          theme === 'light' 
-                            ? 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400' 
-                            : 'bg-gray-800 hover:bg-gray-700 border-gray-600 hover:border-gray-500'
-                        }`}
+                        className="cursor-pointer group min-h-[180px] transition-all border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900"
+                        style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}
                       >
                         <div className="h-full flex flex-col items-center justify-center text-center p-6">
                           <div className={`transition-colors mb-6 ${
@@ -2130,7 +2248,8 @@ const Home = () => {
                             <div
                               key={dossier.id.toString()}
                               onClick={() => openDocumentDetail(dossier)}
-                              className="editorial-card-bordered hover:border-gray-900 dark:hover:border-gray-400 min-h-[180px] flex flex-col cursor-pointer transition-transform hover:scale-[1.02]"
+                              className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-900"
+                              style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}
                             >
                               {/* Card Header */}
                               <div className="border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
@@ -2480,6 +2599,7 @@ const Home = () => {
                                                 })}
                     </div>
                   </div>
+                  )}
                 </div>
               )}
             </>
@@ -2846,7 +2966,7 @@ const Home = () => {
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
-                        <div className="editorial-card border-gray-300 dark:border-gray-600 text-left space-y-4">
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 text-left space-y-4" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                           <div className="flex justify-between items-center">
                             <span className="editorial-label-small text-gray-700 dark:text-gray-300">Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
@@ -2931,7 +3051,7 @@ const Home = () => {
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
-                        <div className="editorial-card border-gray-300 text-left space-y-4 spacing-medium">
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 text-left space-y-4 spacing-medium" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
                           <div className="flex justify-between items-center">
                             <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>

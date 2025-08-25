@@ -19,9 +19,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (savedTheme) {
         return savedTheme;
       }
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return prefersDark ? 'dark' : 'light';
+      // Default to light theme
+      return 'light';
     }
     return 'light'; // SSR default
   });

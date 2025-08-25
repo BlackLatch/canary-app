@@ -37,7 +37,7 @@ export default function RootLayout({
               (function() {
                 try {
                   var savedTheme = localStorage.getItem('theme');
-                  var theme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                  var theme = savedTheme || 'light'; // Default to light theme
                   document.documentElement.classList.add(theme);
                   // Also set a data attribute to prevent flashing
                   document.documentElement.setAttribute('data-theme', theme);

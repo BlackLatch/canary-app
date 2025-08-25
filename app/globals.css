@@ -686,3 +686,10 @@ html, body {
     radial-gradient(circle at 1px 1px, rgba(229, 229, 229, 0.08) 1px, transparent 0);
   border-color: #333333;
 }
+
+/* Loading Animations */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
