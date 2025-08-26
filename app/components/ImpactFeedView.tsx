@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { ContractService, type Dossier } from '@/app/lib/contract';
@@ -21,17 +21,25 @@ interface ImpactFeedViewProps {
 export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
   const [feedDossiers, setFeedDossiers] = useState<FeedDossier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
   const { address } = useAccount();
   const router = useRouter();
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
     
     const loadFeed = async () => {
       try {
+        // Only show loading on very first load
+        if (!hasLoadedRef.current && isMounted) {
+          setLoading(true);
+        }
+        
         const dossiers: FeedDossier[] = [];
+        
+        // Wait a minimum time to avoid flash of empty state
+        const startTime = Date.now();
         
         // In production, this would query DossierCreated events from all users
         // For now, we'll check the current user's dossiers
@@ -57,36 +65,43 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
           }
         }
         
+        // Ensure minimum loading time to avoid flash
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 500 && !hasLoadedRef.current) {
+          await new Promise(resolve => setTimeout(resolve, 500 - elapsed));
+        }
+        
         // Sort by creation time (newest first)
         dossiers.sort((a, b) => Number(b.dossier.lastCheckIn) - Number(a.dossier.lastCheckIn));
         
         if (isMounted) {
           setFeedDossiers(dossiers);
-          // Only update loading state on first load
-          if (!hasLoadedOnce) {
+          if (!hasLoadedRef.current) {
             setLoading(false);
-            setHasLoadedOnce(true);
+            hasLoadedRef.current = true;
           }
         }
       } catch (error) {
         console.error('Failed to load feed:', error);
-        if (isMounted && !hasLoadedOnce) {
+        if (isMounted && !hasLoadedRef.current) {
+          // Ensure minimum time even on error
+          await new Promise(resolve => setTimeout(resolve, 300));
           setLoading(false);
-          setHasLoadedOnce(true);
+          hasLoadedRef.current = true;
         }
       }
     };
 
     loadFeed();
     
-    // Refresh every 30 seconds to update countdowns
+    // Refresh every 30 seconds to update countdowns (without showing loading)
     const interval = setInterval(loadFeed, 30000);
     
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [address, hasLoadedOnce]);
+  }, [address]);
 
   const filteredDossiers = feedDossiers.filter(item => {
     if (filter === 'unlocked') return item.isUnlocked;
