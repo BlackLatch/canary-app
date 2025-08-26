@@ -206,19 +206,10 @@ export default function ImpactFeedPage() {
               </a>
               
               <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const supportAddress = '0x60646c03b1576E75539b64352C18F1230F99EEa3';
-                  navigator.clipboard.writeText(supportAddress).then(() => {
-                    // Would need to import toast for this
-                    alert('💝 Support address copied to clipboard!\n\nETH/Polygon: ' + supportAddress);
-                  }).catch(() => {
-                    alert('Failed to copy address');
-                  });
-                }}
+                href="https://canaryapp.io/support"
+                target="_blank"
+                rel="noopener noreferrer"
                 className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
-                title="Click to copy donation address"
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
