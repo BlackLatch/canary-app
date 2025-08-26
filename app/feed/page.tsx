@@ -182,7 +182,7 @@ export default function ImpactFeedPage() {
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-center gap-6">
               <a
-                href="https://canary.tools"
+                href="https://canaryapp.io"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
@@ -239,7 +239,7 @@ export default function ImpactFeedPage() {
               </a>
               
               <a
-                href="mailto:contact@canary.tools"
+                href="mailto:contact@canaryapp.io"
                 className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
