@@ -1411,9 +1411,16 @@ const Home = () => {
                         if (authMode === 'standard' && authenticated) {
                           logout();
                         }
-                        // Reset state
+                        // Reset all states and redirect to login
                         setSignedIn(false);
                         setAuthModeWithPersistence('standard');
+                        setCurrentView('checkin'); // Reset to default view
+                        setShowCreateForm(false); // Close any open forms
+                        setDocumentDetailView(false); // Close document detail
+                        setSelectedDocument(null); // Clear selected document
+                        // Clear dossiers data
+                        setUserDossiers([]);
+                        setIsLoadingDossiers(true);
                       }}
                       className="text-sm text-muted hover:text-primary transition-colors"
                     >

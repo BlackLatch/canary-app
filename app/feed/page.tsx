@@ -152,6 +152,8 @@ export default function ImpactFeedPage() {
                         }
                         // Reset state
                         setAuthModeWithPersistence('standard');
+                        // Redirect to main page (login)
+                        window.location.href = '/';
                       }}
                       className="text-sm text-muted hover:text-primary transition-colors"
                     >
