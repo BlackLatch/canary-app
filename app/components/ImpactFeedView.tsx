@@ -21,7 +21,6 @@ interface ImpactFeedViewProps {
 export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
   const [feedDossiers, setFeedDossiers] = useState<FeedDossier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
   const { address } = useAccount();
   const router = useRouter();
   const hasLoadedRef = useRef(false);
@@ -55,13 +54,17 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
             const checkInDeadline = Number(dossier.checkInInterval) + 86400; // + grace period
             const timeUntilUnlock = checkInDeadline - timeSinceLastCheckIn;
             
-            dossiers.push({
-              user: address,
-              dossierId,
-              dossier,
-              isUnlocked: !shouldStayEncrypted && dossier.isActive,
-              timeUntilUnlock: shouldStayEncrypted ? Math.max(0, timeUntilUnlock) : undefined
-            });
+            // Only include dossiers that are unlocked (public)
+            const isUnlocked = !shouldStayEncrypted && dossier.isActive;
+            if (isUnlocked) {
+              dossiers.push({
+                user: address,
+                dossierId,
+                dossier,
+                isUnlocked: true,
+                timeUntilUnlock: undefined
+              });
+            }
           }
         }
         
@@ -103,11 +106,6 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
     };
   }, [address]);
 
-  const filteredDossiers = feedDossiers.filter(item => {
-    if (filter === 'unlocked') return item.isUnlocked;
-    if (filter === 'locked') return !item.isUnlocked;
-    return true;
-  });
 
   if (loading) {
     return (
@@ -174,51 +172,15 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
             </p>
           </div>
 
-          {/* Filter Navigation */}
-          <nav className="flex items-center gap-8 mb-12 border-b border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setFilter('all')}
-              className={`pb-4 px-1 border-b-2 transition-colors ${
-                filter === 'all'
-                  ? 'border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <span className="editorial-label">ALL RELEASES</span>
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                ({feedDossiers.length})
-              </span>
-            </button>
-            <button
-              onClick={() => setFilter('unlocked')}
-              className={`pb-4 px-1 border-b-2 transition-colors ${
-                filter === 'unlocked'
-                  ? 'border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <span className="editorial-label">PUBLIC</span>
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                ({feedDossiers.filter(d => d.isUnlocked).length})
-              </span>
-            </button>
-            <button
-              onClick={() => setFilter('locked')}
-              className={`pb-4 px-1 border-b-2 transition-colors ${
-                filter === 'locked'
-                  ? 'border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <span className="editorial-label">PENDING</span>
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                ({feedDossiers.filter(d => !d.isUnlocked).length})
-              </span>
-            </button>
-          </nav>
+          {/* Public Releases Count */}
+          <div className="mb-12 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <span className="editorial-label text-gray-500 dark:text-gray-400">
+              {feedDossiers.length} PUBLIC RELEASE{feedDossiers.length !== 1 ? 'S' : ''}
+            </span>
+          </div>
 
           {/* Feed List - Clean Minimal Design */}
-          {filteredDossiers.length === 0 ? (
+          {feedDossiers.length === 0 ? (
             <div className="text-center py-24 editorial-card-bordered">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full mb-6">
                 <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,23 +188,15 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
                 </svg>
               </div>
               <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
-                {filter === 'unlocked' 
-                  ? 'No Public Releases Yet'
-                  : filter === 'locked'
-                  ? 'No Pending Releases'
-                  : 'No Releases Found'
-                }
+                No Public Releases Yet
               </h3>
               <p className="editorial-body text-gray-600 dark:text-gray-400">
-                {filter === 'unlocked'
-                  ? 'Dossiers will appear here once their inactivity conditions are met'
-                  : 'Check back soon for new releases'
-                }
+                Dossiers will appear here once their inactivity conditions are met
               </p>
             </div>
           ) : (
             <div className="space-y-0">
-              {filteredDossiers.map((item, index) => {
+              {feedDossiers.map((item, index) => {
                 const formatDate = (timestamp: bigint) => {
                   const date = new Date(Number(timestamp) * 1000);
                   return date.toLocaleDateString('en-US', { 
@@ -250,16 +204,6 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
                     day: 'numeric',
                     year: 'numeric'
                   });
-                };
-
-                const formatCountdown = (seconds: number) => {
-                  const days = Math.floor(seconds / 86400);
-                  const hours = Math.floor((seconds % 86400) / 3600);
-                  const mins = Math.floor((seconds % 3600) / 60);
-                  
-                  if (days > 0) return `${days}d ${hours}h`;
-                  if (hours > 0) return `${hours}h ${mins}m`;
-                  return `${mins}m`;
                 };
 
                 return (
@@ -276,14 +220,8 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
                   >
                     {/* Left: Status indicator and title */}
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      {/* Status Dot */}
-                      <div className={`
-                        w-2 h-2 rounded-full flex-shrink-0
-                        ${item.isUnlocked 
-                          ? 'bg-green-500 dark:bg-green-400' 
-                          : 'bg-yellow-500 dark:bg-yellow-400 animate-pulse'
-                        }
-                      `} />
+                      {/* Status Dot - always green for public */}
+                      <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-500 dark:bg-green-400" />
                       
                       {/* Title and metadata */}
                       <div className="min-w-0 flex-1">
@@ -300,25 +238,10 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
 
                     {/* Right: Status */}
                     <div className="flex items-center gap-6 ml-6">
-                      {/* Status or countdown */}
-                      {item.isUnlocked ? (
-                        <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                          PUBLIC
-                        </span>
-                      ) : item.timeUntilUnlock ? (
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 monospace-accent">
-                            {formatCountdown(item.timeUntilUnlock)}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            until release
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                          PENDING
-                        </span>
-                      )}
+                      {/* Always show PUBLIC since we only show unlocked items */}
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                        PUBLIC
+                      </span>
 
                       {/* Arrow indicator */}
                       <svg 
