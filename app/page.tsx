@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Fragment } from 'react';
+import React, { useState, useRef, useEffect, Fragment, Suspense } from 'react';
 import { Upload, Shield, Download, Copy, AlertCircle, Github, Sun, Moon, Mic, Video } from 'lucide-react';
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import { useTheme } from './lib/theme-context';
@@ -22,9 +22,24 @@ interface DossierWithStatus extends Dossier {
   isDecryptable: boolean;
 }
 
+// Component that uses useSearchParams
+const HomeContent = ({ onViewChange }: { onViewChange: (view: 'checkin' | 'documents') => void }) => {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'documents') {
+      onViewChange('documents');
+    } else if (view === 'checkin') {
+      onViewChange('checkin');
+    }
+  }, [searchParams, onViewChange]);
+  
+  return null;
+};
+
 const Home = () => {
   const { connectors, connect, isPending } = useConnect();
-  const searchParams = useSearchParams();
 
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
@@ -94,16 +109,6 @@ const Home = () => {
   const [showMediaRecorder, setShowMediaRecorder] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Handle URL query parameter for view selection
-  useEffect(() => {
-    const view = searchParams.get('view');
-    if (view === 'documents') {
-      setCurrentView('documents');
-    } else if (view === 'checkin') {
-      setCurrentView('checkin');
-    }
-  }, [searchParams]);
 
   // Document detail navigation
   const openDocumentDetail = (document: DossierWithStatus) => {
@@ -1286,6 +1291,9 @@ const Home = () => {
   return (
     <div>
       <Toaster position="top-right" />
+      <Suspense fallback={null}>
+        <HomeContent onViewChange={setCurrentView} />
+      </Suspense>
       <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
         
         {/* Alpha Status Indicator */}
