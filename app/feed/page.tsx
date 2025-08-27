@@ -13,7 +13,6 @@ export default function ImpactFeedPage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { authenticated, user, logout } = usePrivy();
-  const [showAlphaBanner, setShowAlphaBanner] = useState(true);
   const [authMode, setAuthMode] = useState<'standard' | 'advanced'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('canary-auth-mode') as 'standard' | 'advanced') || 'standard';
@@ -39,28 +38,16 @@ export default function ImpactFeedPage() {
   return (
     <div className="min-h-screen flex flex-col">
       
-      {/* Alpha Status Indicator */}
-      {showAlphaBanner && (
-        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`}>
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center justify-between h-12">
-              <div className="w-4 h-4"></div>
-              <div className="flex items-center justify-center flex-1">
-                <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                  Testnet demo · No production guarantees · Use at your own risk
-                </span>
-              </div>
-              <button
-                onClick={() => setShowAlphaBanner(false)}
-                className="text-xs text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors w-4 h-4 flex items-center justify-center flex-shrink-0"
-                aria-label="Close banner"
-              >
-                ×
-              </button>
-            </div>
+      {/* Alpha Status Indicator - Non-dismissable */}
+      <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`}>
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-center h-12">
+            <span className={`text-xs font-medium tracking-wider uppercase ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+              TESTNET DEMO · NO PRODUCTION GUARANTEES · USE AT YOUR OWN RISK
+            </span>
           </div>
         </div>
-      )}
+      </div>
       
       <div className="flex-1" style={{ zoom: '0.8' }}>
         
