@@ -41,7 +41,7 @@ export default function ImpactFeedPage() {
       
       {/* Alpha Status Indicator */}
       {showAlphaBanner && (
-        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
+        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-700'}`}>
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-center justify-between h-12">
               <div className="w-4 h-4"></div>
@@ -65,7 +65,7 @@ export default function ImpactFeedPage() {
       <div className="flex-1" style={{ zoom: '0.8' }}>
         
         {/* Header */}
-        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`} style={{ marginTop: '0px' }}>
+        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`} style={{ marginTop: '0px' }}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between h-10">
               {/* Left: Logo */}
@@ -178,7 +178,7 @@ export default function ImpactFeedPage() {
         </div>
         
         {/* Footer */}
-        <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
+        <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-center gap-6">
               <a
@@ -240,7 +240,7 @@ export default function ImpactFeedPage() {
               </a>
             </div>
             
-            <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+            <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
               <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
                 © 2025 Canary. Truth protection through cryptographic deadman switches.
               </p>
