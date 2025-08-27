@@ -1173,10 +1173,10 @@ const Home = () => {
               
               {/* Title and Subtitle */}
               <div className="mb-12">
-                <h1 className="editorial-header-large text-center mb-4">
+                <h1 className={`editorial-header-large text-center mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                   Try the Canary Testnet Demo
                 </h1>
-                <p className="editorial-body-large text-secondary max-w-sm mx-auto font-medium">
+                <p className={`editorial-body-large max-w-sm mx-auto font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                   If you go silent, <span className="text-red-600">Canary</span> speaks for you.
                 </p>
               </div>
@@ -1184,7 +1184,11 @@ const Home = () => {
               {/* Sign-in Buttons */}
               <div className="space-y-4 max-w-sm mx-auto mb-16">
                 <button
-                  className="w-full py-4 px-6 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                  className={`w-full py-4 px-6 font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                    theme === 'light' 
+                      ? 'bg-black text-white border border-black hover:bg-gray-800' 
+                      : 'bg-white text-black border border-white hover:bg-gray-100'
+                  }`}
                   onClick={() => handleSignIn('Email')}
                   disabled={!ready}
                 >
@@ -1193,13 +1197,17 @@ const Home = () => {
                 
                 <div className="text-center">
                   <div className="flex items-center gap-3 my-6">
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                    <span className="text-xs font-medium text-gray-500 tracking-widest">ADVANCED</span>
-                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <div className={`flex-1 h-px ${theme === 'light' ? 'bg-gray-300' : 'bg-gray-600'}`}></div>
+                    <span className={`text-xs font-medium tracking-widest ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>ADVANCED</span>
+                    <div className={`flex-1 h-px ${theme === 'light' ? 'bg-gray-300' : 'bg-gray-600'}`}></div>
                   </div>
                   
                   <button
-                    className="w-full py-4 px-6 bg-white text-gray-900 font-medium text-base rounded border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`w-full py-4 px-6 font-medium text-base rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      theme === 'light'
+                        ? 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50'
+                        : 'bg-black text-gray-100 border border-gray-600 hover:bg-gray-900'
+                    }`}
                     onClick={() => handleSignIn('Web3 Wallet')}
                     disabled={isPending}
                   >
