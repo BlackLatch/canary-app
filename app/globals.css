@@ -45,10 +45,10 @@ html, body {
 
 /* Dark mode variables */
 :root.dark {
-  /* New Dark Theme Color Palette - Eye-friendly & Professional */
-  --color-paper: #0B0C10;          /* BG Base - Nearly black but slightly warm/blue */
-  --color-paper-warm: #0F1115;     /* Slightly lighter variant */
-  --color-paper-neutral: #171A1F;  /* Card backgrounds */
+  /* Pure Black Theme - Minimalist & Professional */
+  --color-paper: #000000;          /* BG Base - Pure black */
+  --color-paper-warm: #000000;     /* Pure black */
+  --color-paper-neutral: #0a0a0a;  /* Very subtle card backgrounds */
   --color-ink: #E0E0DC;            /* Text Primary - Gentle off-white */
   --color-ink-light: #A3A3A3;      /* Text Secondary - Less important labels */
   --color-ink-lighter: #808080;    /* Muted text */
@@ -459,7 +459,7 @@ html, body {
 }
 
 .dark .bg-gray-100 {
-  background-color: #262626;
+  background-color: #0a0a0a;
 }
 
 .dark .bg-white\/80 {
@@ -502,7 +502,7 @@ html, body {
 
 /* Dark mode hover states */
 .dark .hover\:bg-gray-50:hover {
-  background-color: #262626;
+  background-color: #0a0a0a;
 }
 
 .dark .hover\:bg-gray-100:hover {
@@ -653,8 +653,8 @@ html, body {
 }
 
 /* Dark mode Create Document card */
-.dark .bg-gray-900 {
-  background-color: #262626;
+.dark .bg-black {
+  background-color: #0a0a0a;
 }
 
 .dark .hover\:bg-gray-800:hover {
