@@ -793,6 +793,35 @@ html, body {
   }
 }
 
+/* Popup Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 /* Input placeholder styling */
 .light input::placeholder,
 .light textarea::placeholder,
@@ -806,4 +835,18 @@ html, body {
 .dark select::placeholder {
   color: #9ca3af; /* gray-400 */
   opacity: 1;
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+  accent-color: #e53e3e;
+}
+
+.dark input[type="checkbox"] {
+  accent-color: #e53e3e;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #e53e3e;
+  border-color: #e53e3e;
 }

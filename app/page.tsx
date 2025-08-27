@@ -5,6 +5,8 @@ import { Upload, Shield, Download, Copy, AlertCircle, Github, Sun, Moon, Mic, Vi
 import { commitEncryptedFileToPinata, DeadmanCondition, TraceJson, encryptFileWithDossier } from './lib/taco';
 import { useTheme } from './lib/theme-context';
 import MediaRecorder from './components/MediaRecorder';
+import DemoPopup from './components/DemoPopup';
+import NoDocumentsPlaceholder from './components/NoDocumentsPlaceholder';
 import { useSearchParams } from 'next/navigation';
 
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
@@ -87,7 +89,12 @@ const Home = () => {
     contractTxHash?: string;
     createdAt: Date;
   }>>([]);
-  const [activityLog, setActivityLog] = useState([
+  interface ActivityLogEntry {
+    type: string;
+    date: string;
+    txHash?: string;
+  }
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([
     { type: 'Check in confirmed', date: 'Apr 31, 2026, 16:01 AM' },
     { type: 'Pre-registeral nor-contact', date: 'Apr-32, 3093, 26:3 PM' },
     { type: 'Trigger created', date: 'Apr 13, 2021, 18:00 AM' }
@@ -106,6 +113,8 @@ const Home = () => {
   const [selectedDocument, setSelectedDocument] = useState<DossierWithStatus | null>(null);
   const [documentDetailView, setDocumentDetailView] = useState(false);
   const [showMediaRecorder, setShowMediaRecorder] = useState(false);
+  const [showDisableConfirm, setShowDisableConfirm] = useState<bigint | null>(null);
+  const [showDemoPopup, setShowDemoPopup] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -726,10 +735,11 @@ const Home = () => {
       setIsLoadingDossiers(false);
       console.log(`✅ Loaded ${dossiers.length} dossiers with accurate decryptable status`);
       
-      // If user has no documents, switch to documents view and open create form
-      if (dossiers.length === 0) {
-        setCurrentView('documents');
-        setShowCreateForm(true);
+      // If user has no documents and is on documents view, optionally show create form
+      // Don't force navigation or automatically open create form
+      if (dossiers.length === 0 && currentView === 'documents') {
+        // User can click the create button when ready
+        console.log('📝 No dossiers found - user can create one when ready');
       }
       
     } catch (error) {
@@ -792,7 +802,11 @@ const Home = () => {
         );
         
         setActivityLog(prev => [
-          { type: `✅ Bulk check-in successful for ${activeDossiers.length} documents (TX: ${txHash.slice(0, 10)}...)`, date: now.toLocaleString() },
+          { 
+            type: `✅ Bulk check-in successful for ${activeDossiers.length} documents`, 
+            date: now.toLocaleString(),
+            txHash: txHash
+          },
           ...prev
         ]);
         
@@ -1134,6 +1148,7 @@ const Home = () => {
     return (
       <div className={theme}>
         <Toaster position="top-right" />
+        <DemoPopup forceShow={showDemoPopup} onClose={() => setShowDemoPopup(false)} />
         <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
           <div className={`flex-1 flex items-center justify-center relative ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
           
@@ -1177,7 +1192,7 @@ const Home = () => {
                   Try the Canary Testnet Demo
                 </h1>
                 <p className={`editorial-body-large max-w-sm mx-auto font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                  <span className="text-red-600">Canary</span> helps protect your important information.
+                  If you go silent, <span className="text-red-600">Canary</span> speaks for you.
                 </p>
               </div>
 
@@ -1314,6 +1329,7 @@ const Home = () => {
   return (
     <>
       <Toaster position="top-right" />
+      <DemoPopup forceShow={showDemoPopup} onClose={() => setShowDemoPopup(false)} />
       <Suspense fallback={null}>
         <HomeContent onViewChange={setCurrentView} />
       </Suspense>
@@ -1322,10 +1338,18 @@ const Home = () => {
         {/* Alpha Status Indicator - Non-dismissable */}
         <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-black border-gray-600'}`}>
           <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center justify-center h-12">
+            <div className="flex items-center justify-center h-8 gap-2">
               <span className={`text-xs font-medium tracking-wider uppercase ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                 TESTNET DEMO · NO PRODUCTION GUARANTEES · USE AT YOUR OWN RISK
               </span>
+              <button
+                onClick={() => setShowDemoPopup(true)}
+                className={`text-xs font-medium tracking-wider uppercase underline hover:no-underline transition-all ${
+                  theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                [LEARN MORE]
+              </button>
             </div>
           </div>
         </div>
@@ -1454,7 +1478,131 @@ const Home = () => {
         </header>
 
       <div className="flex-1 overflow-auto">
-      {currentView === 'checkin' ? (
+      {currentView === 'history' ? (
+        // Check-in History View
+        <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            {/* Page Header */}
+            <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
+                    CHECK-IN HISTORY
+                  </h1>
+                  <p className="editorial-body text-gray-600 dark:text-gray-400">
+                    View all system activity and check-in events
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCurrentView('checkin')}
+                  className={`px-4 py-2 border rounded-lg font-medium text-sm transition-colors ${
+                    theme === 'light'
+                      ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-600 text-gray-300 hover:bg-white/5'
+                  }`}
+                >
+                  ← Back to Check In
+                </button>
+              </div>
+            </div>
+
+            {/* History Content */}
+            {activityLog.length > 0 ? (
+              <div className="space-y-4">
+                {activityLog.map((activity, index) => (
+                  <div 
+                    key={index}
+                    className={`border rounded-lg px-6 py-5 transition-all duration-300 ease-out hover:-translate-y-1 ${
+                      theme === 'light' 
+                        ? 'border-gray-300 bg-white hover:border-[#e53e3e]' 
+                        : 'border-gray-600 bg-black/40 hover:border-[#e53e3e]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className={`text-base font-medium ${
+                          theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                        }`}>
+                          {activity.type}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <p className={`text-sm ${
+                            theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            {activity.date}
+                          </p>
+                          {activity.txHash && (
+                            <a
+                              href={`https://amoy.polygonscan.com/tx/${activity.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`text-sm flex items-center gap-1 underline transition-colors ${
+                                theme === 'light' 
+                                  ? 'text-blue-600 hover:text-blue-800' 
+                                  : 'text-blue-400 hover:text-blue-300'
+                              }`}
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                              View on Polygon
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      {activity.type.includes('✅') && (
+                        <div className="flex-shrink-0 ml-4">
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                      )}
+                      {activity.type.includes('❌') && (
+                        <div className="flex-shrink-0 ml-4">
+                          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        </div>
+                      )}
+                      {activity.type.includes('ℹ️') && (
+                        <div className="flex-shrink-0 ml-4">
+                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        </div>
+                      )}
+                      {activity.type.includes('🔓') && (
+                        <div className="flex-shrink-0 ml-4">
+                          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                        </div>
+                      )}
+                      {activity.type.includes('🚫') && (
+                        <div className="flex-shrink-0 ml-4">
+                          <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={`text-center py-16 border rounded-lg ${
+                theme === 'light' 
+                  ? 'border-gray-300 bg-white' 
+                  : 'border-gray-600 bg-black/40'
+              }`}>
+                <svg className="w-16 h-16 mx-auto mb-6 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className={`text-lg font-medium ${
+                  theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  No activity recorded yet
+                </p>
+                <p className={`text-sm mt-2 ${
+                  theme === 'light' ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  Check-in events and system activity will appear here
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : currentView === 'checkin' ? (
         // Check In View - Matching Public Releases Layout
         <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
@@ -1505,7 +1653,7 @@ const Home = () => {
           ) : hasWalletConnection() && userDossiers.length > 0 ? (
             <div>
               {/* Combined System Control Card */}
-              <div className={`border rounded-lg overflow-hidden mb-12 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+              <div className={`border rounded-lg overflow-hidden mb-12 transition-all duration-300 ease-out hover:-translate-y-1 ${theme === 'light' ? 'border-gray-300 bg-white hover:border-[#e53e3e]' : 'border-gray-600 bg-black/40 hover:border-[#e53e3e]'}`}>
                 {/* System Control Header */}
                 <div className={`px-6 py-5 flex items-center justify-between border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                   <span className="editorial-label text-gray-700 dark:text-gray-400">
@@ -1548,21 +1696,19 @@ const Home = () => {
                   {dummyMasterSwitch ? 'ACTIVE' : 'INACTIVE'}
                 </h2>
 
-                {/* Check In Button - Prominent with thin border */}
+                {/* Check In Button - Editorial Style */}
                 <button
                   onClick={handleCheckIn}
                   disabled={isCheckingIn || !dummyMasterSwitch || userDossiers.filter(d => d.isActive).length === 0}
-                  className={`max-w-md mx-auto block px-12 py-6 rounded-lg font-semibold text-lg transition-all ${
+                  className={`max-w-md mx-auto block px-8 py-4 rounded-lg font-medium text-base uppercase tracking-wider transition-all duration-300 ease-out border ${
                     dummyMasterSwitch && !isCheckingIn
-                      ? 'hover:bg-gray-50 dark:hover:bg-white/5' 
-                      : 'cursor-not-allowed'
+                      ? theme === 'light'
+                        ? 'bg-black text-white border-black hover:bg-gray-800 hover:border-[#e53e3e]'
+                        : 'bg-black text-white border-gray-600 hover:bg-gray-900 hover:border-[#e53e3e]'
+                      : theme === 'light'
+                        ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                        : 'bg-gray-900 text-gray-600 border-gray-700 cursor-not-allowed'
                   }`}
-                  style={{ 
-                    backgroundColor: dummyMasterSwitch && !isCheckingIn ? (theme === 'light' ? 'white' : '#000000') : (theme === 'light' ? '#f9fafb' : '#111111'),
-                    color: dummyMasterSwitch && !isCheckingIn ? (theme === 'light' ? '#111827' : 'white') : (theme === 'light' ? '#9ca3af' : '#6b7280'),
-                    border: '1px solid',
-                    borderColor: dummyMasterSwitch && !isCheckingIn ? (theme === 'light' ? '#e5e7eb' : 'white') : (theme === 'light' ? '#e5e7eb' : '#374151')
-                  }}
                 >
                   {isCheckingIn ? (
                     <div className="flex items-center justify-center gap-3">
@@ -1571,8 +1717,8 @@ const Home = () => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-3">
-                      <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       <span>CHECK IN NOW</span>
                     </div>
@@ -1584,7 +1730,7 @@ const Home = () => {
               {/* Status Information - Horizontal Grid on Desktop */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* System Status Card */}
-                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between transition-all duration-300 ease-out hover:-translate-y-1 ${theme === 'light' ? 'border-gray-300 bg-white hover:border-[#e53e3e]' : 'border-gray-600 bg-black/40 hover:border-[#e53e3e]'}`}>
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                       getCountdownTime().display === 'EXPIRED' 
@@ -1592,7 +1738,7 @@ const Home = () => {
                         : 'bg-green-500'
                     }`} />
                     <div>
-                      <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
+                      <div className={`text-sm font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                         SYSTEM STATUS
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
@@ -1605,38 +1751,54 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Last Check-in Card */}
-                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                {/* Last Check-in Card - Clickable */}
+                <div 
+                  onClick={() => setCurrentView('history')}
+                  className={`border rounded-lg px-6 py-5 flex items-center justify-between transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${theme === 'light' ? 'border-gray-300 bg-white hover:border-[#e53e3e]' : 'border-gray-600 bg-black/40 hover:border-[#e53e3e]'}`}
+                >
                   <div>
-                    <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
+                    <div className={`text-sm font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                       LAST CHECK-IN
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                       Time since last activity
                     </div>
                   </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 monospace-accent">
-                    {getTimeSinceLastCheckIn()}
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 monospace-accent">
+                      {getTimeSinceLastCheckIn()}
+                    </div>
+                    <svg className={`w-5 h-5 ${theme === 'light' ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </div>
 
-                {/* Active Documents Card */}
-                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                {/* Active Documents Card - Clickable */}
+                <div 
+                  onClick={() => setCurrentView('documents')}
+                  className={`border rounded-lg px-6 py-5 flex items-center justify-between transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${theme === 'light' ? 'border-gray-300 bg-white hover:border-[#e53e3e]' : 'border-gray-600 bg-black/40 hover:border-[#e53e3e]'}`}
+                >
                   <div>
-                    <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
+                    <div className={`text-sm font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                       ACTIVE DOCUMENTS
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                       Protected with encryption
                     </div>
                   </div>
-                  <div className="text-lg font-bold" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
-                    {userDossiers.filter(d => d.isActive).length}
+                  <div className="flex items-center gap-3">
+                    <div className={`text-2xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                      {userDossiers.filter(d => d.isActive).length}
+                    </div>
+                    <svg className={`w-5 h-5 ${theme === 'light' ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </div>
               </div>
 
-              {/* Share Status Button - Matching Public Releases style */}
+              {/* Share Status Button - Editorial Style */}
               <div className="mt-8">
                 <button
                   onClick={() => {
@@ -1650,13 +1812,17 @@ const Home = () => {
                       toast.error('Failed to copy share link');
                     });
                   }}
-                  className={`w-full py-4 px-6 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-300 bg-white text-black hover:bg-gray-50' : 'border-gray-600 bg-transparent text-gray-300 hover:bg-white/10'}`}
+                  className={`w-full py-3 px-6 border rounded-lg font-medium text-sm uppercase tracking-wider transition-all duration-300 ease-out ${
+                    theme === 'light'
+                      ? 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:border-[#e53e3e]'
+                      : 'border-gray-600 bg-black/40 text-gray-100 hover:bg-white/5 hover:border-[#e53e3e]'
+                  }`}
                 >
-                  <div className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                  <div className="flex items-center justify-center gap-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                     </svg>
-                    <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>SHARE STATUS</span>
+                    <span>SHARE STATUS</span>
                   </div>
                 </button>
               </div>
@@ -1666,7 +1832,7 @@ const Home = () => {
             // Connection Prompt - Clean style
             <div>
               <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                <div className="inline-flex items-center justify-center w-20 h-20 border-2 border-gray-200 dark:border-gray-600 dark:bg-black/30 rounded-full mb-6">
+                <div className="inline-flex items-center justify-center w-20 h-20 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-black/30 rounded-full mb-6">
                   <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
@@ -1689,35 +1855,13 @@ const Home = () => {
               </div>
             </div>
           ) : (
-            // No Documents State - Clean style
-            <div>
-              <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                <div className="inline-flex items-center justify-center w-20 h-20 border-2 border-gray-200 dark:border-gray-600 dark:bg-black/30 rounded-full mb-6">
-                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
-                  NO ACTIVE DOCUMENTS
-                </h3>
-                <p className="editorial-body text-gray-600 dark:text-gray-400 mb-6">
-                  Create your first encrypted document to get started
-                </p>
-                <button
-                  onClick={() => setCurrentView('documents')}
-                  className={`px-6 py-3 border rounded-lg font-medium transition-all inline-flex items-center gap-2 ${
-                    theme === 'light' 
-                      ? 'bg-gray-900 text-white hover:bg-gray-700 border-gray-900' 
-                      : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
-                  }`}
-                >
-                  <span className="uppercase tracking-wider">CREATE DOCUMENT</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+            // No Documents State
+            <NoDocumentsPlaceholder
+              theme={theme}
+              onCreateClick={() => setCurrentView('documents')}
+              title="NO ACTIVE DOCUMENTS"
+              description="Create your first encrypted document to get started"
+            />
           )}
         </div>
         </div>
@@ -1788,6 +1932,25 @@ const Home = () => {
                             </div>
                             <div className={`text-xs font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                               Document #{selectedDocument.id.toString()}
+                            </div>
+                            {/* Release Mode Badge */}
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium uppercase tracking-wider border ${
+                              selectedDocument.recipients && selectedDocument.recipients.length > 0
+                                ? theme === 'light' 
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300' 
+                                  : 'bg-amber-900/10 text-amber-400 border-amber-600'
+                                : theme === 'light'
+                                  ? 'bg-green-50 text-green-800 border-green-300'
+                                  : 'bg-green-900/10 text-green-400 border-green-600'
+                            }`}>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {selectedDocument.recipients && selectedDocument.recipients.length > 0 ? (
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                ) : (
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                )}
+                              </svg>
+                              {selectedDocument.recipients && selectedDocument.recipients.length > 0 ? 'Private' : 'Public'}
                             </div>
                           </div>
                         </div>
@@ -2017,17 +2180,19 @@ const Home = () => {
                                                  onClick={async (e) => {
                            e.stopPropagation();
                            try {
+                             let txHash: string;
                              if (selectedDocument.isActive) {
-                               await ContractService.deactivateDossier(selectedDocument.id);
+                               txHash = await ContractService.deactivateDossier(selectedDocument.id);
                              } else {
-                               await ContractService.reactivateDossier(selectedDocument.id);
+                               txHash = await ContractService.reactivateDossier(selectedDocument.id);
                              }
                              
                              await loadUserDossiers();
                              setActivityLog(prev => [
                                { 
                                  type: `Document #${selectedDocument.id.toString()} ${selectedDocument.isActive ? 'deactivated' : 'resumed'}`, 
-                                 date: new Date().toLocaleString() 
+                                 date: new Date().toLocaleString(),
+                                 txHash: txHash
                                },
                                ...prev
                              ]);
@@ -2050,6 +2215,26 @@ const Home = () => {
                             </svg>
                           )}
                           <span>{selectedDocument.isActive ? 'PAUSE DOCUMENT' : 'RESUME DOCUMENT'}</span>
+                        </div>
+                      </button>
+                      
+                      {/* Permanently Disable Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDisableConfirm(selectedDocument.id);
+                        }}
+                        className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                          theme === 'light' 
+                            ? 'bg-red-50 text-red-700 hover:bg-red-100 border-red-300' 
+                            : 'bg-red-900/20 text-red-400 hover:bg-red-900/40 border-red-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span>PERMANENTLY DISABLE</span>
                         </div>
                       </button>
                     </div>
@@ -2183,28 +2368,10 @@ const Home = () => {
                     </div>
                     
                     {userDossiers.length === 0 && (
-                      <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-gray-200 dark:border-gray-600 dark:bg-black/30 mb-6">
-                          <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
-                          No Documents Yet
-                        </h3>
-                        <p className="editorial-body text-gray-600 dark:text-gray-400 mb-6">
-                          Create your first encrypted document to get started
-                        </p>
-                        <button
-                          onClick={() => setShowCreateForm(true)}
-                          className={`editorial-button inline-flex items-center gap-2 px-6 py-3 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50 text-gray-900' : 'border-gray-600 bg-black/40 hover:bg-white/10 text-gray-100'}`}
-                        >
-                          <span className="font-medium uppercase tracking-wider">CREATE DOCUMENT</span>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                      </div>
+                      <NoDocumentsPlaceholder
+                        theme={theme}
+                        onCreateClick={() => setShowCreateForm(true)}
+                      />
                     )}
                   </div>
                   
@@ -2214,30 +2381,34 @@ const Home = () => {
                       {/* Add New Document Card - Always shown */}
                       <div 
                         onClick={() => setShowCreateForm(true)}
-                        className={`cursor-pointer group min-h-[180px] transition-all border rounded-lg ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-600 bg-black/40 hover:bg-gray-800'}`}
+                        className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 ${
+                          theme === 'light' 
+                            ? 'border-gray-200 bg-white hover:bg-gray-50 hover:border-[#e53e3e]' 
+                            : 'border-gray-600 bg-black/40 hover:bg-[rgba(229,62,62,0.05)] hover:border-[#e53e3e]'
+                        }`}
                       >
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                          <div className={`transition-colors mb-6 ${
+                        <div className="h-full flex flex-col items-center justify-center text-center">
+                          <div className={`mb-4 ${
                             theme === 'light' 
-                              ? 'text-gray-600 group-hover:text-gray-800' 
-                              : 'text-gray-300 group-hover:text-white'
+                              ? 'text-gray-400' 
+                              : 'text-gray-500'
                           }`}>
-                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                             </svg>
                           </div>
-                          <div>
-                            <h3 className={`text-xl font-semibold transition-colors mb-3 ${
+                          <div className="flex-1 min-w-0">
+                            <h3 className={`editorial-header-small uppercase tracking-wider mb-2 ${
                               theme === 'light' 
-                                ? 'text-gray-900 group-hover:text-gray-800' 
-                                : 'text-white group-hover:text-gray-100'
-                            }`} style={{ fontFamily: 'var(--font-playfair)' }}>
+                                ? 'text-gray-900' 
+                                : 'text-gray-100'
+                            }`}>
                               CREATE DOCUMENT
                             </h3>
-                            <p className={`text-sm transition-colors ${
+                            <p className={`editorial-body-small break-words ${
                               theme === 'light' 
-                                ? 'text-gray-600 group-hover:text-gray-700' 
-                                : 'text-gray-300 group-hover:text-gray-200'
+                                ? 'text-gray-600' 
+                                : 'text-gray-400'
                             }`}>
                               Encrypt and protect a new file with cryptographic deadman switches
                             </p>
@@ -2362,6 +2533,28 @@ const Home = () => {
                               
                               {/* Card Body - Simplified */}
                               <div className="flex-1 mb-4">
+                                {/* Release Mode Indicator */}
+                                <div className="text-center mb-4">
+                                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wider border ${
+                                    dossier.recipients && dossier.recipients.length > 0
+                                      ? theme === 'light' 
+                                        ? 'bg-amber-50 text-amber-800 border-amber-300' 
+                                        : 'bg-amber-900/10 text-amber-400 border-amber-600'
+                                      : theme === 'light'
+                                        ? 'bg-green-50 text-green-800 border-green-300'
+                                        : 'bg-green-900/10 text-green-400 border-green-600'
+                                  }`}>
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      {dossier.recipients && dossier.recipients.length > 0 ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                      ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      )}
+                                    </svg>
+                                    {dossier.recipients && dossier.recipients.length > 0 ? 'Private' : 'Public'}
+                                  </div>
+                                </div>
+                                
                                 {/* Time Display */}
                                 <div className="text-center">
                                   <div className="editorial-label-small text-secondary mb-2">Time Remaining</div>
@@ -2387,6 +2580,7 @@ const Home = () => {
                                     <button
                                       onClick={async () => {
                                         try {
+                                          let txHash: string;
                                           // Use smart wallet for gasless check-in only in standard mode
                                           if (smartWalletClient && authMode === 'standard') {
                                             const txData = encodeFunctionData({
@@ -2395,21 +2589,22 @@ const Home = () => {
                                               args: [dossier.id]
                                             });
                                             
-                                            await smartWalletClient.sendTransaction({
+                                            txHash = await smartWalletClient.sendTransaction({
                                               account: smartWalletClient.account,
                                               chain: polygonAmoy,
                                               to: CANARY_DOSSIER_ADDRESS,
                                               data: txData,
                                             });
                                           } else {
-                                            await ContractService.checkIn(dossier.id);
+                                            txHash = await ContractService.checkIn(dossier.id);
                                           }
                                           
                                           await loadUserDossiers();
                                           setActivityLog(prev => [
                                             { 
                                               type: `Check-in performed for document #${dossier.id.toString()}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
-                                              date: new Date().toLocaleString() 
+                                              date: new Date().toLocaleString(),
+                                              txHash: txHash
                                             },
                                             ...prev
                                           ]);
@@ -2431,6 +2626,7 @@ const Home = () => {
                                     <button
                                       onClick={async () => {
                                         try {
+                                          let txHash: string;
                                           // Use smart wallet for gasless transaction only in standard mode
                                           if (smartWalletClient && authMode === 'standard') {
                                             const functionName = dossier.isActive ? 'deactivateDossier' : 'reactivateDossier';
@@ -2440,7 +2636,7 @@ const Home = () => {
                                               args: [dossier.id]
                                             });
                                             
-                                            await smartWalletClient.sendTransaction({
+                                            txHash = await smartWalletClient.sendTransaction({
                                               account: smartWalletClient.account,
                                               chain: polygonAmoy,
                                               to: CANARY_DOSSIER_ADDRESS,
@@ -2448,9 +2644,9 @@ const Home = () => {
                                             });
                                           } else {
                                             if (dossier.isActive) {
-                                              await ContractService.deactivateDossier(dossier.id);
+                                              txHash = await ContractService.deactivateDossier(dossier.id);
                                             } else {
-                                              await ContractService.reactivateDossier(dossier.id);
+                                              txHash = await ContractService.reactivateDossier(dossier.id);
                                             }
                                           }
                                           
@@ -2458,7 +2654,8 @@ const Home = () => {
                                           setActivityLog(prev => [
                                             { 
                                               type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'deactivated' : 'resumed'}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
-                                              date: new Date().toLocaleString() 
+                                              date: new Date().toLocaleString(),
+                                              txHash: txHash
                                             },
                                             ...prev
                                           ]);
@@ -2499,7 +2696,27 @@ const Home = () => {
                                     </button>
                                   </div>
                                   
-                                  {/* Decrypt Action */}
+                                  {/* Permanently Disable Action */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowDisableConfirm(dossier.id);
+                                    }}
+                                    className={`w-full py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${
+                                      theme === 'light' 
+                                        ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' 
+                                        : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      <span>DISABLE</span>
+                                    </div>
+                                  </button>
+                                  
+                                  {/* Decrypt Action - Download Button */}
                                   {(() => {
                                     // Check if document is expired based on time calculation
                                     const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
@@ -2650,10 +2867,10 @@ const Home = () => {
                                           ]);
                                         }
                                       }}
-                                      className={`w-full mt-2 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
+                                      className={`w-full mt-2 py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
                                     >
-                                      <div className="flex items-center justify-center gap-2">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
                                         <span>DOWNLOAD</span>
@@ -3255,13 +3472,145 @@ const Home = () => {
           
           <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-              © 2025 Canary. If you go silent, canary speaks for you.
+              © 2025 Canary.
             </p>
           </div>
         </div>
       </footer>
       </div>
     </div>
+    
+    {/* Permanently Disable Confirmation Popup */}
+    {showDisableConfirm !== null && (
+      <>
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] animate-fade-in"
+          onClick={() => setShowDisableConfirm(null)}
+        />
+        
+        {/* Popup */}
+        <div className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none">
+          <div 
+            className={`pointer-events-auto max-w-md w-full mx-4 animate-slide-up editorial-card-bordered ${
+              theme === 'light' 
+                ? 'bg-white border-gray-300' 
+                : 'bg-black border-gray-600'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <h2 className={`editorial-header-small uppercase tracking-wide ${
+                  theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                }`}>
+                  Confirm Permanent Disable
+                </h2>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <p className={`editorial-body mb-4 ${
+                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+              }`}>
+                Are you sure you want to permanently disable this document?
+              </p>
+              
+              <div className={`p-4 rounded border ${
+                theme === 'light' 
+                  ? 'bg-red-50 border-red-200' 
+                  : 'bg-red-900/20 border-red-800'
+              }`}>
+                <p className={`text-sm font-medium mb-2 ${
+                  theme === 'light' ? 'text-red-900' : 'text-red-400'
+                }`}>
+                  ⚠️ Warning: Critical Action
+                </p>
+                <ul className={`text-sm space-y-1 ${
+                  theme === 'light' ? 'text-red-700' : 'text-red-500'
+                }`}>
+                  <li>• The document will be permanently deactivated</li>
+                  <li>• Check-ins will no longer be required</li>
+                  <li>• This action is recorded on the blockchain</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={`p-6 border-t flex gap-3 ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <button
+                onClick={() => setShowDisableConfirm(null)}
+                className={`flex-1 py-3 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
+                  theme === 'light'
+                    ? 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
+                    : 'bg-black/40 text-white border-gray-600 hover:bg-white/5'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    // Find the dossier to disable
+                    const dossierToDisable = userDossiers.find(d => d.id === showDisableConfirm);
+                    if (!dossierToDisable) {
+                      toast.error('Document not found');
+                      setShowDisableConfirm(null);
+                      return;
+                    }
+                    
+                    const disableToast = toast.loading('Permanently disabling document...');
+                    
+                    // Call the contract to deactivate the dossier (permanent in this context)
+                    const txHash = await ContractService.deactivateDossier(showDisableConfirm);
+                    
+                    toast.success('Document permanently disabled', { id: disableToast });
+                    
+                    // Reload dossiers to reflect the change
+                    await loadUserDossiers();
+                    
+                    // Close the detail view if we're viewing the disabled document
+                    if (selectedDocument?.id === showDisableConfirm) {
+                      closeDocumentDetail();
+                    }
+                    
+                    // Add to activity log
+                    setActivityLog(prev => [
+                      { 
+                        type: `🚫 Document #${showDisableConfirm.toString()} permanently disabled`, 
+                        date: new Date().toLocaleString(),
+                        txHash: txHash
+                      },
+                      ...prev
+                    ]);
+                    
+                    setShowDisableConfirm(null);
+                  } catch (error) {
+                    console.error('Failed to permanently disable document:', error);
+                    toast.error('Failed to disable document. Please try again.');
+                  }
+                }}
+                className={`flex-1 py-3 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
+                  theme === 'light'
+                    ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
+                    : 'bg-red-600 text-white border-red-600 hover:bg-red-700'
+                }`}
+              >
+                Permanently Disable
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+    
     </>
   );
 }
