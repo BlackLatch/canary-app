@@ -41,7 +41,7 @@ export default function ImpactFeedPage() {
       
       {/* Alpha Status Indicator */}
       {showAlphaBanner && (
-        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-700'}`}>
+        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`}>
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-center justify-between h-12">
               <div className="w-4 h-4"></div>
@@ -65,7 +65,7 @@ export default function ImpactFeedPage() {
       <div className="flex-1" style={{ zoom: '0.8' }}>
         
         {/* Header */}
-        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`} style={{ marginTop: '0px' }}>
+        <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`} style={{ marginTop: '0px' }}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between h-10">
               {/* Left: Logo */}
@@ -110,7 +110,7 @@ export default function ImpactFeedPage() {
                 {/* Theme Toggle */}
                 <button
                   onClick={toggleTheme}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
                   title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                 >
                   {theme === 'light' ? (
@@ -125,7 +125,7 @@ export default function ImpactFeedPage() {
                   <div className="flex items-center gap-4">
                     {authMode === 'advanced' && address ? (
                       // Advanced mode: Show wallet address
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`}>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           {`${address.slice(0, 6)}...${address.slice(-4)}`}
@@ -133,7 +133,7 @@ export default function ImpactFeedPage() {
                       </div>
                     ) : authMode === 'standard' && authenticated ? (
                       // Standard mode: Show user email or authenticated status
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`}>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           {user?.email?.address || 'SIGNED IN'}
@@ -178,7 +178,7 @@ export default function ImpactFeedPage() {
         </div>
         
         {/* Footer */}
-        <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
+        <footer className={`border-t flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-center gap-6">
               <a
@@ -240,7 +240,7 @@ export default function ImpactFeedPage() {
               </a>
             </div>
             
-            <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+            <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
               <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
                 © 2025 Canary. Truth protection through cryptographic deadman switches.
               </p>

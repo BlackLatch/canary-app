@@ -1307,7 +1307,7 @@ const Home = () => {
         <div className="flex-1" style={{ zoom: '0.8' }}>
         
         {/* Header */}
-        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-600 bg-black/80'}`} style={{ marginTop: '0px' }}>
+        <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`} style={{ marginTop: '0px' }}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between h-10">
               {/* Left: Logo */}
@@ -3172,7 +3172,7 @@ const Home = () => {
       </div>
 
       {/* Footer */}
-      <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-600 bg-black/80'}`}>
+      <footer className={`border-t flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-center gap-6">
             <a

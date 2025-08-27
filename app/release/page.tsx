@@ -367,7 +367,7 @@ function ReleaseDetailContent() {
       <Toaster position="top-right" />
       
       {/* Header Bar */}
-      <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-600 bg-black/80'}`}>
+      <header className={`border-b ${theme === 'light' ? 'border-gray-200 bg-white' : 'border-gray-600 bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between h-10">
             {/* Left: Logo and Back Button */}
