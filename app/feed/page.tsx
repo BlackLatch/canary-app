@@ -88,19 +88,19 @@ export default function ImpactFeedPage() {
                     href="/?view=checkin"
                     className="nav-link"
                   >
-                    Check In
+                    CHECK IN
                   </Link>
                   <Link 
                     href="/?view=documents"
                     className="nav-link"
                   >
-                    Documents
+                    DOCUMENTS
                   </Link>
                   <Link 
                     href="/feed"
                     className="nav-link nav-link-active"
                   >
-                    Impact Feed
+                    IMPACT FEED
                   </Link>
                 </nav>
                 
@@ -136,7 +136,7 @@ export default function ImpactFeedPage() {
                       <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`}>
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {user?.email?.address || 'Signed In'}
+                          {user?.email?.address || 'SIGNED IN'}
                         </span>
                       </div>
                     ) : null}
@@ -157,13 +157,13 @@ export default function ImpactFeedPage() {
                       }}
                       className="text-sm text-muted hover:text-primary transition-colors"
                     >
-                      Sign Out
+                      SIGN OUT
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-xs text-muted">
                     <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                    <span>Not Signed In</span>
+                    <span>NOT SIGNED IN</span>
                   </div>
                 )}
                 </div>

@@ -12,8 +12,14 @@ html, body {
 }
 
 :root {
-  --font-playfair: "Playfair Display", serif;
-  --font-crimson: "Crimson Text", serif;
+  /* System font stacks for optimal performance */
+  --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  
+  /* Legacy variables for compatibility */
+  --font-playfair: var(--font-heading);
+  --font-crimson: var(--font-system);
   
   /* Refined E-Reader Futurism Color Palette */
   --color-paper: #fafaf9;
@@ -66,7 +72,7 @@ html, body {
 
 /* Enhanced Editorial Typography System */
 .editorial-header {
-  font-family: var(--font-playfair);
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 1.25rem;
   line-height: 1.4;
@@ -76,7 +82,7 @@ html, body {
 }
 
 .editorial-header-large {
-  font-family: var(--font-playfair);
+  font-family: var(--font-heading);
   font-weight: 700;
   font-size: 1.75rem;
   line-height: 1.3;
@@ -98,7 +104,7 @@ html, body {
 }
 
 .editorial-subheader {
-  font-family: var(--font-playfair);
+  font-family: var(--font-heading);
   font-weight: 500;
   font-size: 1.125rem;
   line-height: 1.4;
@@ -108,7 +114,7 @@ html, body {
 }
 
 .editorial-body {
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-size: 1rem;
   line-height: 1.6;
   color: var(--color-ink);
@@ -116,7 +122,7 @@ html, body {
 }
 
 .editorial-body-large {
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-size: 1.125rem;
   line-height: 1.65;
   color: var(--color-ink);
@@ -137,7 +143,7 @@ html, body {
 
 /* Editorial Button System */
 .editorial-button {
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-weight: 600;
   font-size: 0.9375rem;
   letter-spacing: 0.025em;
@@ -203,7 +209,7 @@ html, body {
 
 /* Input System */
 .editorial-input {
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-size: 1rem;
   width: 100%;
   padding: var(--space-3) var(--space-4);
@@ -237,7 +243,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -287,7 +293,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-size: 0.875rem;
   font-weight: 700;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -314,14 +320,16 @@ html, body {
 
 /* Navigation Enhancement */
 .nav-link {
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   text-decoration: none;
   color: var(--color-ink-lighter);
   padding: var(--space-2) var(--space-3);
   border-bottom: 2px solid transparent;
   transition: all 0.2s ease-in-out;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   letter-spacing: 0.025em;
   display: flex;
   align-items: center;
@@ -341,11 +349,11 @@ html, body {
 /* Enhanced Toast styling */
 .editorial-toast {
   letter-spacing: 0.025em !important;
-  font-family: var(--font-crimson) !important;
+  font-family: var(--font-system) !important;
 }
 
 .editorial-toast > div {
-  font-family: var(--font-crimson) !important;
+  font-family: var(--font-system) !important;
 }
 
 [data-sonner-toaster] [data-sonner-toast] {
@@ -354,18 +362,18 @@ html, body {
 }
 
 [data-sonner-toaster] [data-sonner-toast][data-styled] {
-  font-family: var(--font-crimson) !important;
+  font-family: var(--font-system) !important;
   letter-spacing: 0.025em;
 }
 
 .editorial-toast [data-title] {
-  font-family: var(--font-crimson) !important;
+  font-family: var(--font-system) !important;
   font-weight: 600 !important;
   letter-spacing: 0.025em !important;
 }
 
 .editorial-toast [data-description] {
-  font-family: var(--font-crimson) !important;
+  font-family: var(--font-system) !important;
   opacity: 0.9;
   margin-top: 2px;
 }
@@ -416,7 +424,7 @@ html, body {
 
 /* Enhanced Label Classes */
 .editorial-label {
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -426,7 +434,7 @@ html, body {
 }
 
 .editorial-label-small {
-  font-family: var(--font-crimson);
+  font-family: var(--font-system);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;

@@ -1332,7 +1332,7 @@ const Home = () => {
                       currentView === 'checkin' ? 'nav-link-active' : ''
                     }`}
                   >
-                    Check In
+                    CHECK IN
                   </button>
                   <button 
                     onClick={() => setCurrentView('documents')}
@@ -1340,13 +1340,13 @@ const Home = () => {
                       currentView === 'documents' ? 'nav-link-active' : ''
                     }`}
                   >
-                    Documents
+                    DOCUMENTS
                   </button>
                   <a 
                     href="/feed"
                     className="nav-link"
                   >
-                    Impact Feed
+                    IMPACT FEED
                   </a>
                 </nav>
                 
@@ -1409,7 +1409,7 @@ const Home = () => {
                       }}
                       className="text-sm text-muted hover:text-primary transition-colors"
                     >
-                      Sign Out
+                      SIGN OUT
                     </button>
                   </div>
                 ) : (
@@ -1538,14 +1538,14 @@ const Home = () => {
                   {isCheckingIn ? (
                     <div className="flex items-center justify-center gap-3">
                       <div className="animate-spin rounded-full h-6 w-6 border-2 border-current border-t-transparent"></div>
-                      <span>Checking In...</span>
+                      <span>CHECKING IN...</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-3">
                       <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span>Check In Now</span>
+                      <span>CHECK IN NOW</span>
                     </div>
                   )}
                 </button>
@@ -1564,7 +1564,7 @@ const Home = () => {
                     }`} />
                     <div>
                       <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
-                        System Status
+                        SYSTEM STATUS
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                         {getCountdownTime().display === 'EXPIRED' ? 'Check-in required' : 'System healthy'}
@@ -1580,7 +1580,7 @@ const Home = () => {
                 <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
-                      Last Check-in
+                      LAST CHECK-IN
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                       Time since last activity
@@ -1595,7 +1595,7 @@ const Home = () => {
                 <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
-                      Active Documents
+                      ACTIVE DOCUMENTS
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                       Protected with encryption
@@ -1627,7 +1627,7 @@ const Home = () => {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                     </svg>
-                    <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>Share Status</span>
+                    <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>SHARE STATUS</span>
                   </div>
                 </button>
               </div>
@@ -1669,7 +1669,7 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
-                  No Active Documents
+                  NO ACTIVE DOCUMENTS
                 </h3>
                 <p className="editorial-body text-gray-600 dark:text-gray-400 mb-6">
                   Create your first encrypted document to get started
@@ -1787,7 +1787,7 @@ const Home = () => {
                         </div>
                         <div>
                           <div className={`editorial-label-small ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                            Last Check-in
+                            LAST CHECK-IN
                           </div>
                           <div className={`text-lg font-semibold monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                             {new Date(Number(selectedDocument.lastCheckIn) * 1000).toLocaleDateString()}
@@ -1851,7 +1851,7 @@ const Home = () => {
                           disabled={isCheckingIn}
                           className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
-                          {isCheckingIn ? 'Checking In...' : 'Check In'}
+                          {isCheckingIn ? 'CHECKING IN...' : 'CHECK IN'}
                         </button>
                       )}
                       
@@ -1973,7 +1973,7 @@ const Home = () => {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
-                              <span>Download</span>
+                              <span>DOWNLOAD</span>
                             </div>
                           </button>
                         ) : null;
@@ -2016,7 +2016,7 @@ const Home = () => {
                               <polygon points="8,5 8,19 19,12" />
                             </svg>
                           )}
-                          <span>{selectedDocument.isActive ? 'Pause Document' : 'Resume Document'}</span>
+                          <span>{selectedDocument.isActive ? 'PAUSE DOCUMENT' : 'RESUME DOCUMENT'}</span>
                         </div>
                       </button>
                     </div>
@@ -2392,7 +2392,7 @@ const Home = () => {
                                           : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-gray-800 text-gray-500 border-gray-700'
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
-                                      Check In
+                                      CHECK IN
                                     </button>
                                     
                                     <button
@@ -2461,7 +2461,7 @@ const Home = () => {
                                             <polygon points="8,5 8,19 19,12" />
                                           </svg>
                                         )}
-                                        <span>{dossier.isActive ? 'Pause' : 'Resume'}</span>
+                                        <span>{dossier.isActive ? 'PAUSE' : 'RESUME'}</span>
                                       </div>
                                     </button>
                                   </div>
@@ -2623,7 +2623,7 @@ const Home = () => {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
-                                        <span>Download</span>
+                                        <span>DOWNLOAD</span>
                                       </div>
                                     </button>
                                   ) : null}
