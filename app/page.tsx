@@ -1132,10 +1132,23 @@ const Home = () => {
   // Show sign-in page if not signed in
   if (!signedIn) {
     return (
-      <div className="light">
+      <div className={theme}>
         <Toaster position="top-right" />
-        <div className="h-screen flex flex-col">
-          <div className="flex-1 bg-gray-50 flex items-center justify-center relative">
+        <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
+          <div className={`flex-1 flex items-center justify-center relative ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
+          
+          {/* Theme Toggle Button - Top Right */}
+          <button
+            onClick={toggleTheme}
+            className="absolute top-6 right-6 p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors z-10"
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            ) : (
+              <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            )}
+          </button>
           
           {/* Cryptographic Pattern Accent */}
           <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
@@ -1171,7 +1184,7 @@ const Home = () => {
               {/* Sign-in Buttons */}
               <div className="space-y-4 max-w-sm mx-auto mb-16">
                 <button
-                  className="w-full py-4 px-6 bg-black text-white font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
+                  className="w-full py-4 px-6 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   onClick={() => handleSignIn('Email')}
                   disabled={!ready}
                 >
@@ -1208,14 +1221,14 @@ const Home = () => {
         </div>
 
         {/* Footer */}
-        <footer className="border-t backdrop-blur-sm flex-shrink-0 border-gray-300 bg-white/80">
+        <footer className={`border-t flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-center gap-6">
               <a
                 href="https://canaryapp.io"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1227,7 +1240,7 @@ const Home = () => {
                 href="https://docs.canaryapp.io"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1239,7 +1252,7 @@ const Home = () => {
                 href="https://canaryapp.io/support"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -1251,7 +1264,7 @@ const Home = () => {
                 href="https://github.com/TheThirdRoom/canary"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               >
                 <Github size={10} />
                 <span>Source</span>
@@ -1259,7 +1272,7 @@ const Home = () => {
               
               <a
                 href="mailto:contact@canaryapp.io"
-                className="flex items-center gap-1.5 text-xs transition-colors text-gray-600 hover:text-gray-900"
+                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -1268,8 +1281,8 @@ const Home = () => {
               </a>
             </div>
             
-            <div className="text-center mt-2 pt-2 border-t border-gray-300">
-              <p className="text-xs text-gray-500">
+            <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
+              <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
                 © 2025 Canary. If you go silent, canary speaks for you.
               </p>
             </div>
