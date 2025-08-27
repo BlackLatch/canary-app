@@ -1279,11 +1279,11 @@ const Home = () => {
       <Suspense fallback={null}>
         <HomeContent onViewChange={setCurrentView} />
       </Suspense>
-      <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
+      <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         
         {/* Alpha Status Indicator */}
         {showAlphaBanner && (
-        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-black border-gray-700'}`}>
+        <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-black border-gray-600'}`}>
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-center justify-between h-12">
               <div className="w-4 h-4"></div>
@@ -1307,7 +1307,7 @@ const Home = () => {
         <div className="flex-1" style={{ zoom: '0.8' }}>
         
         {/* Header */}
-        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`} style={{ marginTop: '0px' }}>
+        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-600 bg-black/80'}`} style={{ marginTop: '0px' }}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between h-10">
               {/* Left: Logo */}
@@ -1356,7 +1356,7 @@ const Home = () => {
                 {/* Theme Toggle */}
                 <button
                   onClick={toggleTheme}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
                   title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                 >
                   {theme === 'light' ? (
@@ -1371,7 +1371,7 @@ const Home = () => {
                   <div className="flex items-center gap-4">
                     {authMode === 'advanced' && address ? (
                       // Advanced mode: Show wallet address
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`}>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           {`${address.slice(0, 6)}...${address.slice(-4)}`}
@@ -1379,7 +1379,7 @@ const Home = () => {
                       </div>
                     ) : authMode === 'standard' && authenticated ? (
                       // Standard mode: Show user email or authenticated status
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`}>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           {user?.email?.address || 'Signed In'}
@@ -1430,7 +1430,7 @@ const Home = () => {
         <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Page Header - Like Impact Feed */}
-          <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+          <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
               CHECK IN
             </h1>
@@ -1443,7 +1443,7 @@ const Home = () => {
             // Loading State for Check-in View
             <div className="space-y-8">
               {/* System Control Card Skeleton */}
-              <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+              <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                 <div className="animate-pulse">
                   <div className="flex justify-between items-center mb-8">
                     <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-32"></div>
@@ -1459,7 +1459,7 @@ const Home = () => {
               {/* Status Cards Skeleton */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                  <div key={i} className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                     <div className="animate-pulse">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -1476,9 +1476,9 @@ const Home = () => {
           ) : hasWalletConnection() && userDossiers.length > 0 ? (
             <div>
               {/* Combined System Control Card */}
-              <div className={`border rounded-lg overflow-hidden mb-12 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+              <div className={`border rounded-lg overflow-hidden mb-12 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                 {/* System Control Header */}
-                <div className={`px-6 py-5 flex items-center justify-between border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+                <div className={`px-6 py-5 flex items-center justify-between border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                   <span className="editorial-label text-gray-700 dark:text-gray-400">
                     SYSTEM CONTROL
                   </span>
@@ -1486,7 +1486,7 @@ const Home = () => {
                   <button
                     onClick={() => setDummyMasterSwitch(!dummyMasterSwitch)}
                     className={`relative w-14 h-7 rounded-full transition-colors duration-200 ${
-                      dummyMasterSwitch ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'
+                      dummyMasterSwitch ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-700'
                     }`}
                   >
                     <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
@@ -1525,7 +1525,7 @@ const Home = () => {
                   disabled={isCheckingIn || !dummyMasterSwitch || userDossiers.filter(d => d.isActive).length === 0}
                   className={`max-w-md mx-auto block px-12 py-6 rounded-lg font-semibold text-lg transition-all ${
                     dummyMasterSwitch && !isCheckingIn
-                      ? 'hover:bg-gray-50 dark:hover:bg-gray-800' 
+                      ? 'hover:bg-gray-50 dark:hover:bg-white/5' 
                       : 'cursor-not-allowed'
                   }`}
                   style={{ 
@@ -1555,7 +1555,7 @@ const Home = () => {
               {/* Status Information - Horizontal Grid on Desktop */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* System Status Card */}
-                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                       getCountdownTime().display === 'EXPIRED' 
@@ -1577,7 +1577,7 @@ const Home = () => {
                 </div>
 
                 {/* Last Check-in Card */}
-                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
                       LAST CHECK-IN
@@ -1592,7 +1592,7 @@ const Home = () => {
                 </div>
 
                 {/* Active Documents Card */}
-                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
                       ACTIVE DOCUMENTS
@@ -1621,7 +1621,7 @@ const Home = () => {
                       toast.error('Failed to copy share link');
                     });
                   }}
-                  className={`w-full py-4 px-6 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-300 bg-white text-black hover:bg-gray-50' : 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-750'}`}
+                  className={`w-full py-4 px-6 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-300 bg-white text-black hover:bg-gray-50' : 'border-gray-600 bg-transparent text-gray-300 hover:bg-white/10'}`}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>
@@ -1636,8 +1636,8 @@ const Home = () => {
 
             // Connection Prompt - Clean style
             <div>
-              <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-black'}`}>
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
+              <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-black/30 rounded-full mb-6">
                   <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
@@ -1662,8 +1662,8 @@ const Home = () => {
           ) : (
             // No Documents State - Clean style
             <div>
-              <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-black'}`}>
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
+              <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-black/30 rounded-full mb-6">
                   <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -1717,8 +1717,8 @@ const Home = () => {
                 {/* Main Information Panel */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Document Overview */}
-                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
-                    <div className={`border-b pb-4 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                    <div className={`border-b pb-4 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-4">
                           <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-2">
@@ -1767,7 +1767,7 @@ const Home = () => {
                   </div>
 
                   {/* Timing Information */}
-                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Timing & Schedule</h3>
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1800,11 +1800,11 @@ const Home = () => {
                   </div>
 
                   {/* File Information */}
-                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Encrypted Files</h3>
                     <div className="space-y-3">
                       {selectedDocument.encryptedFileHashes.map((hash, index) => (
-                        <div key={index} className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-700 bg-gray-800'}`}>
+                        <div key={index} className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-600 bg-black/40'}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
@@ -1823,7 +1823,7 @@ const Home = () => {
                               className={`ml-2 p-1 rounded text-xs ${
                                 theme === 'light'
                                   ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-                                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
                               }`}
                             >
                               <Copy className="w-3 h-3" />
@@ -1838,7 +1838,7 @@ const Home = () => {
                 {/* Action Panel */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
                     <div className="space-y-3">
                       {/* Check In Button */}
@@ -1967,7 +1967,7 @@ const Home = () => {
                                 toast.error(`Failed to decrypt document: ${error}`, { id: decryptToast });
                               }
                             }}
-                            className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
+                            className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
                           >
                             <div className="flex items-center justify-center gap-2">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2003,7 +2003,7 @@ const Home = () => {
                              toast.error('Failed to update document status. Please try again.');
                            }
                          }}
-                        className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
+                        className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
                       >
                         <div className="flex items-center justify-center gap-2">
                           {selectedDocument.isActive ? (
@@ -2023,11 +2023,11 @@ const Home = () => {
                   </div>
 
                   {/* Recipients List */}
-                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Recipients</h3>
                     <div className="space-y-2">
                       {selectedDocument.recipients.map((recipient, index) => (
-                        <div key={index} className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-700 bg-gray-800'}`}>
+                        <div key={index} className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-600 bg-black/40'}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className={`text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
@@ -2046,7 +2046,7 @@ const Home = () => {
                               className={`ml-2 p-1 rounded text-xs ${
                                 theme === 'light'
                                   ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-                                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
                               }`}
                             >
                               <Copy className="w-3 h-3" />
@@ -2064,7 +2064,7 @@ const Home = () => {
           ) : !showCreateForm ? (
             <>
               {/* Page Header - Like Impact Feed */}
-              <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+              <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                 <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
                   DOCUMENTS
                 </h1>
@@ -2090,13 +2090,13 @@ const Home = () => {
                   {/* Document cards skeleton with shimmer */}
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="relative min-h-[180px] border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div key={i} className="relative min-h-[180px] border-2 border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
                         {/* Shimmer effect */}
                         <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 dark:via-white/5 to-transparent"></div>
                         
                         <div className="p-6">
                           {/* Header skeleton */}
-                          <div className="border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
+                          <div className="border-b border-gray-200 dark:border-gray-600 pb-3 mb-4">
                             <div className="flex justify-between items-start">
                               <div className="animate-pulse flex-1">
                                 <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-3/4 mb-2"></div>
@@ -2141,7 +2141,7 @@ const Home = () => {
                           className={`px-4 py-2 text-sm font-medium border rounded-lg transition-colors ${
                             showInactiveDocuments 
                               ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' 
-                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750'
+                              : 'bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/5'
                           }`}
                         >
                           {showInactiveDocuments ? 'Hide Inactive' : 'Show All'}
@@ -2150,8 +2150,8 @@ const Home = () => {
                     </div>
                     
                     {userDossiers.length === 0 && (
-                      <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
-                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6">
+                      <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-black/30 mb-6">
                           <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
@@ -2164,7 +2164,7 @@ const Home = () => {
                         </p>
                         <button
                           onClick={() => setShowCreateForm(true)}
-                          className={`editorial-button inline-flex items-center gap-2 px-6 py-3 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50 text-gray-900' : 'border-gray-700 bg-gray-800 hover:bg-gray-750 text-gray-100'}`}
+                          className={`editorial-button inline-flex items-center gap-2 px-6 py-3 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50 text-gray-900' : 'border-gray-600 bg-black/40 hover:bg-white/10 text-gray-100'}`}
                         >
                           <span className="font-medium">Create Document</span>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2181,7 +2181,7 @@ const Home = () => {
                       {/* Add New Document Card - Always shown */}
                       <div 
                         onClick={() => setShowCreateForm(true)}
-                        className={`cursor-pointer group min-h-[180px] transition-all border rounded-lg ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-700 bg-gray-800 hover:bg-gray-900'}`}
+                        className={`cursor-pointer group min-h-[180px] transition-all border rounded-lg ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-600 bg-black/40 hover:bg-gray-800'}`}
                       >
                         <div className="h-full flex flex-col items-center justify-center text-center p-6">
                           <div className={`transition-colors mb-6 ${
@@ -2284,10 +2284,10 @@ const Home = () => {
                             <div
                               key={dossier.id.toString()}
                               onClick={() => openDocumentDetail(dossier)}
-                              className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-700 bg-gray-800 hover:bg-gray-900'}`}
+                              className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-600 bg-black/40 hover:bg-gray-800'}`}
                             >
                               {/* Card Header */}
-                              <div className={`border-b pb-3 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+                              <div className={`border-b pb-3 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                                 <div className="flex justify-between items-start">
                                   <h3 className="editorial-header text-primary flex-1 pr-4" title={dossier.name.replace('Encrypted file: ', '')}>
                                     {(() => {
@@ -2337,7 +2337,7 @@ const Home = () => {
                                   </div>
                                   {/* Grace Period Display - Simplified */}
                                   {graceDisplay && (
-                                    <div className="mt-3 pt-2 border-t border-gray-300 dark:border-gray-700">
+                                    <div className="mt-3 pt-2 border-t border-gray-300 dark:border-gray-600">
                                       <div className={`text-xs font-medium ${theme === 'light' ? 'text-orange-600' : 'text-orange-400'}`}>
                                         Grace: {graceDisplay}
                                       </div>
@@ -2347,7 +2347,7 @@ const Home = () => {
                               </div>
                               
                               {/* Card Footer - Action Buttons */}
-                              <div className="border-t border-gray-300 dark:border-gray-700 pt-4 mt-auto">
+                              <div className="border-t border-gray-300 dark:border-gray-600 pt-4 mt-auto">
                                 <div className="space-y-2">
                                   {/* Primary Actions */}
                                   <div className="flex gap-2">
@@ -2389,7 +2389,7 @@ const Home = () => {
                                       className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
                                         dossier.isActive 
                                           ? theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
-                                          : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-gray-800 text-gray-500 border-gray-700'
+                                          : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-black/30 text-gray-500 border-gray-600'
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                       CHECK IN
@@ -2448,7 +2448,7 @@ const Home = () => {
                                           toast.error(errorMessage);
                                         }
                                       }}
-                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
+                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
                                     >
                                       <div className="flex items-center justify-center gap-1">
                                         {dossier.isActive ? (
@@ -2617,7 +2617,7 @@ const Home = () => {
                                           ]);
                                         }
                                       }}
-                                      className={`w-full mt-2 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
+                                      className={`w-full mt-2 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
                                     >
                                       <div className="flex items-center justify-center gap-2">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2654,7 +2654,7 @@ const Home = () => {
                     setEmergencyContacts(['']);
                     setReleaseMode('public');
                   }}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-sm font-semibold"
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-sm font-semibold"
                   style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                 >
                   ← Back to Documents
@@ -2663,7 +2663,7 @@ const Home = () => {
                 <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
               
-              <div className={`p-6 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+              <div className={`p-6 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                 {/* Progress Indicator */}
                 <div className="spacing-medium">
                   {/* Back Button */}
@@ -2674,7 +2674,7 @@ const Home = () => {
                         className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded transition-colors duration-200 ${
                           theme === 'light' 
                             ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400' 
-                            : 'text-gray-300 bg-gray-700 border border-gray-600 hover:bg-gray-600 hover:border-gray-500'
+                            : 'text-gray-300 bg-black/30 border border-gray-600 hover:bg-white/10 hover:border-gray-500'
                         }`}
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2688,10 +2688,10 @@ const Home = () => {
                   <div className="spacing-small">
                     <div className="relative">
                       {/* Progress Rail */}
-                      <div className={`absolute top-2 left-0 right-0 h-0.5 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-700'}`}></div>
+                      <div className={`absolute top-2 left-0 right-0 h-0.5 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-600'}`}></div>
                       
                       {/* Progress Fill */}
-                      <div className={`absolute top-2 left-0 h-0.5 transition-all duration-300 ease-out ${theme === 'light' ? 'bg-gray-900' : 'bg-gray-100'}`}
+                      <div className={`absolute top-2 left-0 h-0.5 transition-all duration-300 ease-out ${theme === 'light' ? 'bg-black' : 'bg-gray-100'}`}
                            style={{ width: `${((currentStep - 1) / 5) * 100}%` }}>
                       </div>
                       
@@ -2703,8 +2703,8 @@ const Home = () => {
                               step === currentStep 
                                 ? theme === 'light' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
                                 : step < currentStep 
-                                ? theme === 'light' ? 'bg-gray-600 text-white' : 'bg-gray-500 text-white'
-                                : theme === 'light' ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-gray-800 text-gray-500 border border-gray-700'
+                                ? theme === 'light' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-white'
+                                : theme === 'light' ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-black/30 text-gray-500 border border-gray-600'
                             }`}>
                               {step < currentStep ? '✓' : step}
                             </div>
@@ -2755,7 +2755,7 @@ const Home = () => {
                         <input
                           type="text"
                           placeholder="Enter document name..."
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
                           style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                           value={name}
                           onChange={(e) => setName(e.target.value)}
@@ -2789,7 +2789,7 @@ const Home = () => {
                             className={`border-2 text-center py-8 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
                               theme === 'light' 
                                 ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
-                                : 'bg-gray-800 border-gray-600 hover:border-gray-400 hover:bg-gray-700'
+                                : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
                             }`}
                             onDragOver={handleDragOver}
                             onDrop={handleDrop}
@@ -2834,7 +2834,7 @@ const Home = () => {
                               className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
                                 theme === 'light' 
                                   ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
-                                  : 'bg-gray-800 border-gray-600 hover:border-gray-400 hover:bg-gray-700'
+                                  : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
                               } flex flex-col items-center gap-2`}
                             >
                               <Mic className="w-6 h-6 text-blue-600" />
@@ -2848,7 +2848,7 @@ const Home = () => {
                               className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
                                 theme === 'light' 
                                   ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
-                                  : 'bg-gray-800 border-gray-600 hover:border-gray-400 hover:bg-gray-700'
+                                  : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
                               } flex flex-col items-center gap-2`}
                             >
                               <Video className="w-6 h-6 text-red-600" />
@@ -2882,7 +2882,7 @@ const Home = () => {
                       </div>
                       <div className="max-w-sm mx-auto">
                         <select 
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg monospace-accent text-center cursor-pointer text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg monospace-accent text-center cursor-pointer text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
                           style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                           value={checkInInterval}
                           onChange={(e) => setCheckInInterval(e.target.value)}
@@ -2911,15 +2911,15 @@ const Home = () => {
                       <div className="max-w-lg mx-auto space-y-4">
                         <div 
                           className={`editorial-card-bordered cursor-pointer transition-all ${
-                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50 dark:bg-gray-800' : 'hover:border-gray-600 dark:hover:border-gray-400'
+                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50 dark:bg-black/20' : 'hover:border-gray-600 dark:hover:border-gray-400'
                           }`}
                           onClick={() => setReleaseMode('public')}
                         >
                           <div className="flex items-start">
                             <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
-                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900 dark:bg-gray-100' : 'border-gray-400'
+                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900 dark:bg-white' : 'border-gray-400'
                             }`}>
-                              {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 scale-50"></div>}
+                              {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white dark:bg-black scale-50"></div>}
                             </div>
                             <div>
                               <h4 className="editorial-header text-sm text-gray-900 dark:text-gray-100">Public Release</h4>
@@ -2932,15 +2932,15 @@ const Home = () => {
                         
                         <div 
                           className={`editorial-card-bordered cursor-pointer transition-all ${
-                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50 dark:bg-gray-800' : 'hover:border-gray-600 dark:hover:border-gray-400'
+                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50 dark:bg-black/20' : 'hover:border-gray-600 dark:hover:border-gray-400'
                           }`}
                           onClick={() => setReleaseMode('contacts')}
                         >
                           <div className="flex items-start">
                             <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
-                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900 dark:bg-gray-100' : 'border-gray-400'
+                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900 dark:bg-white' : 'border-gray-400'
                             }`}>
-                              {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 scale-50"></div>}
+                              {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white dark:bg-black scale-50"></div>}
                             </div>
                             <div className="flex-1">
                               <h4 className="editorial-header text-sm text-gray-900 dark:text-gray-100">Emergency Contacts</h4>
@@ -2954,7 +2954,7 @@ const Home = () => {
                                       <input
                                         type="text"
                                         placeholder="Email address or Ethereum address"
-                                        className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                                        className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
                                         style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                                         value={contact}
                                         onChange={(e) => {
@@ -2983,7 +2983,7 @@ const Home = () => {
                                   ))}
                                   <button
                                     onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
-                                    className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-sm"
+                                    className="px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-sm"
                                   >
                                     + Add contact
                                   </button>
@@ -3005,7 +3005,7 @@ const Home = () => {
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
-                        <div className={`border rounded-lg px-6 py-5 text-left space-y-4 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                        <div className={`border rounded-lg px-6 py-5 text-left space-y-4 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                           <div className="flex justify-between items-center">
                             <span className="editorial-label-small text-gray-700 dark:text-gray-300">Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
@@ -3044,7 +3044,7 @@ const Home = () => {
                             <button
                               onClick={processCanaryTrigger}
                               disabled={!uploadedFile || isProcessing || !name.trim()}
-                              className="w-full px-6 py-4 border border-gray-900 dark:border-gray-200 rounded-lg bg-gray-900 dark:bg-transparent text-white dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-900 transition-colors font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-full px-6 py-4 border border-gray-900 dark:border-gray-600 rounded-lg bg-gray-900 dark:bg-black/40 text-white dark:text-gray-100 hover:bg-gray-700 dark:hover:bg-white/5 transition-colors font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isProcessing ? (
                                 <div className="flex items-center justify-center gap-3">
@@ -3072,7 +3072,7 @@ const Home = () => {
                                 setEmergencyContacts(['']);
                                 setReleaseMode('public');
                               }}
-                              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
                             >
                               Create New Document
                             </button>
@@ -3090,7 +3090,7 @@ const Home = () => {
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
-                        <div className={`border rounded-lg px-6 py-5 text-left space-y-4 spacing-medium ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                        <div className={`border rounded-lg px-6 py-5 text-left space-y-4 spacing-medium ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                           <div className="flex justify-between items-center">
                             <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
@@ -3131,11 +3131,11 @@ const Home = () => {
 
                 {/* Navigation */}
                 {currentStep < 6 && !traceJson && (
-                  <div className={`flex justify-between mt-8 pt-6 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+                  <div className={`flex justify-between mt-8 pt-6 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                     <button
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                       disabled={currentStep === 1}
-                      className="px-6 py-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}
                     >
                       Previous
@@ -3156,7 +3156,7 @@ const Home = () => {
                         }
                         setCurrentStep(Math.min(6, currentStep + 1));
                       }}
-                      className="px-6 py-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                      className="px-6 py-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
                       style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}
                     >
                       {currentStep === 5 ? 'Finalize' : 'Next'}
@@ -3172,7 +3172,7 @@ const Home = () => {
       </div>
 
       {/* Footer */}
-      <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
+      <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-600 bg-black/80'}`}>
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-center gap-6">
             <a
@@ -3232,7 +3232,7 @@ const Home = () => {
             </a>
           </div>
           
-          <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+          <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
               © 2025 Canary. Truth protection through cryptographic deadman switches.
             </p>
