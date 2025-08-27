@@ -1669,9 +1669,13 @@ const Home = () => {
                 </p>
                 <button
                   onClick={() => setCurrentView('documents')}
-                  className="editorial-button editorial-button-primary inline-flex items-center gap-2"
+                  className={`px-6 py-3 border rounded-lg font-medium transition-all inline-flex items-center gap-2 ${
+                    theme === 'light' 
+                      ? 'bg-gray-900 text-white hover:bg-gray-700 border-gray-900' 
+                      : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+                  }`}
                 >
-                  <span className="font-medium">Create Document</span>
+                  <span className="uppercase tracking-wider">CREATE DOCUMENT</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                   </svg>
@@ -2159,7 +2163,7 @@ const Home = () => {
                           onClick={() => setShowCreateForm(true)}
                           className={`editorial-button inline-flex items-center gap-2 px-6 py-3 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50 text-gray-900' : 'border-gray-600 bg-black/40 hover:bg-white/10 text-gray-100'}`}
                         >
-                          <span className="font-medium">Create Document</span>
+                          <span className="font-medium uppercase tracking-wider">CREATE DOCUMENT</span>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                           </svg>
@@ -2192,7 +2196,7 @@ const Home = () => {
                                 ? 'text-gray-900 group-hover:text-gray-800' 
                                 : 'text-white group-hover:text-gray-100'
                             }`} style={{ fontFamily: 'var(--font-playfair)' }}>
-                              Create Document
+                              CREATE DOCUMENT
                             </h3>
                             <p className={`text-sm transition-colors ${
                               theme === 'light' 
