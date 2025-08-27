@@ -1184,10 +1184,10 @@ const Home = () => {
               {/* Sign-in Buttons */}
               <div className="space-y-4 max-w-sm mx-auto mb-16">
                 <button
-                  className={`w-full py-4 px-6 font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                  className={`w-full py-4 px-6 font-medium text-base rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors border ${
                     theme === 'light' 
-                      ? 'bg-black text-white border border-black hover:bg-gray-800' 
-                      : 'bg-gray-900 text-white border border-gray-700 hover:bg-gray-800'
+                      ? 'bg-black text-white border-black hover:bg-gray-800' 
+                      : 'bg-black/40 text-white border-gray-600 hover:bg-white/5'
                   }`}
                   onClick={() => handleSignIn('Email')}
                   disabled={!ready}
@@ -1203,10 +1203,10 @@ const Home = () => {
                   </div>
                   
                   <button
-                    className={`w-full py-4 px-6 font-medium text-base rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border ${
                       theme === 'light'
-                        ? 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50'
-                        : 'bg-black text-gray-100 border border-gray-600 hover:bg-gray-900'
+                        ? 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
+                        : 'bg-black/40 text-gray-100 border-gray-600 hover:bg-white/5'
                     }`}
                     onClick={() => handleSignIn('Web3 Wallet')}
                     disabled={isPending}
