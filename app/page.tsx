@@ -1200,7 +1200,7 @@ const Home = () => {
         </div>
 
         {/* Footer */}
-        <footer className="border-t backdrop-blur-sm flex-shrink-0 border-gray-200 bg-white/80">
+        <footer className="border-t backdrop-blur-sm flex-shrink-0 border-gray-300 bg-white/80">
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-center gap-6">
               <a
@@ -1260,7 +1260,7 @@ const Home = () => {
               </a>
             </div>
             
-            <div className="text-center mt-2 pt-2 border-t border-gray-200">
+            <div className="text-center mt-2 pt-2 border-t border-gray-300">
               <p className="text-xs text-gray-500">
                 © 2025 Canary. Truth protection through cryptographic deadman switches.
               </p>
@@ -1307,7 +1307,7 @@ const Home = () => {
         <div className="flex-1" style={{ zoom: '0.8' }}>
         
         {/* Header */}
-        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`} style={{ marginTop: '0px' }}>
+        <header className={`border-b backdrop-blur-sm ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`} style={{ marginTop: '0px' }}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between h-10">
               {/* Left: Logo */}
@@ -1430,7 +1430,7 @@ const Home = () => {
         <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Page Header - Like Impact Feed */}
-          <div className="mb-12 border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
             <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
               CHECK IN
             </h1>
@@ -1443,7 +1443,7 @@ const Home = () => {
             // Loading State for Check-in View
             <div className="space-y-8">
               {/* System Control Card Skeleton */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+              <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                 <div className="animate-pulse">
                   <div className="flex justify-between items-center mb-8">
                     <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded w-32"></div>
@@ -1459,7 +1459,7 @@ const Home = () => {
               {/* Status Cards Skeleton */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div key={i} className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                     <div className="animate-pulse">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -1476,9 +1476,9 @@ const Home = () => {
           ) : hasWalletConnection() && userDossiers.length > 0 ? (
             <div>
               {/* Combined System Control Card */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-12" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+              <div className={`border rounded-lg overflow-hidden mb-12 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                 {/* System Control Header */}
-                <div className="px-6 py-5 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                <div className={`px-6 py-5 flex items-center justify-between border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
                   <span className="editorial-label text-gray-700 dark:text-gray-400">
                     SYSTEM CONTROL
                   </span>
@@ -1555,7 +1555,7 @@ const Home = () => {
               {/* Status Information - Horizontal Grid on Desktop */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* System Status Card */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                       getCountdownTime().display === 'EXPIRED' 
@@ -1577,7 +1577,7 @@ const Home = () => {
                 </div>
 
                 {/* Last Check-in Card */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
                       Last Check-in
@@ -1592,7 +1592,7 @@ const Home = () => {
                 </div>
 
                 {/* Active Documents Card */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 flex items-center justify-between" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                <div className={`border rounded-lg px-6 py-5 flex items-center justify-between ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                   <div>
                     <div className="text-base font-medium" style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}>
                       Active Documents
@@ -1621,11 +1621,7 @@ const Home = () => {
                       toast.error('Failed to copy share link');
                     });
                   }}
-                  className="w-full py-4 px-6 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
-                  style={{ 
-                    backgroundColor: theme === 'light' ? 'white' : '#000000',
-                    color: theme === 'light' ? '#000000' : '#d1d5db'
-                  }}
+                  className={`w-full py-4 px-6 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-300 bg-white text-black hover:bg-gray-50' : 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-750'}`}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}>
@@ -1640,7 +1636,7 @@ const Home = () => {
 
             // Connection Prompt - Clean style
             <div>
-              <div className="text-center py-16 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-black">
+              <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-black'}`}>
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
                   <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -1666,7 +1662,7 @@ const Home = () => {
           ) : (
             // No Documents State - Clean style
             <div>
-              <div className="text-center py-16 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-black">
+              <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-black'}`}>
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
                   <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1721,8 +1717,8 @@ const Home = () => {
                 {/* Main Information Panel */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Document Overview */}
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
-                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                    <div className={`border-b pb-4 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-4">
                           <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-2">
@@ -1771,7 +1767,7 @@ const Home = () => {
                   </div>
 
                   {/* Timing Information */}
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Timing & Schedule</h3>
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1804,7 +1800,7 @@ const Home = () => {
                   </div>
 
                   {/* File Information */}
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Encrypted Files</h3>
                     <div className="space-y-3">
                       {selectedDocument.encryptedFileHashes.map((hash, index) => (
@@ -1842,7 +1838,7 @@ const Home = () => {
                 {/* Action Panel */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
                     <div className="space-y-3">
                       {/* Check In Button */}
@@ -1853,7 +1849,7 @@ const Home = () => {
                             await handleCheckIn();
                           }}
                           disabled={isCheckingIn}
-                          className="w-full py-3 px-4 editorial-button-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {isCheckingIn ? 'Checking In...' : 'Check In'}
                         </button>
@@ -1971,7 +1967,7 @@ const Home = () => {
                                 toast.error(`Failed to decrypt document: ${error}`, { id: decryptToast });
                               }
                             }}
-                            className="w-full py-3 px-4 editorial-button"
+                            className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
                           >
                             <div className="flex items-center justify-center gap-2">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2007,7 +2003,7 @@ const Home = () => {
                              toast.error('Failed to update document status. Please try again.');
                            }
                          }}
-                        className="w-full editorial-button"
+                        className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
                       >
                         <div className="flex items-center justify-center gap-2">
                           {selectedDocument.isActive ? (
@@ -2027,7 +2023,7 @@ const Home = () => {
                   </div>
 
                   {/* Recipients List */}
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                  <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Recipients</h3>
                     <div className="space-y-2">
                       {selectedDocument.recipients.map((recipient, index) => (
@@ -2068,7 +2064,7 @@ const Home = () => {
           ) : !showCreateForm ? (
             <>
               {/* Page Header - Like Impact Feed */}
-              <div className="mb-12 border-b border-gray-200 dark:border-gray-700 pb-8">
+              <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
                 <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
                   DOCUMENTS
                 </h1>
@@ -2154,18 +2150,27 @@ const Home = () => {
                     </div>
                     
                     {userDossiers.length === 0 && (
-                      <div className="text-center py-16 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-black">
-                        <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-6">
-                          <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
+                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6">
+                          <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
                           No Documents Yet
                         </h3>
-                        <p className="editorial-body text-gray-600 dark:text-gray-400">
+                        <p className="editorial-body text-gray-600 dark:text-gray-400 mb-6">
                           Create your first encrypted document to get started
                         </p>
+                        <button
+                          onClick={() => setShowCreateForm(true)}
+                          className={`editorial-button inline-flex items-center gap-2 px-6 py-3 border rounded-lg transition-colors ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50 text-gray-900' : 'border-gray-700 bg-gray-800 hover:bg-gray-750 text-gray-100'}`}
+                        >
+                          <span className="font-medium">Create Document</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2176,8 +2181,7 @@ const Home = () => {
                       {/* Add New Document Card - Always shown */}
                       <div 
                         onClick={() => setShowCreateForm(true)}
-                        className="cursor-pointer group min-h-[180px] transition-all border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900"
-                        style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}
+                        className={`cursor-pointer group min-h-[180px] transition-all border rounded-lg ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-700 bg-gray-800 hover:bg-gray-900'}`}
                       >
                         <div className="h-full flex flex-col items-center justify-center text-center p-6">
                           <div className={`transition-colors mb-6 ${
@@ -2280,11 +2284,10 @@ const Home = () => {
                             <div
                               key={dossier.id.toString()}
                               onClick={() => openDocumentDetail(dossier)}
-                              className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-900"
-                              style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}
+                              className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-700 bg-gray-800 hover:bg-gray-900'}`}
                             >
                               {/* Card Header */}
-                              <div className="border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
+                              <div className={`border-b pb-3 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
                                 <div className="flex justify-between items-start">
                                   <h3 className="editorial-header text-primary flex-1 pr-4" title={dossier.name.replace('Encrypted file: ', '')}>
                                     {(() => {
@@ -2334,7 +2337,7 @@ const Home = () => {
                                   </div>
                                   {/* Grace Period Display - Simplified */}
                                   {graceDisplay && (
-                                    <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                    <div className="mt-3 pt-2 border-t border-gray-300 dark:border-gray-700">
                                       <div className={`text-xs font-medium ${theme === 'light' ? 'text-orange-600' : 'text-orange-400'}`}>
                                         Grace: {graceDisplay}
                                       </div>
@@ -2344,10 +2347,10 @@ const Home = () => {
                               </div>
                               
                               {/* Card Footer - Action Buttons */}
-                              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-auto">
-                                <div className="space-y-3">
+                              <div className="border-t border-gray-300 dark:border-gray-700 pt-4 mt-auto">
+                                <div className="space-y-2">
                                   {/* Primary Actions */}
-                                  <div className="flex gap-3">
+                                  <div className="flex gap-2">
                                     <button
                                       onClick={async () => {
                                         try {
@@ -2383,10 +2386,10 @@ const Home = () => {
                                         }
                                       }}
                                       disabled={!dossier.isActive}
-                                      className={`flex-1 py-2 px-4 text-xs font-semibold border-2 transition-all ${
+                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
                                         dossier.isActive 
-                                          ? 'editorial-button-primary' 
-                                          : 'editorial-button'
+                                          ? theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+                                          : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-gray-800 text-gray-500 border-gray-700'
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                       Check In
@@ -2445,7 +2448,7 @@ const Home = () => {
                                           toast.error(errorMessage);
                                         }
                                       }}
-                                      className="flex-1 py-2 px-4 text-xs font-semibold editorial-button"
+                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
                                     >
                                       <div className="flex items-center justify-center gap-1">
                                         {dossier.isActive ? (
@@ -2614,7 +2617,7 @@ const Home = () => {
                                           ]);
                                         }
                                       }}
-                                      className="w-full py-3 px-4 editorial-button"
+                                      className={`w-full mt-2 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-gray-800 text-gray-100 hover:bg-gray-750 border-gray-700'}`}
                                     >
                                       <div className="flex items-center justify-center gap-2">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2660,7 +2663,7 @@ const Home = () => {
                 <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
               
-              <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-lg" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+              <div className={`p-6 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                 {/* Progress Indicator */}
                 <div className="spacing-medium">
                   {/* Back Button */}
@@ -3002,7 +3005,7 @@ const Home = () => {
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 text-left space-y-4" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                        <div className={`border rounded-lg px-6 py-5 text-left space-y-4 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                           <div className="flex justify-between items-center">
                             <span className="editorial-label-small text-gray-700 dark:text-gray-300">Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
@@ -3024,7 +3027,7 @@ const Home = () => {
                             </span>
                           </div>
                           {releaseMode === 'contacts' && (
-                            <div className="pt-3 border-t border-gray-200">
+                            <div className="pt-3 border-t border-gray-300">
                               <div className="editorial-label-small spacing-tiny text-gray-700 dark:text-gray-300">Emergency Contacts</div>
                               {emergencyContacts.filter(c => c.trim()).map((contact, index) => (
                                 <div key={index} className="editorial-body text-sm text-primary font-semibold monospace-accent">
@@ -3087,7 +3090,7 @@ const Home = () => {
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-5 text-left space-y-4 spacing-medium" style={{ backgroundColor: theme === 'light' ? 'white' : '#000000' }}>
+                        <div className={`border rounded-lg px-6 py-5 text-left space-y-4 spacing-medium ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-800'}`}>
                           <div className="flex justify-between items-center">
                             <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Document Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
@@ -3128,7 +3131,7 @@ const Home = () => {
 
                 {/* Navigation */}
                 {currentStep < 6 && !traceJson && (
-                  <div className={`flex justify-between mt-8 pt-6 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+                  <div className={`flex justify-between mt-8 pt-6 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
                     <button
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                       disabled={currentStep === 1}
@@ -3169,7 +3172,7 @@ const Home = () => {
       </div>
 
       {/* Footer */}
-      <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-200 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
+      <footer className={`border-t backdrop-blur-sm flex-shrink-0 ${theme === 'light' ? 'border-gray-300 bg-white/80' : 'border-gray-700 bg-gray-900/80'}`}>
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-center gap-6">
             <a
@@ -3229,7 +3232,7 @@ const Home = () => {
             </a>
           </div>
           
-          <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+          <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
             <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
               © 2025 Canary. Truth protection through cryptographic deadman switches.
             </p>
