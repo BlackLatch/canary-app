@@ -232,7 +232,7 @@ export default function ImpactFeedPage() {
             
             <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
               <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-                © 2025 Canary. Truth protection through cryptographic deadman switches.
+                © 2025 Canary. If you go silent, canary speaks for you.
               </p>
             </div>
           </div>

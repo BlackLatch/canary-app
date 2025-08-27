@@ -1158,7 +1158,7 @@ const Home = () => {
                   Try the Canary Testnet Demo
                 </h1>
                 <p className="editorial-body-large text-secondary max-w-sm mx-auto font-medium">
-                  Truth protection through cryptographic deadman switches
+                  If you go silent, canary speaks for you
                 </p>
               </div>
 
@@ -1264,7 +1264,7 @@ const Home = () => {
             
             <div className="text-center mt-2 pt-2 border-t border-gray-300">
               <p className="text-xs text-gray-500">
-                © 2025 Canary. Truth protection through cryptographic deadman switches.
+                © 2025 Canary. If you go silent, canary speaks for you.
               </p>
             </div>
           </div>
@@ -3231,7 +3231,7 @@ const Home = () => {
           
           <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-              © 2025 Canary. Truth protection through cryptographic deadman switches.
+              © 2025 Canary. If you go silent, canary speaks for you.
             </p>
           </div>
         </div>
