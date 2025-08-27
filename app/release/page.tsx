@@ -384,14 +384,19 @@ function ReleaseDetailContent() {
                 <span>Back</span>
               </button>
               <div className="h-4 w-px bg-gray-300 dark:bg-gray-500" />
-              <img 
-                src="/canary.png" 
-                alt="Canary" 
-                className="h-8 w-auto"
-                style={{
-                  filter: 'drop-shadow(0 1px 4px rgba(0, 0, 0, 0.1))'
-                }}
-              />
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/solo-canary.png" 
+                  alt="Canary" 
+                  className="h-8 w-auto"
+                  style={{
+                    filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
+                  }}
+                />
+                <span className={`text-lg font-medium tracking-wide uppercase ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                  CANARY
+                </span>
+              </div>
             </div>
             
             {/* Right: Theme Toggle */}

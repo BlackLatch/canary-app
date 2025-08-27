@@ -55,16 +55,19 @@ export default function ImpactFeedPage() {
         <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`} style={{ marginTop: '0px' }}>
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between h-10">
-              {/* Left: Logo */}
-              <div className="flex items-center">
+              {/* Left: Logo and Text */}
+              <div className="flex items-center gap-3">
                 <img 
-                  src="/canary.png" 
+                  src="/solo-canary.png" 
                   alt="Canary" 
-                  className="h-12 w-auto"
+                  className="h-10 w-auto"
                   style={{
-                    filter: 'drop-shadow(0 1px 4px rgba(0, 0, 0, 0.1))'
+                    filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
                   }}
                 />
+                <span className={`text-xl font-medium tracking-wide uppercase ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                  CANARY
+                </span>
               </div>
               
               {/* Right: Navigation and Wallet Status */}
