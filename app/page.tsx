@@ -726,6 +726,12 @@ const Home = () => {
       setIsLoadingDossiers(false);
       console.log(`✅ Loaded ${dossiers.length} dossiers with accurate decryptable status`);
       
+      // If user has no documents, switch to documents view and open create form
+      if (dossiers.length === 0) {
+        setCurrentView('documents');
+        setShowCreateForm(true);
+      }
+      
     } catch (error) {
       console.error('❌ Failed to load dossiers:', error);
       setIsLoadingDossiers(false);
@@ -1158,7 +1164,7 @@ const Home = () => {
                   Try the Canary Testnet Demo
                 </h1>
                 <p className="editorial-body-large text-secondary max-w-sm mx-auto font-medium">
-                  If you go silent, canary speaks for you
+                  If you go silent, <span className="text-red-600">Canary</span> speaks for you.
                 </p>
               </div>
 
