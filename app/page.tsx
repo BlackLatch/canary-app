@@ -1187,7 +1187,7 @@ const Home = () => {
                   className={`w-full py-4 px-6 font-medium text-base rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
                     theme === 'light' 
                       ? 'bg-black text-white border border-black hover:bg-gray-800' 
-                      : 'bg-white text-black border border-white hover:bg-gray-100'
+                      : 'bg-gray-900 text-white border border-gray-700 hover:bg-gray-800'
                   }`}
                   onClick={() => handleSignIn('Email')}
                   disabled={!ready}
