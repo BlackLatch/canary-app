@@ -109,7 +109,7 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
+      <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Header Skeleton */}
           <div className="mb-12 border-b border-gray-300 dark:border-gray-700 pb-8">
@@ -131,7 +131,7 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
           {/* List Items Skeleton with Loading Animation */}
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className={`border rounded-lg p-6 relative overflow-hidden ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
+              <div key={i} className={`border rounded-lg p-6 relative overflow-hidden ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                 {/* Shimmer effect */}
                 <div className={`absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent to-transparent ${theme === 'light' ? 'via-white/20' : 'via-white/5'}`}></div>
                 
@@ -139,12 +139,12 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
                   <div className="flex items-center gap-4 flex-1">
                     <div className={`w-2 h-2 rounded-full animate-pulse ${theme === 'light' ? 'bg-gray-300' : 'bg-gray-600'}`}></div>
                     <div className="flex-1">
-                      <div className={`h-5 bg-gradient-to-r rounded w-3/4 mb-2 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-700 to-gray-600'}`}></div>
-                      <div className={`h-3 bg-gradient-to-r rounded w-1/2 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-700 to-gray-600'}`}></div>
+                      <div className={`h-5 bg-gradient-to-r rounded w-3/4 mb-2 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
+                      <div className={`h-3 bg-gradient-to-r rounded w-1/2 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
-                    <div className={`h-4 bg-gradient-to-r rounded w-16 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-700 to-gray-600'}`}></div>
+                    <div className={`h-4 bg-gradient-to-r rounded w-16 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
                     <svg className={`w-5 h-5 animate-pulse ${theme === 'light' ? 'text-gray-300' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                     </svg>
@@ -159,7 +159,7 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
   }
 
   return (
-    <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
+    <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Page Header */}
         <div className="spacing-section">
@@ -181,8 +181,8 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
 
           {/* Feed List - Clean Minimal Design */}
           {feedDossiers.length === 0 ? (
-            <div className="text-center py-24 editorial-card-bordered">
-              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-800'}`}>
+            <div className={`text-center py-24 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 ${theme === 'light' ? 'bg-gray-100' : 'bg-black/30'}`}>
                 <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
@@ -215,7 +215,7 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
                       border rounded-lg ${index !== 0 ? 'mt-4' : ''}
                       ${theme === 'light' 
                         ? 'border-gray-300 bg-white hover:bg-gray-50' 
-                        : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}
+                        : 'border-gray-600 bg-black/40 hover:bg-white/5'}
                     `}
                   >
                     {/* Left: Status indicator and title */}
