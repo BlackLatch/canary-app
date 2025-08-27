@@ -1177,7 +1177,7 @@ const Home = () => {
                   Try the Canary Testnet Demo
                 </h1>
                 <p className={`editorial-body-large max-w-sm mx-auto font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                  If you go silent, <span className="text-red-600">Canary</span> speaks for you.
+                  <span className="text-red-600">Canary</span> helps protect your important information.
                 </p>
               </div>
 
@@ -1223,7 +1223,7 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Impact Feed Link */}
+              {/* Public Releases Link */}
               <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
                 <div className="text-center">
                   <p className={`text-sm mb-4 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
@@ -1240,7 +1240,7 @@ const Home = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
-                    VIEW IMPACT FEED
+                    VIEW PUBLIC RELEASES
                   </a>
                 </div>
               </div>
@@ -1278,18 +1278,6 @@ const Home = () => {
               </a>
               
               <a
-                href="https://canaryapp.io/support"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
-              >
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                <span>Support</span>
-              </a>
-              
-              <a
                 href="https://github.com/TheThirdRoom/canary"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1312,7 +1300,7 @@ const Home = () => {
             
             <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
               <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-                © 2025 Canary. If you go silent, canary speaks for you.
+                © 2025 Canary.
               </p>
             </div>
           </div>
@@ -1387,7 +1375,7 @@ const Home = () => {
                     href="/feed"
                     className="nav-link"
                   >
-                    IMPACT FEED
+                    PUBLIC RELEASES
                   </a>
                 </nav>
                 
@@ -1467,10 +1455,10 @@ const Home = () => {
 
       <div className="flex-1 overflow-auto">
       {currentView === 'checkin' ? (
-        // Check In View - Matching Impact Feed Layout
+        // Check In View - Matching Public Releases Layout
         <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Page Header - Like Impact Feed */}
+          {/* Page Header - Like Public Releases */}
           <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
               CHECK IN
@@ -1648,7 +1636,7 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Share Status Button - Matching Impact Feed style */}
+              {/* Share Status Button - Matching Public Releases style */}
               <div className="mt-8">
                 <button
                   onClick={() => {
@@ -1734,7 +1722,7 @@ const Home = () => {
         </div>
         </div>
       ) : (
-        // Documents View - Matching Impact Feed Layout
+        // Documents View - Matching Public Releases Layout
         <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           {documentDetailView && selectedDocument ? (
@@ -2108,7 +2096,7 @@ const Home = () => {
             </div>
           ) : !showCreateForm ? (
             <>
-              {/* Page Header - Like Impact Feed */}
+              {/* Page Header - Like Public Releases */}
               <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                 <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
                   DOCUMENTS
@@ -3242,18 +3230,6 @@ const Home = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span>Docs</span>
-            </a>
-            
-            <a
-              href="https://canaryapp.io/support"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
-            >
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span>Support</span>
             </a>
             
             <a

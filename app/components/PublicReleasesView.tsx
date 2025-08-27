@@ -14,11 +14,11 @@ interface FeedDossier {
   timeUntilUnlock?: number;
 }
 
-interface ImpactFeedViewProps {
+interface PublicReleasesViewProps {
   theme: 'light' | 'dark';
 }
 
-export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
+export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
   const [feedDossiers, setFeedDossiers] = useState<FeedDossier[]>([]);
   const [loading, setLoading] = useState(true);
   const { address } = useAccount();
@@ -165,7 +165,7 @@ export default function ImpactFeedView({ theme }: ImpactFeedViewProps) {
         <div className="spacing-section">
           <div className="mb-12 border-b border-gray-300 dark:border-gray-700 pb-8">
             <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
-              IMPACT FEED
+              PUBLIC RELEASES
             </h1>
             <p className="editorial-body text-gray-600 dark:text-gray-400">
               Browse dossiers that have become public due to inactivity conditions being met

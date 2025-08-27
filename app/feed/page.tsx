@@ -5,10 +5,10 @@ import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/app/lib/theme-context';
 import { useAccount, useDisconnect } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
-import ImpactFeedView from '@/app/components/ImpactFeedView';
+import PublicReleasesView from '@/app/components/PublicReleasesView';
 import Link from 'next/link';
 
-export default function ImpactFeedPage() {
+export default function PublicReleasesPage() {
   const { theme, toggleTheme } = useTheme();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
@@ -72,99 +72,121 @@ export default function ImpactFeedPage() {
               
               {/* Right: Navigation and Wallet Status */}
               <div className="flex items-center gap-8">
-                {/* Main Navigation */}
-                <nav className="flex items-center gap-6 h-full">
-                  <Link 
-                    href="/?view=checkin"
-                    className="nav-link"
-                  >
-                    CHECK IN
-                  </Link>
-                  <Link 
-                    href="/?view=documents"
-                    className="nav-link"
-                  >
-                    DOCUMENTS
-                  </Link>
-                  <Link 
-                    href="/feed"
-                    className="nav-link nav-link-active"
-                  >
-                    IMPACT FEED
-                  </Link>
-                </nav>
-                
-                {/* Wallet Status and Theme Toggle */}
-                <div className="flex items-center gap-6">
-                
-                {/* Theme Toggle */}
-                <button
-                  onClick={toggleTheme}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
-                  title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                >
-                  {theme === 'light' ? (
-                    <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  ) : (
-                    <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  )}
-                </button>
-                
-                {/* Authentication Status */}
-                {hasWalletConnection() ? (
-                  <div className="flex items-center gap-4">
-                    {authMode === 'advanced' && address ? (
-                      // Advanced mode: Show wallet address
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {`${address.slice(0, 6)}...${address.slice(-4)}`}
-                        </span>
-                      </div>
-                    ) : authMode === 'standard' && authenticated ? (
-                      // Standard mode: Show user email or authenticated status
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {user?.email?.address || 'SIGNED IN'}
-                        </span>
-                      </div>
-                    ) : null}
+                {/* Only show navigation if authenticated */}
+                {hasWalletConnection() && (
+                  <>
+                    {/* Main Navigation */}
+                    <nav className="flex items-center gap-6 h-full">
+                      <Link 
+                        href="/?view=checkin"
+                        className="nav-link"
+                      >
+                        CHECK IN
+                      </Link>
+                      <Link 
+                        href="/?view=documents"
+                        className="nav-link"
+                      >
+                        DOCUMENTS
+                      </Link>
+                      <Link 
+                        href="/feed"
+                        className="nav-link nav-link-active"
+                      >
+                        PUBLIC RELEASES
+                      </Link>
+                    </nav>
                     
+                    {/* Wallet Status and Theme Toggle */}
+                    <div className="flex items-center gap-6">
+                      {/* Theme Toggle */}
+                      <button
+                        onClick={toggleTheme}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                        title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                      >
+                        {theme === 'light' ? (
+                          <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        ) : (
+                          <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        )}
+                      </button>
+                      
+                      {/* Authentication Status */}
+                      <div className="flex items-center gap-4">
+                        {authMode === 'advanced' && address ? (
+                          // Advanced mode: Show wallet address
+                          <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                              {`${address.slice(0, 6)}...${address.slice(-4)}`}
+                            </span>
+                          </div>
+                        ) : authMode === 'standard' && authenticated ? (
+                          // Standard mode: Show user email or authenticated status
+                          <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                              {user?.email?.address || 'SIGNED IN'}
+                            </span>
+                          </div>
+                        ) : null}
+                        
+                        <button
+                          onClick={() => {
+                            // Disconnect based on mode
+                            if (authMode === 'advanced' && isConnected) {
+                              disconnect();
+                            }
+                            if (authMode === 'standard' && authenticated) {
+                              logout();
+                            }
+                            // Reset state
+                            setAuthModeWithPersistence('standard');
+                            // Redirect to main page (login)
+                            window.location.href = '/';
+                          }}
+                          className="text-sm text-muted hover:text-primary transition-colors"
+                        >
+                          SIGN OUT
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {/* Only show theme toggle and sign in link when not authenticated */}
+                {!hasWalletConnection() && (
+                  <div className="flex items-center gap-6">
+                    {/* Theme Toggle */}
                     <button
-                      onClick={() => {
-                        // Disconnect based on mode
-                        if (authMode === 'advanced' && isConnected) {
-                          disconnect();
-                        }
-                        if (authMode === 'standard' && authenticated) {
-                          logout();
-                        }
-                        // Reset state
-                        setAuthModeWithPersistence('standard');
-                        // Redirect to main page (login)
-                        window.location.href = '/';
-                      }}
+                      onClick={toggleTheme}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                      title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                    >
+                      {theme === 'light' ? (
+                        <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      ) : (
+                        <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      )}
+                    </button>
+                    
+                    <Link 
+                      href="/"
                       className="text-sm text-muted hover:text-primary transition-colors"
                     >
-                      SIGN OUT
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-xs text-muted">
-                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                    <span>NOT SIGNED IN</span>
+                      SIGN IN
+                    </Link>
                   </div>
                 )}
-                </div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Impact Feed Content */}
+        {/* Public Releases Content */}
         <div className="flex-1 overflow-auto">
-          <ImpactFeedView theme={theme} />
+          <PublicReleasesView theme={theme} />
         </div>
         
         {/* Footer */}
@@ -196,18 +218,6 @@ export default function ImpactFeedPage() {
               </a>
               
               <a
-                href="https://canaryapp.io/support"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-1.5 text-xs transition-colors ${theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-200'}`}
-              >
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                <span>Support</span>
-              </a>
-              
-              <a
                 href="https://github.com/TheThirdRoom/canary"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -232,7 +242,7 @@ export default function ImpactFeedPage() {
             
             <div className={`text-center mt-2 pt-2 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
               <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-                © 2025 Canary. If you go silent, canary speaks for you.
+                © 2025 Canary.
               </p>
             </div>
           </div>
