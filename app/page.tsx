@@ -1184,10 +1184,10 @@ const Home = () => {
               {/* Sign-in Buttons */}
               <div className="space-y-4 max-w-sm mx-auto mb-16">
                 <button
-                  className={`w-full py-4 px-6 font-medium text-base rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors border ${
+                  className={`w-full py-4 px-6 font-medium text-base rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ease-out border ${
                     theme === 'light' 
-                      ? 'bg-black text-white border-black hover:bg-gray-800' 
-                      : 'bg-black/40 text-white border-gray-600 hover:bg-white/5'
+                      ? 'bg-black text-white border-black hover:border-[#e53e3e] hover:bg-gray-800' 
+                      : 'bg-black/40 text-white border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]'
                   }`}
                   onClick={() => handleSignIn('Email')}
                   disabled={!ready}
@@ -1203,10 +1203,10 @@ const Home = () => {
                   </div>
                   
                   <button
-                    className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border ${
+                    className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
                       theme === 'light'
-                        ? 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
-                        : 'bg-black/40 text-gray-100 border-gray-600 hover:bg-white/5'
+                        ? 'bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50'
+                        : 'bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]'
                     }`}
                     onClick={() => handleSignIn('Web3 Wallet')}
                     disabled={isPending}
@@ -2308,7 +2308,7 @@ const Home = () => {
                             <div
                               key={dossier.id.toString()}
                               onClick={() => openDocumentDetail(dossier)}
-                              className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-600 bg-black/40 hover:bg-gray-800'}`}
+                              className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 ${theme === 'light' ? 'border-gray-200 bg-white hover:bg-gray-50 hover:border-[#e53e3e]' : 'border-gray-600 bg-black/40 hover:bg-[rgba(229,62,62,0.05)] hover:border-[#e53e3e]'}`}
                             >
                               {/* Card Header */}
                               <div className={`border-b pb-3 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>

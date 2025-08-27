@@ -557,6 +557,97 @@ html, body {
   border-color: #333333;
 }
 
+/* ================================
+   Interactive Elements & Animations
+   ================================ */
+
+/* Button hover animations */
+.btn-interactive {
+  transition: all 0.3s ease;
+  border: 1px solid rgb(151, 151, 151);
+}
+
+.btn-interactive:hover {
+  border-color: #fff;
+  background-color: rgba(151, 151, 151, 0.1);
+}
+
+/* Card hover effects with red border */
+.card-interactive {
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.card-interactive:hover {
+  border-color: #e53e3e;
+  transform: translateY(-2px);
+}
+
+/* Feature card hover with scale */
+.card-feature {
+  transition: all 0.3s ease;
+  border: 2px solid #666666;
+}
+
+.card-feature:hover {
+  border-color: #e53e3e;
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* Link underline animation */
+.link-animated {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-animated::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #e53e3e;
+  transition: width 0.3s ease;
+}
+
+.link-animated:hover::after {
+  width: 100%;
+}
+
+/* Interactive flow icons */
+.icon-interactive {
+  transition: all 0.3s ease;
+  border: 2px solid #666666;
+  color: #333333;
+}
+
+.icon-interactive:hover {
+  border-color: #e53e3e;
+  color: #e53e3e;
+  background-color: rgba(229, 62, 62, 0.1);
+}
+
+/* Dark mode adjustments for animations */
+.dark .btn-interactive {
+  border-color: #666666;
+}
+
+.dark .btn-interactive:hover {
+  border-color: #e53e3e;
+  background-color: rgba(229, 62, 62, 0.1);
+}
+
+.dark .card-interactive {
+  border-color: #666666;
+}
+
+.dark .card-feature {
+  border-color: #666666;
+}
+
 .dark .editorial-card-bordered {
   background-color: var(--color-paper-warm);
   border-color: #404040;
