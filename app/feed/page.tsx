@@ -36,7 +36,7 @@ export default function ImpactFeedPage() {
   }, [theme]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       
       {/* Alpha Status Indicator - Non-dismissable */}
       <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`}>
@@ -49,7 +49,7 @@ export default function ImpactFeedPage() {
         </div>
       </div>
       
-      <div className="flex-1" style={{ zoom: '0.8' }}>
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ zoom: '0.8' }}>
         
         {/* Header */}
         <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`} style={{ marginTop: '0px' }}>

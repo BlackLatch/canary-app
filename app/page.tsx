@@ -1276,12 +1276,12 @@ const Home = () => {
   
   // Main app content for signed-in users
   return (
-    <div>
+    <>
       <Toaster position="top-right" />
       <Suspense fallback={null}>
         <HomeContent onViewChange={setCurrentView} />
       </Suspense>
-      <div className={`h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+      <div className={`h-screen flex flex-col overflow-hidden ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         
         {/* Alpha Status Indicator - Non-dismissable */}
         <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-black border-gray-600'}`}>
@@ -1294,7 +1294,7 @@ const Home = () => {
           </div>
         </div>
         
-        <div className="flex-1" style={{ zoom: '0.8' }}>
+        <div className="flex-1 flex flex-col" style={{ zoom: '0.8' }}>
         
         {/* Header */}
         <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`} style={{ marginTop: '0px' }}>
@@ -1420,7 +1420,7 @@ const Home = () => {
       <div className="flex-1 overflow-auto">
       {currentView === 'checkin' ? (
         // Check In View - Matching Impact Feed Layout
-        <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+        <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Page Header - Like Impact Feed */}
           <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
@@ -1687,7 +1687,7 @@ const Home = () => {
         </div>
       ) : (
         // Documents View - Matching Impact Feed Layout
-        <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+        <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           {documentDetailView && selectedDocument ? (
             // Document Detail View
@@ -3238,7 +3238,7 @@ const Home = () => {
       </footer>
       </div>
     </div>
-    </div>
+    </>
   );
 }
 
