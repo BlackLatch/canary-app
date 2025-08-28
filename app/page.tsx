@@ -2645,8 +2645,8 @@ const Home = () => {
                                   const graceRemainingMs = (intervalMs + gracePeriodMs) - timeSinceLastCheckIn;
                                   const fullyExpired = graceRemainingMs <= 0;
                                   
-                                  // Show VIEW RELEASE for expired/released documents that are decryptable
-                                  const isReleasedOrExpired = (dossier.isReleased === true || (!dossier.isActive && fullyExpired)) && dossier.isDecryptable;
+                                  // Show VIEW RELEASE for expired/released documents
+                                  const isReleasedOrExpired = dossier.isReleased === true || (!dossier.isActive && fullyExpired);
                                   
                                   return (
                                     <button
