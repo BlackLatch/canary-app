@@ -3585,7 +3585,7 @@ const Home = () => {
               <p className={`editorial-body mb-4 ${
                 theme === 'light' ? 'text-gray-700' : 'text-gray-300'
               }`}>
-                Are you sure you want to permanently disable this document?
+                Are you sure you want to permanently disable this document? The encrypted data will become inaccessible forever.
               </p>
               
               <div className={`p-4 rounded border ${
@@ -3596,13 +3596,14 @@ const Home = () => {
                 <p className={`text-sm font-medium mb-2 ${
                   theme === 'light' ? 'text-red-900' : 'text-red-400'
                 }`}>
-                  ⚠️ Warning: Critical Action
+                  ⚠️ Warning: Data Will Stay Encrypted Forever
                 </p>
                 <ul className={`text-sm space-y-1 ${
                   theme === 'light' ? 'text-red-700' : 'text-red-500'
                 }`}>
-                  <li>• The document will be permanently disabled</li>
-                  <li>• Check-ins will no longer be required</li>
+                  <li>• The data will remain encrypted permanently</li>
+                  <li>• No one will be able to decrypt the data</li>
+                  <li>• This cannot be reversed or released</li>
                   <li>• This action is recorded on the blockchain</li>
                 </ul>
               </div>

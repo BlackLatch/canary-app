@@ -125,8 +125,13 @@ contract CanaryDossier {
     {
         Dossier memory dossier = dossiers[_user][_dossierId];
         
-        // If permanently disabled or released, never stay encrypted
-        if (dossier.isPermanentlyDisabled || dossier.isReleased) {
+        // If permanently disabled, data stays encrypted forever
+        if (dossier.isPermanentlyDisabled) {
+            return true;
+        }
+        
+        // If released, data is decrypted
+        if (dossier.isReleased) {
             return false;
         }
         
@@ -135,6 +140,7 @@ contract CanaryDossier {
             return true; // Keep encrypted when paused
         }
         
+        // Active dossier - check if within check-in window
         uint256 timeSinceLastCheckIn = block.timestamp - dossier.lastCheckIn;
         return timeSinceLastCheckIn <= (dossier.checkInInterval + GRACE_PERIOD);
     }
@@ -179,8 +185,8 @@ contract CanaryDossier {
     }
     
     /**
-     * @dev Permanently disable a dossier (irreversible - prevents all operations)
-     * @notice This action is permanent and cannot be undone
+     * @dev Permanently disable a dossier (irreversible - data stays encrypted forever)
+     * @notice This action is permanent and keeps the data encrypted forever. No one can decrypt it.
      */
     function permanentlyDisableDossier(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
         require(!dossiers[msg.sender][_dossierId].isPermanentlyDisabled, "Dossier already permanently disabled");
