@@ -1905,6 +1905,8 @@ const Home = () => {
                           <div className="flex items-center gap-4">
                             <div className={`status-indicator text-xs ${
                               (() => {
+                                if (selectedDocument.isPermanentlyDisabled) return 'status-expired';
+                                if (selectedDocument.isReleased) return 'status-active';
                                 if (!selectedDocument.isActive) return 'status-inactive';
                                 
                                 const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
@@ -1919,7 +1921,9 @@ const Home = () => {
                               <div className="status-dot"></div>
                               <span>
                                 {(() => {
-                                  if (!selectedDocument.isActive) return 'Inactive';
+                                  if (selectedDocument.isPermanentlyDisabled) return 'Permanently Disabled';
+                                  if (selectedDocument.isReleased) return 'Released';
+                                  if (!selectedDocument.isActive) return 'Paused';
                                   
                                   const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
                                   const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
@@ -2176,9 +2180,10 @@ const Home = () => {
                         ) : null;
                       })()}
                       
-                      {/* Pause/Resume Button */}
-                      <button
-                                                 onClick={async (e) => {
+                      {/* Pause/Resume Button - Hidden if released or permanently disabled */}
+                      {!selectedDocument.isPermanentlyDisabled && !selectedDocument.isReleased && (
+                        <button
+                          onClick={async (e) => {
                            e.stopPropagation();
                            try {
                              let txHash: string;
@@ -2217,27 +2222,52 @@ const Home = () => {
                           )}
                           <span>{selectedDocument.isActive ? 'PAUSE DOCUMENT' : 'RESUME DOCUMENT'}</span>
                         </div>
-                      </button>
+                        </button>
+                      )}
                       
-                      {/* Permanently Disable Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDisableConfirm(selectedDocument.id);
-                        }}
-                        className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                          theme === 'light' 
-                            ? 'bg-red-50 text-red-700 hover:bg-red-100 border-red-300' 
-                            : 'bg-red-900/20 text-red-400 hover:bg-red-900/40 border-red-800'
-                        }`}
-                      >
-                        <div className="flex items-center justify-center gap-2">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          <span>PERMANENTLY DISABLE</span>
-                        </div>
-                      </button>
+                      {/* Release Now Button - Hidden if already released or permanently disabled */}
+                      {!selectedDocument.isPermanentlyDisabled && !selectedDocument.isReleased && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowReleaseConfirm(selectedDocument.id);
+                          }}
+                          className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                            theme === 'light' 
+                              ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-300' 
+                              : 'bg-green-900/30 text-green-400 hover:bg-green-900/50 border-green-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                            </svg>
+                            <span>RELEASE NOW</span>
+                          </div>
+                        </button>
+                      )}
+                      
+                      {/* Permanently Disable Button - Hidden if already disabled or released */}
+                      {!selectedDocument.isPermanentlyDisabled && !selectedDocument.isReleased && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDisableConfirm(selectedDocument.id);
+                          }}
+                          className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                            theme === 'light' 
+                              ? 'bg-red-50 text-red-700 hover:bg-red-100 border-red-300' 
+                              : 'bg-red-900/20 text-red-400 hover:bg-red-900/40 border-red-800'
+                          }`}
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>PERMANENTLY DISABLE</span>
+                          </div>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -3571,7 +3601,7 @@ const Home = () => {
                 <ul className={`text-sm space-y-1 ${
                   theme === 'light' ? 'text-red-700' : 'text-red-500'
                 }`}>
-                  <li>• The document will be permanently deactivated</li>
+                  <li>• The document will be permanently disabled</li>
                   <li>• Check-ins will no longer be required</li>
                   <li>• This action is recorded on the blockchain</li>
                 </ul>
