@@ -114,7 +114,6 @@ export default function DemoPopup({ forceShow, onClose }: DemoPopupProps = {}) {
                 <li>• No real funds or assets are used</li>
                 <li>• Data may be reset at any time</li>
                 <li>• Features are experimental and may change</li>
-                <li>• Not intended for production use</li>
               </ul>
             </div>
 
