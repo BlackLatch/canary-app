@@ -947,7 +947,7 @@ const Home = () => {
     
     // If connected but no dossiers, show status
     if (isConnected && userDossiers.length === 0) {
-      return { expired: false, display: 'NO DOCUMENTS', color: 'text-muted' };
+      return { expired: false, display: 'NO DOSSIERS', color: 'text-muted' };
     }
     
     // If not connected, show disconnected status
@@ -1016,7 +1016,7 @@ const Home = () => {
     
     // If connected but no dossiers, show status
     if (isConnected && userDossiers.length === 0) {
-      return { expired: false, display: 'NO DOCUMENTS', color: 'text-muted' };
+      return { expired: false, display: 'NO DOSSIERS', color: 'text-muted' };
     }
     
     // If not connected, show disconnected status
@@ -1406,7 +1406,7 @@ const Home = () => {
                       currentView === 'documents' ? 'nav-link-active' : ''
                     }`}
                   >
-                    DOCUMENTS
+                    DOSSIERS
                   </button>
                   <a 
                     href="/feed"
@@ -1794,7 +1794,7 @@ const Home = () => {
                 >
                   <div>
                     <div className={`text-sm font-medium uppercase tracking-wider ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                      ACTIVE DOCUMENTS
+                      ACTIVE DOSSIERS
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                       Protected with encryption
@@ -1872,7 +1872,7 @@ const Home = () => {
             <NoDocumentsPlaceholder
               theme={theme}
               onCreateClick={() => setCurrentView('documents')}
-              title="NO ACTIVE DOCUMENTS"
+              title="NO ACTIVE DOSSIERS"
               description="Create your first encrypted document to get started"
             />
           )}
@@ -1898,7 +1898,7 @@ const Home = () => {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                  Back to Documents
+                  Back to Dossiers
                 </button>
               </div>
 
@@ -2372,7 +2372,7 @@ const Home = () => {
               {/* Page Header - Like Public Releases */}
               <div className={`mb-12 border-b pb-8 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                 <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
-                  DOCUMENTS
+                  DOSSIERS
                 </h1>
                 <p className="editorial-body text-gray-600 dark:text-gray-400">
                   Create and manage encrypted documents with conditional release triggers
@@ -2750,7 +2750,7 @@ const Home = () => {
                   className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-sm font-semibold"
                   style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                 >
-                  ← Back to Documents
+                  ← Back to Dossiers
                 </button>
                 <h2 className="editorial-header text-2xl font-bold text-gray-900 dark:text-gray-100">Document Creation</h2>
                 <div className="w-32"></div> {/* Spacer for center alignment */}
@@ -2795,11 +2795,11 @@ const Home = () => {
                                 : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
                               {step === 1 ? 'NAME' :
-                               step === 2 ? 'MODE' :
-                               step === 3 ? 'INTERVAL' :
-                               step === 4 ? 'UPLOAD' :
+                               step === 2 ? 'VISIBILITY' :
+                               step === 3 ? 'SCHEDULE' :
+                               step === 4 ? 'ENCRYPT' :
                                step === 5 ? 'REVIEW' :
-                               'ENCRYPT'}
+                               'FINALIZE'}
                             </span>
                           </div>
                           {index < 5 && (
@@ -2902,12 +2902,12 @@ const Home = () => {
                       </div>
                     )}
 
-                  {/* Step 2: Release Mode */}
+                  {/* Step 2: Visibility */}
                   {currentStep === 2 && (
                     <div className="space-y-6">
                       <div className="text-center">
                         <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          Release Mode
+                          Visibility
                         </h3>
                         <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                           Step 2 of 6
@@ -3094,12 +3094,21 @@ const Home = () => {
                     </div>
                   )}
 
-                  {/* Step 3: Check-in Frequency */}
+                  {/* Step 3: Check-in Schedule */}
                   {currentStep === 3 && (
-                    <div className="text-center spacing-medium">
-                      <div className="spacing-medium">
-                        <p className="editorial-body text-gray-900 max-w-lg mx-auto font-semibold">
-                          How often do you need to check in to prevent the document from being released automatically?
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          Check-in Schedule
+                        </h3>
+                        <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Step 3 of 6
+                        </p>
+                      </div>
+                      
+                      <div className="text-center">
+                        <p className={`editorial-body mb-6 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                          How often do you need to check in to prevent the document from being released?
                         </p>
                       </div>
                       <div className="max-w-sm mx-auto">
@@ -3158,18 +3167,27 @@ const Home = () => {
                     </div>
                   )}
 
-                  {/* Step 4: File Upload */}
+                  {/* Step 4: File Encryption */}
                   {currentStep === 4 && (
-                    <div className="text-center spacing-medium">
-                      <div className="spacing-medium">
-                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          File Encryption
+                        </h3>
+                        <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Step 4 of 6
+                        </p>
+                      </div>
+                      
+                      <div className="text-center">
+                        <p className={`editorial-body mb-6 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
                           Select or record the content you want to encrypt and protect with the deadman switch.
                         </p>
                       </div>
                       
                       {!showMediaRecorder ? (
                         <div className="max-w-md mx-auto space-y-4">
-                          {/* File Upload Option */}
+                          {/* File Encryption Option */}
                           <div
                             className={`border-2 text-center py-8 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
                               theme === 'light' 

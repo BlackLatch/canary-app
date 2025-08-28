@@ -89,7 +89,7 @@ export default function PublicReleasesPage() {
                         href="/?view=documents"
                         className="nav-link"
                       >
-                        DOCUMENTS
+                        DOSSIERS
                       </Link>
                       <Link 
                         href="/feed"

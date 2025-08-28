@@ -107,7 +107,7 @@ describe('Home Component', () => {
     
     await waitFor(() => {
       // Should show documents view
-      expect(screen.getByText(/DOCUMENTS/i)).toBeInTheDocument();
+      expect(screen.getByText(/DOSSIERS/i)).toBeInTheDocument();
     });
   });
 
