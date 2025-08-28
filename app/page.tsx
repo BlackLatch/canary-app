@@ -2741,19 +2741,34 @@ const Home = () => {
                     <div className="flex items-center gap-3">
                       {[1, 2, 3, 4, 5, 6].map((step, index) => (
                         <React.Fragment key={step}>
-                          <div className="flex items-center gap-2">
+                          <div 
+                            className={`flex items-center gap-2 ${
+                              step <= currentStep ? 'cursor-pointer' : 'cursor-not-allowed'
+                            }`}
+                            onClick={() => {
+                              // Allow navigation to completed steps or current step
+                              if (step <= currentStep && !isProcessing && !traceJson) {
+                                // Validate before moving backwards
+                                if (step < currentStep) {
+                                  setCurrentStep(step);
+                                }
+                              }
+                            }}
+                          >
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                               step === currentStep 
                                 ? theme === 'light' ? 'bg-black text-white' : 'bg-white text-black'
                                 : step < currentStep 
-                                ? theme === 'light' ? 'bg-black text-white' : 'bg-gray-100 text-black'
+                                ? theme === 'light' ? 'bg-black text-white hover:bg-gray-800' : 'bg-gray-100 text-black hover:bg-gray-200'
                                 : theme === 'light' ? 'bg-gray-100 text-gray-400' : 'bg-gray-800 text-gray-500'
                             }`}>
                               {step < currentStep ? '✓' : step}
                             </div>
-                            <span className={`text-xs font-medium uppercase tracking-wider hidden sm:block ${
+                            <span className={`text-xs font-medium uppercase tracking-wider hidden sm:block select-none ${
                               step === currentStep 
                                 ? theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                                : step < currentStep
+                                ? theme === 'light' ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-gray-100'
                                 : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
                               {step === 1 ? 'NAME' :
