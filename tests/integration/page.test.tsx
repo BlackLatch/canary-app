@@ -287,7 +287,7 @@ describe('Main Page Integration', () => {
       await user.type(screen.getByLabelText(/Secret Keyword/i), 'mysecret')
       
       // Set name
-      await user.type(screen.getByLabelText(/File Name/i), 'Test Document')
+      await user.type(screen.getByLabelText(/File Name/i), 'Test Dossier')
       
       // Encrypt
       await user.click(screen.getByRole('button', { name: /Encrypt & Upload/i }))

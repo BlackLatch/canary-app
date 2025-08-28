@@ -207,7 +207,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                   onClick={() => onComplete({})}
                   className="px-8 py-3 text-lg bg-slate-600 text-white hover:bg-slate-700 transition-all duration-200 rounded-lg"
                 >
-                  Create Your First Document
+                  Create Your First Dossier
                 </button>
               </div>
             )}

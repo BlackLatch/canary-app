@@ -57,7 +57,7 @@ describe('ImpactFeedView', () => {
     const { ContractService } = await import('@/app/lib/contract');
     const mockDossier = {
       id: BigInt(1),
-      name: 'Test Document',
+      name: 'Test Dossier',
       isActive: true,
       lastCheckIn: BigInt(Math.floor(Date.now() / 1000 - 3600)),
       checkInInterval: BigInt(86400),
@@ -73,7 +73,7 @@ describe('ImpactFeedView', () => {
     render(<ImpactFeedView theme="light" />);
     
     await waitFor(() => {
-      expect(screen.getByText('Test Document')).toBeInTheDocument();
+      expect(screen.getByText('Test Dossier')).toBeInTheDocument();
     });
   });
 
@@ -81,7 +81,7 @@ describe('ImpactFeedView', () => {
     const { ContractService } = await import('@/app/lib/contract');
     const mockDossier = {
       id: BigInt(1),
-      name: 'Test Document',
+      name: 'Test Dossier',
       isActive: true,
       lastCheckIn: BigInt(Math.floor(Date.now() / 1000 - 3600)),
       checkInInterval: BigInt(86400),
@@ -97,7 +97,7 @@ describe('ImpactFeedView', () => {
     render(<ImpactFeedView theme="light" />);
     
     await waitFor(() => {
-      expect(screen.getByText('Test Document')).toBeInTheDocument();
+      expect(screen.getByText('Test Dossier')).toBeInTheDocument();
     });
     
     // Click on PUBLIC filter
@@ -105,7 +105,7 @@ describe('ImpactFeedView', () => {
     fireEvent.click(publicFilter);
     
     // Should still show the document as it's unlocked
-    expect(screen.getByText('Test Document')).toBeInTheDocument();
+    expect(screen.getByText('Test Dossier')).toBeInTheDocument();
     
     // Click on PENDING filter
     const pendingFilter = screen.getByText('PENDING');
@@ -121,7 +121,7 @@ describe('ImpactFeedView', () => {
     const { ContractService } = await import('@/app/lib/contract');
     const mockDossier = {
       id: BigInt(1),
-      name: 'Test Document',
+      name: 'Test Dossier',
       isActive: true,
       lastCheckIn: BigInt(Math.floor(Date.now() / 1000 - 3600)),
       checkInInterval: BigInt(86400),
@@ -137,11 +137,11 @@ describe('ImpactFeedView', () => {
     render(<ImpactFeedView theme="light" />);
     
     await waitFor(() => {
-      expect(screen.getByText('Test Document')).toBeInTheDocument();
+      expect(screen.getByText('Test Dossier')).toBeInTheDocument();
     });
     
     // Click on the dossier
-    const dossierElement = screen.getByText('Test Document').closest('div[onClick]');
+    const dossierElement = screen.getByText('Test Dossier').closest('div[onClick]');
     if (dossierElement) {
       fireEvent.click(dossierElement);
       expect(mockPush).toHaveBeenCalledWith('/release?user=0x123&id=1');
@@ -160,7 +160,7 @@ describe('ImpactFeedView', () => {
     const { ContractService } = await import('@/app/lib/contract');
     const mockDossier = {
       id: BigInt(1),
-      name: 'Test Document',
+      name: 'Test Dossier',
       isActive: true,
       lastCheckIn: BigInt(Math.floor(Date.now() / 1000 - 3600)),
       checkInInterval: BigInt(7200), // 2 hours

@@ -58,7 +58,7 @@ describe('Transaction Error Handling', () => {
       render(<Home />)
 
       // Upload a file
-      const fileInput = screen.getByLabelText(/Upload Document/i)
+      const fileInput = screen.getByLabelText(/Upload Dossier/i)
       const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
       await user.upload(fileInput, file)
 
@@ -68,7 +68,7 @@ describe('Transaction Error Handling', () => {
       await user.type(intervalInput, '120')
 
       // Click create button
-      const createButton = screen.getByRole('button', { name: /Create Protected Document/i })
+      const createButton = screen.getByRole('button', { name: /Create Protected Dossier/i })
       await user.click(createButton)
 
       // Wait for the transaction to be rejected
@@ -137,12 +137,12 @@ describe('Transaction Error Handling', () => {
       render(<Home />)
 
       // Upload a file
-      const fileInput = screen.getByLabelText(/Upload Document/i)
+      const fileInput = screen.getByLabelText(/Upload Dossier/i)
       const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
       await user.upload(fileInput, file)
 
       // Click create button
-      const createButton = screen.getByRole('button', { name: /Create Protected Document/i })
+      const createButton = screen.getByRole('button', { name: /Create Protected Dossier/i })
       await user.click(createButton)
 
       // Wait for the error
@@ -168,12 +168,12 @@ describe('Transaction Error Handling', () => {
       render(<Home />)
 
       // Upload a file
-      const fileInput = screen.getByLabelText(/Upload Document/i)
+      const fileInput = screen.getByLabelText(/Upload Dossier/i)
       const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
       await user.upload(fileInput, file)
 
       // Click create button
-      const createButton = screen.getByRole('button', { name: /Create Protected Document/i })
+      const createButton = screen.getByRole('button', { name: /Create Protected Dossier/i })
       await user.click(createButton)
 
       // Wait for the error

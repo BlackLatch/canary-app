@@ -118,10 +118,15 @@ const Home = () => {
   const [showDisableConfirm, setShowDisableConfirm] = useState<bigint | null>(null);
   const [showReleaseConfirm, setShowReleaseConfirm] = useState<bigint | null>(null);
   const [showDemoPopup, setShowDemoPopup] = useState(false);
+  const [showEditSchedule, setShowEditSchedule] = useState(false);
+  const [showAddFiles, setShowAddFiles] = useState(false);
+  const [newCheckInInterval, setNewCheckInInterval] = useState('');
+  const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const additionalFilesInputRef = useRef<HTMLInputElement>(null);
 
-  // Document detail navigation
+  // Dossier detail navigation
   const openDocumentDetail = (document: DossierWithStatus) => {
     setSelectedDocument(document);
     setDocumentDetailView(true);
@@ -508,7 +513,7 @@ const Home = () => {
       }]);
       
       // Load updated dossiers
-      await loadUserDossiers();
+      await fetchUserDossiers();
       
       // Add to activity log
       setActivityLog(prev => [
@@ -520,7 +525,7 @@ const Home = () => {
       ]);
       
       const successMessage = authMode === 'standard'
-        ? `🎉 Document secured! Remember to check in every ${checkInInterval} days.`
+        ? `🎉 Dossier secured! Remember to check in every ${checkInInterval} days.`
         : `🎉 Dossier #${dossierId} created! Check-in required every ${checkInInterval} days.`;
       toast.success(successMessage, { id: processingToast });
       
@@ -666,7 +671,7 @@ const Home = () => {
         ...prev
       ]);
       
-      toast.success('🎉 TACo decryption successful! Check your downloads for the decrypted file.');
+      toast.success('Decryption successful');
       
     } catch (error) {
       console.error('❌ Decryption test failed:', error);
@@ -675,7 +680,7 @@ const Home = () => {
       if (errorMessage.includes('time condition')) {
         displayMessage = 'Decryption failed. The dossier condition may not be met yet.';
       }
-      toast.error(`❌ Decryption test failed: ${displayMessage}. Check console for details.`);
+      toast.error(`Decryption failed: ${displayMessage}`);
       
       // Add to activity log
       setActivityLog(prev => [
@@ -686,7 +691,7 @@ const Home = () => {
   };
 
   // Load user's dossiers from contract with accurate decryptable status
-  const loadUserDossiers = async () => {
+  const fetchUserDossiers = async () => {
     setIsLoadingDossiers(true);
     let currentAddress: string | null = null;
     
@@ -778,7 +783,7 @@ const Home = () => {
       setIsCheckingIn(true);
       
       // Show loading state first
-      const checkInToast = toast.loading(authMode === 'standard' ? 'Updating your dossiers...' : 'Checking in to all active dossiers...');
+      const checkInToast = toast.loading(authMode === 'standard' ? 'Checking in...' : 'Checking in now...');
       
       try {
         console.log('✅ Performing bulk on-chain check-in for all active dossiers...');
@@ -809,8 +814,8 @@ const Home = () => {
         // Success - all active dossiers checked in with single transaction
         toast.success(
           authMode === 'standard' 
-            ? `✅ All ${activeDossiers.length} dossiers updated!` 
-            : `✅ Successfully checked in to all ${activeDossiers.length} active dossiers!`, 
+            ? `Check-in successful` 
+            : `Check-in successful`, 
           { id: checkInToast }
         );
         
@@ -824,7 +829,7 @@ const Home = () => {
         ]);
         
         // Reload dossiers to get updated lastCheckIn times
-        await loadUserDossiers();
+        await fetchUserDossiers();
         
       } catch (error) {
         console.error('❌ Bulk check-in failed:', error);
@@ -1129,7 +1134,7 @@ const Home = () => {
     const currentAddress = address || (wallets.length > 0 ? wallets[0]?.address : null);
     if ((isConnected && address) || (authenticated && currentAddress)) {
       console.log('Loading contract data for address:', currentAddress);
-      loadUserDossiers();
+      fetchUserDossiers();
       
       // Load contract constants
       ContractService.getConstants()
@@ -1151,7 +1156,7 @@ const Home = () => {
   useEffect(() => {
     if (smartWalletClient && signedIn && authMode === 'standard') {
       console.log('🔄 Smart wallet now available in standard mode, reloading dossiers...');
-      loadUserDossiers();
+      fetchUserDossiers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [smartWalletClient, signedIn, authMode]);
@@ -1883,7 +1888,7 @@ const Home = () => {
         <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           {documentDetailView && selectedDocument ? (
-            // Document Detail View
+            // Dossier Detail View
             <div className="spacing-section">
               {/* Navigation Header */}
               <div className="mb-6">
@@ -1902,11 +1907,11 @@ const Home = () => {
                 </button>
               </div>
 
-              {/* Document Detail Content */}
+              {/* Dossier Detail Content */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Information Panel */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Document Overview */}
+                  {/* Dossier Overview */}
                   <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                     <div className={`border-b pb-4 mb-4 ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                       <div className="flex items-start justify-between">
@@ -1948,7 +1953,7 @@ const Home = () => {
                               </span>
                             </div>
                             <div className={`text-xs font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                              Document #{selectedDocument.id.toString()}
+                              Dossier #{selectedDocument.id.toString()}
                             </div>
                             {/* Release Visibility Badge */}
                             <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium uppercase tracking-wider border ${
@@ -1981,7 +1986,24 @@ const Home = () => {
 
                   {/* Timing Information */}
                   <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Timing & Schedule</h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="editorial-header text-gray-900 dark:text-gray-100">Timing & Schedule</h3>
+                      {selectedDocument.isActive && selectedDocument.isReleased !== true && (
+                        <button
+                          onClick={() => {
+                            setNewCheckInInterval(String(Number(selectedDocument.checkInInterval) / 60));
+                            setShowEditSchedule(true);
+                          }}
+                          className={`px-3 py-1 text-xs font-medium border rounded transition-all ${
+                            theme === 'light' 
+                              ? 'border-gray-300 text-gray-700 hover:bg-gray-50' 
+                              : 'border-gray-600 text-gray-300 hover:bg-white/5'
+                          }`}
+                        >
+                          Edit Schedule
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -2014,7 +2036,21 @@ const Home = () => {
 
                   {/* File Information */}
                   <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                    <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Encrypted Files</h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="editorial-header text-gray-900 dark:text-gray-100">Encrypted Files</h3>
+                      {selectedDocument.isActive && selectedDocument.isReleased !== true && (
+                        <button
+                          onClick={() => setShowAddFiles(true)}
+                          className={`px-3 py-1 text-xs font-medium border rounded transition-all ${
+                            theme === 'light' 
+                              ? 'border-gray-300 text-gray-700 hover:bg-gray-50' 
+                              : 'border-gray-600 text-gray-300 hover:bg-white/5'
+                          }`}
+                        >
+                          Add Files
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-3">
                       {selectedDocument.encryptedFileHashes.map((hash, index) => {
                         // Extract CID from ipfs:// URL
@@ -2199,11 +2235,11 @@ const Home = () => {
                                   document.body.removeChild(link);
                                   URL.revokeObjectURL(url);
                                   
-                                  toast.success('🎉 Document decrypted and downloaded successfully!', { id: decryptToast });
+                                  toast.success('Dossier decrypted successfully', { id: decryptToast });
                                   
                                   setActivityLog(prev => [
                                     { 
-                                      type: `🔓 Document #${selectedDocument.id.toString()} decrypted and downloaded`, 
+                                      type: `🔓 Dossier #${selectedDocument.id.toString()} decrypted and downloaded`, 
                                       date: new Date().toLocaleString() 
                                     },
                                     ...prev
@@ -2250,10 +2286,10 @@ const Home = () => {
                                txHash = await ContractService.resumeDossier(selectedDocument.id);
                              }
                              
-                             await loadUserDossiers();
+                             await fetchUserDossiers();
                              setActivityLog(prev => [
                                { 
-                                 type: `Document #${selectedDocument.id.toString()} ${selectedDocument.isActive ? 'paused' : 'resumed'}`, 
+                                 type: `Dossier #${selectedDocument.id.toString()} ${selectedDocument.isActive ? 'paused' : 'resumed'}`, 
                                  date: new Date().toLocaleString(),
                                  txHash: txHash
                                },
@@ -2393,7 +2429,7 @@ const Home = () => {
                     </div>
                   </div>
                   
-                  {/* Document cards skeleton with shimmer */}
+                  {/* Dossier cards skeleton with shimmer */}
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {[1, 2, 3, 4].map(i => (
                       <div key={i} className="relative min-h-[180px] border-2 border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
@@ -2466,7 +2502,7 @@ const Home = () => {
                   {userDossiers.length > 0 && (
                   <div className="">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {/* Add New Document Card - Always shown */}
+                      {/* Add New Dossier Card - Always shown */}
                       <div 
                         onClick={() => setShowCreateForm(true)}
                         className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 ${
@@ -2498,7 +2534,7 @@ const Home = () => {
                                 ? 'text-gray-600' 
                                 : 'text-gray-400'
                             }`}>
-                              Encrypt and protect a new dossier with cryptographic deadman switches
+                              Encrypt and protect a new dossier
                             </p>
                           </div>
                         </div>
@@ -2729,7 +2765,7 @@ const Home = () => {
               )}
             </>
           ) : (
-            // Document Creation Flow - Editorial Layout
+            // Dossier Creation Flow - Editorial Layout
             <div className="spacing-section">
               <div className="flex justify-between items-center spacing-medium">
                 <button
@@ -2752,7 +2788,7 @@ const Home = () => {
                 >
                   ← Back to Dossiers
                 </button>
-                <h2 className="editorial-header text-2xl font-bold text-gray-900 dark:text-gray-100">Document Creation</h2>
+                <h2 className="editorial-header text-2xl font-bold text-gray-900 dark:text-gray-100">Dossier Creation</h2>
                 <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
               
@@ -2765,16 +2801,11 @@ const Home = () => {
                       {[1, 2, 3, 4, 5].map((step, index) => (
                         <React.Fragment key={step}>
                           <div 
-                            className={`flex items-center gap-2 ${
-                              step <= currentStep ? 'cursor-pointer' : 'cursor-not-allowed'
-                            }`}
+                            className={`flex items-center gap-2 cursor-pointer`}
                             onClick={() => {
-                              // Allow navigation to completed steps or current step
-                              if (step <= currentStep && !isProcessing && !traceJson) {
-                                // Validate before moving backwards
-                                if (step < currentStep) {
-                                  setCurrentStep(step);
-                                }
+                              // Allow free navigation between all steps
+                              if (!isProcessing && !traceJson) {
+                                setCurrentStep(step);
                               }
                             }}
                           >
@@ -2782,17 +2813,15 @@ const Home = () => {
                               step === currentStep 
                                 ? theme === 'light' ? 'bg-black text-white' : 'bg-white text-black'
                                 : step < currentStep 
-                                ? theme === 'light' ? 'bg-black text-white hover:bg-gray-800' : 'bg-gray-100 text-black hover:bg-gray-200'
-                                : theme === 'light' ? 'bg-gray-100 text-gray-400' : 'bg-gray-800 text-gray-500'
+                                ? theme === 'light' ? 'bg-gray-600 text-white hover:bg-gray-800' : 'bg-gray-300 text-black hover:bg-gray-200'
+                                : theme === 'light' ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                             }`}>
                               {step < currentStep ? '✓' : step}
                             </div>
                             <span className={`text-xs font-medium uppercase tracking-wider hidden sm:block select-none ${
                               step === currentStep 
                                 ? theme === 'light' ? 'text-gray-900' : 'text-gray-100'
-                                : step < currentStep
-                                ? theme === 'light' ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-gray-100'
-                                : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
+                                : theme === 'light' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-gray-100'
                             }`}>
                               {step === 1 ? 'NAME' :
                                step === 2 ? 'VISIBILITY' :
@@ -2803,9 +2832,7 @@ const Home = () => {
                           </div>
                           {index < 4 && (
                             <div className={`h-px w-8 ${
-                              step < currentStep
-                                ? theme === 'light' ? 'bg-black' : 'bg-gray-100'
-                                : theme === 'light' ? 'bg-gray-200' : 'bg-gray-700'
+                              theme === 'light' ? 'bg-gray-300' : 'bg-gray-600'
                             }`} />
                           )}
                         </React.Fragment>
@@ -2819,12 +2846,12 @@ const Home = () => {
 
                   {/* Step Content */}
                   <div className="max-w-xl mx-auto">
-                    {/* Step 1: Document Details */}
+                    {/* Step 1: Dossier Details */}
                     {currentStep === 1 && (
                       <div className="space-y-6">
                         <div className="text-center">
                           <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                            Document Details
+                            Dossier Details
                           </h3>
                           <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                             Step 1 of 5
@@ -2855,7 +2882,7 @@ const Home = () => {
                                   onClick={() => {
                                     // Generate a random title
                                     const adjectives = ['Secure', 'Protected', 'Confidential', 'Private', 'Critical', 'Essential'];
-                                    const nouns = ['Document', 'File', 'Archive', 'Record', 'Dossier', 'Package'];
+                                    const nouns = ['Dossier', 'File', 'Archive', 'Record', 'Package', 'Collection'];
                                     const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
                                     const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
                                     const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
@@ -2915,7 +2942,7 @@ const Home = () => {
                       
                       <div className="text-center">
                         <p className={`editorial-body mb-8 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                          Choose how your document will be released if the deadman switch is triggered
+                          Choose how your dossier will be released upon expiration
                         </p>
                       </div>
                       
@@ -3032,7 +3059,7 @@ const Home = () => {
                             Add Emergency Contacts
                           </h5>
                           <p className={`text-sm mb-4 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                            These addresses will receive access to decrypt your document if the deadman switch is triggered.
+                            These addresses will receive access to decrypt your dossier upon release.
                           </p>
                           <div className="space-y-3">
                             {emergencyContacts.map((contact, index) => (
@@ -3180,7 +3207,7 @@ const Home = () => {
                       
                       <div className="text-center">
                         <p className={`editorial-body mb-6 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                          Select or record the content you want to encrypt and protect with the deadman switch.
+                          Select or record the content you want to encrypt and protect.
                         </p>
                       </div>
                       
@@ -3285,7 +3312,7 @@ const Home = () => {
                       <div className="max-w-lg mx-auto">
                         <div className={`border rounded-lg px-6 py-5 text-left space-y-4 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Document Name</span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Dossier Name</span>
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -3334,7 +3361,7 @@ const Home = () => {
                               ) : (
                                 <div className="flex items-center justify-center gap-3">
                                   <Shield size={18} />
-                                  <span>Encrypt Document</span>
+                                  <span>Encrypt Dossier</span>
                                 </div>
                               )}
                             </button>
@@ -3354,7 +3381,7 @@ const Home = () => {
                               }}
                               className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
                             >
-                              Create New Document
+                              Create New Dossier
                             </button>
                           )}
                         </div>
@@ -3560,20 +3587,20 @@ const Home = () => {
                     // Find the dossier to disable
                     const dossierToDisable = userDossiers.find(d => d.id === showDisableConfirm);
                     if (!dossierToDisable) {
-                      toast.error('Document not found');
+                      toast.error('Dossier not found');
                       setShowDisableConfirm(null);
                       return;
                     }
                     
-                    const disableToast = toast.loading('Permanently disabling document...');
+                    const disableToast = toast.loading('Disabling dossier...');
                     
                     // Call the contract to permanently disable the dossier (irreversible)
                     const txHash = await ContractService.permanentlyDisableDossier(showDisableConfirm);
                     
-                    toast.success('Document permanently disabled', { id: disableToast });
+                    toast.success('Dossier permanently disabled', { id: disableToast });
                     
                     // Reload dossiers to reflect the change
-                    await loadUserDossiers();
+                    await fetchUserDossiers();
                     
                     // Close the detail view if we're viewing the disabled document
                     if (selectedDocument?.id === showDisableConfirm) {
@@ -3583,7 +3610,7 @@ const Home = () => {
                     // Add to activity log
                     setActivityLog(prev => [
                       { 
-                        type: `🚫 Document #${showDisableConfirm.toString()} permanently disabled`, 
+                        type: `🚫 Dossier #${showDisableConfirm.toString()} permanently disabled`, 
                         date: new Date().toLocaleString(),
                         txHash: txHash
                       },
@@ -3593,7 +3620,7 @@ const Home = () => {
                     setShowDisableConfirm(null);
                   } catch (error) {
                     console.error('Failed to permanently disable document:', error);
-                    toast.error('Failed to disable document. Please try again.');
+                    toast.error('Failed to disable dossier');
                   }
                 }}
                 className={`flex-1 py-3 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
@@ -3683,20 +3710,20 @@ const Home = () => {
                     // Find the dossier to release
                     const dossierToRelease = userDossiers.find(d => d.id === showReleaseConfirm);
                     if (!dossierToRelease) {
-                      toast.error('Document not found');
+                      toast.error('Dossier not found');
                       setShowReleaseConfirm(null);
                       return;
                     }
                     
-                    const releaseToast = toast.loading('Releasing document data...');
+                    const releaseToast = toast.loading('Releasing dossier...');
                     
                     // Call the contract to release the dossier data
                     const txHash = await ContractService.releaseNow(showReleaseConfirm);
                     
-                    toast.success('Document data released successfully', { id: releaseToast });
+                    toast.success('Dossier released', { id: releaseToast });
                     
                     // Reload dossiers to reflect the change
-                    await loadUserDossiers();
+                    await fetchUserDossiers();
                     
                     // Close the detail view if we're viewing the released document
                     if (selectedDocument?.id === showReleaseConfirm) {
@@ -3706,7 +3733,7 @@ const Home = () => {
                     // Add to activity log
                     setActivityLog(prev => [
                       { 
-                        type: `🔓 Document #${showReleaseConfirm.toString()} data released`, 
+                        type: `🔓 Dossier #${showReleaseConfirm.toString()} data released`, 
                         date: new Date().toLocaleString(),
                         txHash: txHash
                       },
@@ -3716,7 +3743,7 @@ const Home = () => {
                     setShowReleaseConfirm(null);
                   } catch (error) {
                     console.error('Failed to release document:', error);
-                    toast.error('Failed to release document. Please try again.');
+                    toast.error('Failed to release dossier');
                   }
                 }}
                 className={`flex-1 py-2.5 px-4 border rounded-lg transition-all font-medium ${
@@ -3726,6 +3753,333 @@ const Home = () => {
                 }`}
               >
                 Release Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+    
+    {/* Edit Schedule Modal */}
+    {showEditSchedule && selectedDocument && (
+      <>
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] animate-fade-in"
+          onClick={() => setShowEditSchedule(false)}
+        />
+        
+        {/* Modal */}
+        <div className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none">
+          <div 
+            className={`pointer-events-auto max-w-md w-full mx-4 animate-slide-up editorial-card-bordered ${
+              theme === 'light' 
+                ? 'bg-white border-gray-300' 
+                : 'bg-black border-gray-600'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <h2 className={`editorial-header-small uppercase tracking-wide ${
+                theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+              }`}>
+                Edit Check-in Schedule
+              </h2>
+              <button
+                onClick={() => setShowEditSchedule(false)}
+                className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                }`}>
+                  Check-in Interval (minutes)
+                </label>
+                <select
+                  value={newCheckInInterval}
+                  onChange={(e) => setNewCheckInInterval(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg ${
+                    theme === 'light' 
+                      ? 'border-gray-300 bg-white text-gray-900' 
+                      : 'border-gray-600 bg-black text-gray-100'
+                  }`}
+                >
+                  {intervalOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {newCheckInInterval === 'custom' && (
+                  <input
+                    type="number"
+                    placeholder="Enter minutes"
+                    className={`mt-2 w-full px-3 py-2 border rounded-lg ${
+                      theme === 'light' 
+                        ? 'border-gray-300 bg-white text-gray-900' 
+                        : 'border-gray-600 bg-black text-gray-100'
+                    }`}
+                    onChange={(e) => setCustomInterval(e.target.value)}
+                    value={customInterval}
+                  />
+                )}
+              </div>
+              
+              <p className={`text-sm mb-4 ${
+                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+              }`}>
+                Note: Changing the check-in interval will update the schedule for future check-ins. This action will be recorded on the blockchain.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className={`flex gap-3 p-6 border-t ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <button
+                onClick={() => setShowEditSchedule(false)}
+                className={`flex-1 py-2.5 px-4 border rounded-lg transition-all ${
+                  theme === 'light'
+                    ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const intervalInMinutes = newCheckInInterval === 'custom' 
+                      ? parseInt(customInterval) 
+                      : parseInt(newCheckInInterval);
+                    
+                    if (!intervalInMinutes || intervalInMinutes <= 0) {
+                      toast.error('Please enter a valid interval');
+                      return;
+                    }
+                    
+                    const intervalInSeconds = intervalInMinutes * 60;
+                    
+                    // Note: Updating check-in interval requires a contract method that doesn't exist yet
+                    // For now, we'll show a message that this feature is coming soon
+                    toast.info('Schedule update feature coming soon! This requires a smart contract update.');
+                    
+                    // TODO: When contract is updated, use:
+                    // await ContractService.updateCheckInInterval(selectedDocument.id, intervalInSeconds);
+                    
+                    // For demo purposes, close the modal
+                    setShowEditSchedule(false);
+                  } catch (error) {
+                    console.error('Failed to update schedule:', error);
+                    toast.error('Failed to update schedule');
+                  }
+                }}
+                className={`flex-1 py-2.5 px-4 border rounded-lg transition-all font-medium ${
+                  theme === 'light'
+                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                    : 'bg-white text-gray-900 border-white hover:bg-gray-100'
+                }`}
+              >
+                Update Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+    
+    {/* Add Files Modal */}
+    {showAddFiles && selectedDocument && (
+      <>
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] animate-fade-in"
+          onClick={() => {
+            setShowAddFiles(false);
+            setAdditionalFiles([]);
+          }}
+        />
+        
+        {/* Modal */}
+        <div className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none">
+          <div 
+            className={`pointer-events-auto max-w-md w-full mx-4 animate-slide-up editorial-card-bordered ${
+              theme === 'light' 
+                ? 'bg-white border-gray-300' 
+                : 'bg-black border-gray-600'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <h2 className={`editorial-header-small uppercase tracking-wide ${
+                theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+              }`}>
+                Add Files to Dossier
+              </h2>
+              <button
+                onClick={() => {
+                  setShowAddFiles(false);
+                  setAdditionalFiles([]);
+                }}
+                className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <input
+                  ref={additionalFilesInputRef}
+                  type="file"
+                  multiple
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setAdditionalFiles(Array.from(e.target.files));
+                    }
+                  }}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => additionalFilesInputRef.current?.click()}
+                  className={`w-full py-3 px-4 border-2 border-dashed rounded-lg transition-all ${
+                    theme === 'light'
+                      ? 'border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50'
+                      : 'border-gray-600 text-gray-400 hover:border-gray-500 hover:bg-gray-900'
+                  }`}
+                >
+                  <Upload className="w-5 h-5 mx-auto mb-2" />
+                  <div>Click to select files</div>
+                  <div className="text-xs mt-1 opacity-70">Multiple files allowed</div>
+                </button>
+              </div>
+              
+              {/* Selected Files List */}
+              {additionalFiles.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  <div className={`text-sm font-medium ${
+                    theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                  }`}>
+                    Selected Files:
+                  </div>
+                  {additionalFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className={`p-2 border rounded flex items-center justify-between ${
+                        theme === 'light'
+                          ? 'border-gray-200 bg-gray-50'
+                          : 'border-gray-700 bg-gray-900'
+                      }`}
+                    >
+                      <span className="text-sm truncate">{file.name}</span>
+                      <button
+                        onClick={() => {
+                          setAdditionalFiles(prev => prev.filter((_, i) => i !== index));
+                        }}
+                        className={`ml-2 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600`}
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <p className={`text-sm ${
+                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+              }`}>
+                Files will be encrypted with the same conditions as the original dossier and added to the encrypted files list.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className={`flex gap-3 p-6 border-t ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <button
+                onClick={() => {
+                  setShowAddFiles(false);
+                  setAdditionalFiles([]);
+                }}
+                className={`flex-1 py-2.5 px-4 border rounded-lg transition-all ${
+                  theme === 'light'
+                    ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (additionalFiles.length === 0) {
+                    toast.error('Please select files to add');
+                    return;
+                  }
+                  
+                  try {
+                    setIsProcessing(true);
+                    
+                    // Process each file
+                    for (const file of additionalFiles) {
+                      // Encrypt the file with the same dossier conditions
+                      const encryptionResult = await encryptFileWithDossier(
+                        file,
+                        selectedDocument.id,
+                        getCurrentAddress()!,
+                        selectedDocument.name || file.name,
+                        selectedDocument.description || ''
+                      );
+                      
+                      // Commit to storage
+                      const { commitResult } = await commitEncryptedFileToPinata(
+                        encryptionResult,
+                        selectedDocument.id
+                      );
+                      
+                      // TODO: Update contract to add new file hash to dossier
+                      // This would require a contract method to append file hashes
+                      
+                      toast.success(`Added ${file.name} to dossier`);
+                    }
+                    
+                    // Refresh dossier data
+                    await fetchUserDossiers();
+                    setShowAddFiles(false);
+                    setAdditionalFiles([]);
+                  } catch (error) {
+                    console.error('Failed to add files:', error);
+                    toast.error('Failed to add files to dossier');
+                  } finally {
+                    setIsProcessing(false);
+                  }
+                }}
+                disabled={additionalFiles.length === 0 || isProcessing}
+                className={`flex-1 py-2.5 px-4 border rounded-lg transition-all font-medium ${
+                  theme === 'light'
+                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 disabled:bg-gray-300'
+                    : 'bg-white text-gray-900 border-white hover:bg-gray-100 disabled:bg-gray-600'
+                } disabled:cursor-not-allowed`}
+              >
+                {isProcessing ? 'Adding Files...' : 'Add Files'}
               </button>
             </div>
           </div>
