@@ -2609,342 +2609,58 @@ const Home = () => {
                                 </div>
                               </div>
                               
-                              {/* Card Footer - Action Buttons */}
+                              {/* Card Footer - Single Action Button */}
                               <div className="border-t border-gray-300 dark:border-gray-600 pt-4 mt-auto">
-                                <div className="space-y-2">
-                                  {/* Primary Actions */}
-                                  <div className="flex gap-2">
+                                {(() => {
+                                  // Check if document is expired/released
+                                  const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
+                                  const intervalMs = Number(dossier.checkInInterval) * 1000;
+                                  const gracePeriodMs = Number(contractConstants?.gracePeriod || BigInt(86400)) * 1000; // 24 hours default
+                                  const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                  const graceRemainingMs = (intervalMs + gracePeriodMs) - timeSinceLastCheckIn;
+                                  const fullyExpired = graceRemainingMs <= 0;
+                                  
+                                  // Show VIEW RELEASE for expired/released documents that are decryptable
+                                  const isReleasedOrExpired = (dossier.isReleased === true || (!dossier.isActive && fullyExpired)) && dossier.isDecryptable;
+                                  
+                                  return (
                                     <button
-                                      onClick={async () => {
-                                        try {
-                                          let txHash: string;
-                                          // Use smart wallet for gasless check-in only in standard mode
-                                          if (smartWalletClient && authMode === 'standard') {
-                                            const txData = encodeFunctionData({
-                                              abi: CANARY_DOSSIER_ABI,
-                                              functionName: 'checkIn',
-                                              args: [dossier.id]
-                                            });
-                                            
-                                            txHash = await smartWalletClient.sendTransaction({
-                                              account: smartWalletClient.account,
-                                              chain: polygonAmoy,
-                                              to: CANARY_DOSSIER_ADDRESS,
-                                              data: txData,
-                                            });
-                                          } else {
-                                            txHash = await ContractService.checkIn(dossier.id);
-                                          }
-                                          
-                                          await loadUserDossiers();
-                                          setActivityLog(prev => [
-                                            { 
-                                              type: `Check-in performed for document #${dossier.id.toString()}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
-                                              date: new Date().toLocaleString(),
-                                              txHash: txHash
-                                            },
-                                            ...prev
-                                          ]);
-                                        } catch (error) {
-                                          console.error('Failed to check in:', error);
-                                          toast.error('Failed to check in. Please try again.');
-                                        }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedDocument(dossier);
+                                        setDocumentDetailView(true);
                                       }}
-                                      disabled={!dossier.isActive || dossier.isPermanentlyDisabled === true || dossier.isReleased === true}
-                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                        dossier.isActive && dossier.isPermanentlyDisabled !== true && dossier.isReleased !== true
-                                          ? theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
-                                          : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-black/30 text-gray-500 border-gray-600'
-                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                      className={`w-full py-2.5 px-3 text-sm font-medium border rounded-lg transition-all uppercase tracking-wider ${
+                                        isReleasedOrExpired
+                                          ? theme === 'light' 
+                                            ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-300' 
+                                            : 'bg-green-900/30 text-green-400 hover:bg-green-900/50 border-green-600'
+                                          : theme === 'light' 
+                                            ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' 
+                                            : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
+                                      }`}
                                     >
-                                      CHECK IN
-                                    </button>
-                                    
-                                    <button
-                                      disabled={dossier.isPermanentlyDisabled === true || dossier.isReleased === true}
-                                      onClick={async () => {
-                                        if (dossier.isPermanentlyDisabled === true || dossier.isReleased === true) return;
-                                        try {
-                                          let txHash: string;
-                                          // Use smart wallet for gasless transaction only in standard mode
-                                          if (smartWalletClient && authMode === 'standard') {
-                                            const functionName = dossier.isActive ? 'pauseDossier' : 'resumeDossier';
-                                            const txData = encodeFunctionData({
-                                              abi: CANARY_DOSSIER_ABI,
-                                              functionName,
-                                              args: [dossier.id]
-                                            });
-                                            
-                                            txHash = await smartWalletClient.sendTransaction({
-                                              account: smartWalletClient.account,
-                                              chain: polygonAmoy,
-                                              to: CANARY_DOSSIER_ADDRESS,
-                                              data: txData,
-                                            });
-                                          } else {
-                                            if (dossier.isActive) {
-                                              txHash = await ContractService.pauseDossier(dossier.id);
-                                            } else {
-                                              txHash = await ContractService.resumeDossier(dossier.id);
-                                            }
-                                          }
-                                          
-                                          await loadUserDossiers();
-                                          setActivityLog(prev => [
-                                            { 
-                                              type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'paused' : 'resumed'}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
-                                              date: new Date().toLocaleString(),
-                                              txHash: txHash
-                                            },
-                                            ...prev
-                                          ]);
-                                        } catch (error) {
-                                          console.error('Failed to toggle document status:', error);
-                                          
-                                          // Handle specific error types gracefully
-                                          let errorMessage = 'Failed to update document status. Please try again.';
-                                          if (error instanceof Error) {
-                                                                        if (error.message.includes('rejected by user')) {
-                              toast('Action cancelled');
-                              return;
-                                            } else if (error.message.includes('insufficient funds')) {
-                                              errorMessage = 'Insufficient funds for transaction. Please add MATIC to your wallet.';
-                                            } else if (error.message.includes('Network')) {
-                                              errorMessage = 'Please ensure you are on Polygon Amoy network.';
-                                            }
-                                          }
-                                          
-                                          toast.error(errorMessage);
-                                        }
-                                      }}
-                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                        dossier.isPermanentlyDisabled === true || dossier.isReleased === true
-                                          ? theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-black/30 text-gray-500 border-gray-600 cursor-not-allowed'
-                                          : theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
-                                      } disabled:opacity-50`}
-                                    >
-                                      <div className="flex items-center justify-center gap-1">
-                                        {dossier.isActive ? (
-                                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                            <rect x="6" y="4" width="4" height="16" />
-                                            <rect x="14" y="4" width="4" height="16" />
-                                          </svg>
+                                      <div className="flex items-center justify-center gap-2">
+                                        {isReleasedOrExpired ? (
+                                          <>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            <span>VIEW RELEASE</span>
+                                          </>
                                         ) : (
-                                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                            <polygon points="8,5 8,19 19,12" />
-                                          </svg>
+                                          <>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                            </svg>
+                                            <span>MORE</span>
+                                          </>
                                         )}
-                                        <span>{dossier.isActive ? 'PAUSE' : 'RESUME'}</span>
                                       </div>
                                     </button>
-                                  </div>
-                                  
-                                  {/* Release Now Action - Hidden if already released or permanently disabled */}
-                                  {dossier.isPermanentlyDisabled !== true && dossier.isReleased !== true && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowReleaseConfirm(dossier.id);
-                                      }}
-                                      className={`w-full py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${
-                                        theme === 'light' 
-                                          ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-300' 
-                                          : 'bg-green-900/30 text-green-400 hover:bg-green-900/50 border-green-600'
-                                      }`}
-                                    >
-                                      <div className="flex items-center justify-center gap-1.5">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                                        </svg>
-                                        <span>RELEASE NOW</span>
-                                      </div>
-                                    </button>
-                                  )}
-                                  
-                                  {/* Permanently Disable Action - Hidden if already permanently disabled or released */}
-                                  {dossier.isPermanentlyDisabled !== true && dossier.isReleased !== true && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowDisableConfirm(dossier.id);
-                                      }}
-                                      className={`w-full py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${
-                                        theme === 'light' 
-                                          ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' 
-                                          : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
-                                      }`}
-                                    >
-                                      <div className="flex items-center justify-center gap-1.5">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        <span>DISABLE</span>
-                                      </div>
-                                    </button>
-                                  )}
-                                  
-                                  {/* Decrypt Action - Download Button */}
-                                  {(() => {
-                                    // Check if document is expired based on time calculation
-                                    const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
-                                    const intervalMs = Number(dossier.checkInInterval) * 1000;
-                                    const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                                    const remainingMs = intervalMs - timeSinceLastCheckIn;
-                                    const isTimeExpired = remainingMs <= 0;
-                                    
-                                    // Show decrypt button if document is expired OR contract says it's decryptable, AND has files
-                                    const shouldShowButton = (isTimeExpired || dossier.isDecryptable) && dossier.encryptedFileHashes.length > 0;
-                                    
-                                    console.log(`🔍 Decrypt button check for dossier #${dossier.id.toString()}: isTimeExpired=${isTimeExpired}, isDecryptable=${dossier.isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}, showButton=${shouldShowButton}`);
-                                    return shouldShowButton;
-                                  })() ? (
-                                    <button
-                                      onClick={async () => {
-                                        let decryptToast: any;
-                                        try {
-                                          console.log('🔓 Attempting decryption for dossier:', dossier.id.toString());
-                                          console.log('📄 Dossier details:', {
-                                            id: dossier.id.toString(),
-                                            name: dossier.name,
-                                            fileHashes: dossier.encryptedFileHashes.length,
-                                            recipients: dossier.recipients.length,
-                                            isActive: dossier.isActive
-                                          });
-                                          
-                                          // Use dossier's encrypted file data directly
-                                          if (dossier.encryptedFileHashes.length > 0) {
-                                            // Perform real decryption from stored file hash
-                                            const fileHash = dossier.encryptedFileHashes[0];
-                                              if (!fileHash) {
-                                                throw new Error('No encrypted file hash found in dossier');
-                                              }
-                                              
-                                              console.log('🔓 Attempting to decrypt expired document...');
-                                              decryptToast = toast.loading('Decrypting expired document...');
-                                              
-                                              // Step 1: Fetch encrypted data from IPFS
-                                              const ipfsHash = fileHash.replace('ipfs://', '');
-                                              const ipfsGateways = [
-                                                `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-                                                `https://ipfs.io/ipfs/${ipfsHash}`,
-                                                `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
-                                              ];
-                                              
-                                              let retrievedData: Uint8Array | null = null;
-                                              let gatewayUsed = '';
-                                              
-                                              for (const gateway of ipfsGateways) {
-                                                try {
-                                                  console.log(`🌐 Trying IPFS gateway: ${gateway}`);
-                                                  const response = await fetch(gateway);
-                                                  if (response.ok) {
-                                                    const arrayBuffer = await response.arrayBuffer();
-                                                    retrievedData = new Uint8Array(arrayBuffer);
-                                                    gatewayUsed = gateway;
-                                                    console.log(`✅ Retrieved ${retrievedData.length} bytes from ${gateway}`);
-                                                    console.log(`🔍 First 50 bytes:`, Array.from(retrievedData.slice(0, 50)));
-                                                    break;
-                                                  }
-                                                } catch (error) {
-                                                  console.log(`❌ Gateway ${gateway} failed:`, error);
-                                                  continue;
-                                                }
-                                              }
-                                              
-                                              if (!retrievedData) {
-                                                throw new Error('Failed to fetch encrypted data from all IPFS gateways');
-                                              }
-                                              
-                                              // Step 2: Verify and reconstruct messageKit
-                                              console.log(`🔍 Data verification:`);
-                                              console.log(`   - File hash: ${fileHash}`);
-                                              console.log(`   - IPFS hash: ${ipfsHash}`);
-                                              console.log(`   - Gateway used: ${gatewayUsed}`);
-                                              console.log(`   - Data length: ${retrievedData.length} bytes`);
-                                              console.log(`   - Data type: ${Object.prototype.toString.call(retrievedData)}`);
-                                              
-                                                                                           // Step 2a: Initialize TACo before reconstruction
-                                              console.log(`🔧 Initializing TACo...`);
-                                              const { tacoService } = await import('./lib/taco');
-                                              await tacoService.initialize();
-                                              console.log(`✅ TACo initialized`);
-                                              
-                                              // Step 2b: Import and reconstruct MessageKit  
-                                              const { ThresholdMessageKit } = await import('@nucypher/taco');
-                                              console.log(`🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`);
-                                              
-                                              const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
-                                              console.log(`✅ MessageKit reconstructed successfully`);
-                                              
-                                              // Step 3: Decrypt using TACo  
-                                              const decryptedData = await tacoService.decryptFile(messageKit);
-                                              
-                                              // Step 4: Download the decrypted file
-                                              const originalFileName = dossier.name.replace('Encrypted file: ', '') || 'decrypted-document';
-                                              const mimeType = getMimeType(originalFileName);
-                                              const blob = new Blob([decryptedData], { type: mimeType });
-                                              const url = URL.createObjectURL(blob);
-                                              
-                                              const link = document.createElement('a');
-                                              link.href = url;
-                                              link.download = originalFileName;
-                                              document.body.appendChild(link);
-                                              link.click();
-                                              document.body.removeChild(link);
-                                              URL.revokeObjectURL(url);
-                                              
-                                              toast.success('🎉 Document decrypted and downloaded successfully!', { id: decryptToast });
-                                              
-                                              setActivityLog(prev => [
-                                                { 
-                                                  type: `🔓 Document #${dossier.id.toString()} decrypted and downloaded`, 
-                                                  date: new Date().toLocaleString() 
-                                                },
-                                                ...prev
-                                              ]);
-                                          } else {
-                                            toast.error(`No encrypted files found in this dossier. Dossier #${dossier.id.toString()} appears to be empty or corrupted.`);
-                                          }
-                                        } catch (error) {
-                                          console.error('❌ Failed to decrypt:', error);
-                                          
-                                          let errorMessage = 'Failed to decrypt document. ';
-                                          if (error instanceof Error) {
-                                            if (error.message.includes('Failed to fetch encrypted data')) {
-                                              errorMessage += 'Could not retrieve file from IPFS. The file may be unavailable.';
-                                            } else if (error.message.includes('fromBytes')) {
-                                              errorMessage += 'Invalid encrypted file format.';
-                                            } else if (error.message.includes('decrypt')) {
-                                              errorMessage += 'Decryption failed. The time condition may not be met yet.';
-                                            } else {
-                                              errorMessage += error.message;
-                                            }
-                                          } else {
-                                            errorMessage += 'Unknown error occurred.';
-                                          }
-                                          
-                                          toast.error(errorMessage, { id: decryptToast });
-                                          
-                                          setActivityLog(prev => [
-                                            { 
-                                              type: `❌ Decryption failed for document #${dossier.id.toString()}`, 
-                                              date: new Date().toLocaleString() 
-                                            },
-                                            ...prev
-                                          ]);
-                                        }
-                                      }}
-                                      className={`w-full mt-2 py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
-                                    >
-                                      <div className="flex items-center justify-center gap-1.5">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        <span>DOWNLOAD</span>
-                                      </div>
-                                    </button>
-                                  ) : null}
-                                </div>
+                                  );
+                                })()}
                               </div>
                             </div>
                           );
