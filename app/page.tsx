@@ -2042,14 +2042,30 @@ const Home = () => {
                   <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                     <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
                     <div className="space-y-3">
-                      {/* Check In Button */}
-                      {selectedDocument.isActive && (
+                      {/* Released Message */}
+                      {selectedDocument.isReleased === true && (
+                        <div className={`p-3 border rounded-lg text-center ${
+                          theme === 'light'
+                            ? 'bg-green-50 border-green-300 text-green-700'
+                            : 'bg-green-900/30 border-green-600 text-green-400'
+                        }`}>
+                          <div className="flex items-center justify-center gap-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium">DOCUMENT RELEASED</span>
+                          </div>
+                          <p className="text-sm mt-1 opacity-90">This document has been permanently released and cannot be modified</p>
+                        </div>
+                      )}
+                      {/* Check In Button - Disabled if released */}
+                      {selectedDocument.isActive && selectedDocument.isReleased !== true && (
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
                             await handleCheckIn();
                           }}
-                          disabled={isCheckingIn}
+                          disabled={isCheckingIn || selectedDocument.isReleased === true}
                           className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {isCheckingIn ? 'CHECKING IN...' : 'CHECK IN'}
@@ -2063,7 +2079,7 @@ const Home = () => {
                         const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
                         const remainingMs = intervalMs - timeSinceLastCheckIn;
                         const isTimeExpired = remainingMs <= 0;
-                        const shouldShowButton = (isTimeExpired || selectedDocument.isDecryptable) && selectedDocument.encryptedFileHashes.length > 0;
+                        const shouldShowButton = (isTimeExpired || selectedDocument.isDecryptable || selectedDocument.isReleased === true) && selectedDocument.encryptedFileHashes.length > 0;
                         
                         return shouldShowButton ? (
                           <button
@@ -2168,7 +2184,16 @@ const Home = () => {
                                 toast.error(`Failed to decrypt document: ${error}`, { id: decryptToast });
                               }
                             }}
-                            className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
+                            disabled={selectedDocument.isReleased === true}
+                            className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                              selectedDocument.isReleased === true
+                                ? theme === 'light'
+                                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                  : 'bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed'
+                                : theme === 'light'
+                                  ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300'
+                                  : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
+                            }`}
                           >
                             <div className="flex items-center justify-center gap-2">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
