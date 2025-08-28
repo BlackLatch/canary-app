@@ -2245,7 +2245,7 @@ const Home = () => {
                               <polygon points="8,5 8,19 19,12" />
                             </svg>
                           )}
-                          <span>{selectedDocument.isActive ? 'PAUSE DOCUMENT' : 'RESUME DOCUMENT'}</span>
+                          <span>{selectedDocument.isActive ? 'PAUSE CHECK-INS' : 'RESUME CHECK-INS'}</span>
                         </div>
                         </button>
                       )}
