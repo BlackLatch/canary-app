@@ -2721,115 +2721,96 @@ const Home = () => {
                 <div className="w-32"></div> {/* Spacer for center alignment */}
               </div>
               
-              <div className={`p-6 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                {/* Progress Indicator */}
-                <div className="spacing-medium">
-                  {/* Back Button */}
-                  {currentStep > 1 && !traceJson && (
-                    <div className="spacing-small">
-                      <button
-                        onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                        className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded transition-colors duration-200 ${
-                          theme === 'light' 
-                            ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400' 
-                            : 'text-gray-300 bg-black/30 border border-gray-600 hover:bg-white/10 hover:border-gray-500'
-                        }`}
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Previous Step
-                      </button>
-                    </div>
-                  )}
-                  
-                  <div className="spacing-small">
-                    <div className="relative">
-                      {/* Progress Rail */}
-                      <div className={`absolute top-2 left-0 right-0 h-0.5 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-600'}`}></div>
-                      
-                      {/* Progress Fill */}
-                      <div className={`absolute top-2 left-0 h-0.5 transition-all duration-300 ease-out ${theme === 'light' ? 'bg-black' : 'bg-gray-100'}`}
-                           style={{ width: `${((currentStep - 1) / 5) * 100}%` }}>
-                      </div>
-                      
-                      {/* Steps container */}
-                      <div className="flex items-start justify-between relative z-10">
-                        {[1, 2, 3, 4, 5, 6].map((step) => (
-                          <div key={step} className="flex flex-col items-center">
-                            <div className={`w-6 h-6 flex items-center justify-center text-xs editorial-body transition-all duration-200 ${
+              <div className={`border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                {/* Compact Progress Header */}
+                <div className={`px-6 py-4 border-b ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+                  <div className="flex items-center justify-between">
+                    {/* Step indicators with labels */}
+                    <div className="flex items-center gap-3">
+                      {[1, 2, 3, 4, 5, 6].map((step, index) => (
+                        <React.Fragment key={step}>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                               step === currentStep 
-                                ? theme === 'light' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
+                                ? theme === 'light' ? 'bg-black text-white' : 'bg-white text-black'
                                 : step < currentStep 
-                                ? theme === 'light' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-white'
-                                : theme === 'light' ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-black/30 text-gray-500 border border-gray-600'
+                                ? theme === 'light' ? 'bg-black text-white' : 'bg-gray-100 text-black'
+                                : theme === 'light' ? 'bg-gray-100 text-gray-400' : 'bg-gray-800 text-gray-500'
                             }`}>
                               {step < currentStep ? '✓' : step}
                             </div>
-                            <div className={`mt-2 text-xs editorial-label-small text-center w-12 tracking-wide ${
+                            <span className={`text-xs font-medium uppercase tracking-wider hidden sm:block ${
                               step === currentStep 
                                 ? theme === 'light' ? 'text-gray-900' : 'text-gray-100'
-                                : theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                                : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
-                              {step === 1 ? 'Name' :
-                               step === 2 ? 'Upload' :
-                               step === 3 ? 'Interval' :
-                               step === 4 ? 'Mode' :
-                               step === 5 ? 'Review' :
-                               'Finalize'}
-                            </div>
+                              {step === 1 ? 'NAME' :
+                               step === 2 ? 'UPLOAD' :
+                               step === 3 ? 'INTERVAL' :
+                               step === 4 ? 'MODE' :
+                               step === 5 ? 'REVIEW' :
+                               'FINALIZE'}
+                            </span>
                           </div>
-                        ))}
-                      </div>
+                          {index < 5 && (
+                            <div className={`h-px w-8 ${
+                              step < currentStep
+                                ? theme === 'light' ? 'bg-black' : 'bg-gray-100'
+                                : theme === 'light' ? 'bg-gray-200' : 'bg-gray-700'
+                            }`} />
+                          )}
+                        </React.Fragment>
+                      ))}
                     </div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <h3 className={`editorial-header text-xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                      {currentStep === 1 ? 'Document Name' :
-                       currentStep === 2 ? 'File Upload' :
-                       currentStep === 3 ? 'Check-in Frequency' :
-                       currentStep === 4 ? 'Release Mode' :
-                       currentStep === 5 ? 'Review & Encrypt' :
-                       'Finalize & Upload'}
-                    </h3>
-                    <p className={`editorial-body text-sm font-semibold ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                      Step {currentStep} of 6
-                    </p>
                   </div>
                 </div>
+                
+                {/* Content Area */}
+                <div className="px-6 py-8">
 
-                {/* Step Content */}
-                <div className="min-h-[200px] max-w-2xl mx-auto">
-                  {/* Step 1: Document Name */}
-                  {currentStep === 1 && (
-                    <div className="text-center spacing-medium">
-                      <div className="spacing-medium">
-                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          Give your encrypted document a memorable name for easy identification.
-                        </p>
+                  {/* Step Content */}
+                  <div className="max-w-xl mx-auto">
+                    {/* Step 1: Document Name */}
+                    {currentStep === 1 && (
+                      <div className="space-y-6">
+                        <div className="text-center">
+                          <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                            Document Name
+                          </h3>
+                          <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                            Step 1 of 6
+                          </p>
+                        </div>
+                        
+                        <div className="text-center">
+                          <p className={`editorial-body mb-6 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                            Give your encrypted document a memorable name for<br/>easy identification.
+                          </p>
+                          
+                          <input
+                            type="text"
+                            placeholder="Enter document name..."
+                            className="w-full px-4 py-3 border rounded-lg text-center font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                            style={{ 
+                              borderColor: theme === 'light' ? '#e5e7eb' : '#4b5563',
+                              backgroundColor: theme === 'light' ? '#ffffff' : 'rgba(0,0,0,0.2)',
+                              color: theme === 'light' ? '#000000' : '#f3f4f6' 
+                            }}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && name.trim()) {
+                                setCurrentStep(Math.min(6, currentStep + 1));
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <p className={`editorial-body text-xs mt-2 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                            This helps identify the document in your protected collection
+                          </p>
+                        </div>
                       </div>
-                      <div className="max-w-sm mx-auto">
-                        <input
-                          type="text"
-                          placeholder="Enter document name..."
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
-                          style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && name.trim()) {
-                              setCurrentStep(Math.min(6, currentStep + 1));
-                            }
-                          }}
-                          autoFocus
-                        />
-                        <p className={`editorial-body text-sm spacing-tiny font-medium ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                          This helps identify the document in your protected collection
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Step 2: File Upload */}
                   {currentStep === 2 && (
@@ -3187,40 +3168,49 @@ const Home = () => {
                   )}
                 </div>
 
-                {/* Navigation */}
-                {currentStep < 6 && !traceJson && (
-                  <div className={`flex justify-between mt-8 pt-6 border-t ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
-                    <button
-                      onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                      disabled={currentStep === 1}
-                      className="px-6 py-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (currentStep === 1 && !name.trim()) {
-                          toast.error('Please enter a document name');
-                          return;
-                        }
-                        if (currentStep === 2 && !uploadedFile) {
-                          toast.error('Please upload a file');
-                          return;
-                        }
-                        if (currentStep === 4 && releaseMode === 'contacts' && !emergencyContacts.some(c => c.trim())) {
-                          toast.error('Please add at least one emergency contact');
-                          return;
-                        }
-                        setCurrentStep(Math.min(6, currentStep + 1));
-                      }}
-                      className="px-6 py-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
-                      style={{ color: theme === 'light' ? '#000000' : '#d1d5db' }}
-                    >
-                      {currentStep === 5 ? 'Finalize' : 'Next'}
-                    </button>
-                  </div>
-                )}
+                  {/* Navigation */}
+                  {currentStep < 6 && !traceJson && (
+                    <div className={`flex justify-between pt-6 mt-6 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+                      <button
+                        onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                        disabled={currentStep === 1}
+                        className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
+                          currentStep === 1
+                            ? 'opacity-50 cursor-not-allowed'
+                            : theme === 'light'
+                              ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                              : 'border-gray-600 text-gray-300 hover:bg-white/5'
+                        }`}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (currentStep === 1 && !name.trim()) {
+                            toast.error('Please enter a document name');
+                            return;
+                          }
+                          if (currentStep === 2 && !uploadedFile) {
+                            toast.error('Please upload a file');
+                            return;
+                          }
+                          if (currentStep === 4 && releaseMode === 'contacts' && !emergencyContacts.some(c => c.trim())) {
+                            toast.error('Please add at least one emergency contact');
+                            return;
+                          }
+                          setCurrentStep(Math.min(6, currentStep + 1));
+                        }}
+                        className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
+                          theme === 'light'
+                            ? 'bg-black text-white border-black hover:bg-gray-800'
+                            : 'bg-white text-black border-white hover:bg-gray-100'
+                        }`}
+                      >
+                        {currentStep === 5 ? 'Finalize' : 'Next'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
