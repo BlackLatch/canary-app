@@ -2857,10 +2857,10 @@ const Home = () => {
                         </p>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
                         {/* Public Release Option */}
                         <div 
-                          className={`border rounded-lg p-6 cursor-pointer transition-all ${
+                          className={`border rounded-lg p-8 cursor-pointer transition-all ${
                             releaseMode === 'public' 
                               ? theme === 'light'
                                 ? 'border-black bg-gray-50' 
@@ -2871,12 +2871,12 @@ const Home = () => {
                           }`}
                           onClick={() => setReleaseMode('public')}
                         >
-                          <div className="space-y-4">
+                          <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                              <h4 className={`editorial-header text-lg font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                              <h4 className={`editorial-header text-xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                                 Public Release
                               </h4>
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                                 releaseMode === 'public' 
                                   ? theme === 'light' 
                                     ? 'border-black bg-black' 
@@ -2886,18 +2886,18 @@ const Home = () => {
                                     : 'border-gray-500'
                               }`}>
                                 {releaseMode === 'public' && (
-                                  <div className={`w-2 h-2 rounded-full ${theme === 'light' ? 'bg-white' : 'bg-black'}`}></div>
+                                  <div className={`w-2.5 h-2.5 rounded-full ${theme === 'light' ? 'bg-white' : 'bg-black'}`}></div>
                                 )}
                               </div>
                             </div>
                             
-                            <div className={`text-sm space-y-3 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                              <p>
+                            <div className={`space-y-4 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                              <p className="text-base leading-relaxed">
                                 Your document will be automatically decrypted and made publicly accessible when your check-in deadline expires.
                               </p>
-                              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                                <p className="font-semibold mb-2">Best for:</p>
-                                <ul className="space-y-1 text-xs">
+                              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <p className="font-semibold mb-3 text-sm">Best for:</p>
+                                <ul className="space-y-2 text-sm">
                                   <li>• Whistleblowing information</li>
                                   <li>• Public interest disclosures</li>
                                   <li>• Documents intended for mass distribution</li>
@@ -2910,7 +2910,7 @@ const Home = () => {
                         
                         {/* Emergency Contacts Option */}
                         <div 
-                          className={`border rounded-lg p-6 cursor-pointer transition-all ${
+                          className={`border rounded-lg p-8 cursor-pointer transition-all ${
                             releaseMode === 'contacts' 
                               ? theme === 'light'
                                 ? 'border-black bg-gray-50' 
@@ -2921,12 +2921,12 @@ const Home = () => {
                           }`}
                           onClick={() => setReleaseMode('contacts')}
                         >
-                          <div className="space-y-4">
+                          <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                              <h4 className={`editorial-header text-lg font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                              <h4 className={`editorial-header text-xl font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                                 Emergency Contacts
                               </h4>
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                                 releaseMode === 'contacts' 
                                   ? theme === 'light' 
                                     ? 'border-black bg-black' 
@@ -2936,18 +2936,18 @@ const Home = () => {
                                     : 'border-gray-500'
                               }`}>
                                 {releaseMode === 'contacts' && (
-                                  <div className={`w-2 h-2 rounded-full ${theme === 'light' ? 'bg-white' : 'bg-black'}`}></div>
+                                  <div className={`w-2.5 h-2.5 rounded-full ${theme === 'light' ? 'bg-white' : 'bg-black'}`}></div>
                                 )}
                               </div>
                             </div>
                             
-                            <div className={`text-sm space-y-3 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                              <p>
+                            <div className={`space-y-4 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                              <p className="text-base leading-relaxed">
                                 Your document will be sent only to specific trusted contacts when your check-in deadline expires.
                               </p>
-                              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                                <p className="font-semibold mb-2">Best for:</p>
-                                <ul className="space-y-1 text-xs">
+                              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <p className="font-semibold mb-3 text-sm">Best for:</p>
+                                <ul className="space-y-2 text-sm">
                                   <li>• Personal wills and testaments</li>
                                   <li>• Confidential business documents</li>
                                   <li>• Sensitive family information</li>
