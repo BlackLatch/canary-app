@@ -56,14 +56,21 @@ export const CANARY_DOSSIER_ABI = [
   },
   {
     "inputs": [{ "internalType": "uint256", "name": "_dossierId", "type": "uint256" }],
-    "name": "deactivateDossier",
+    "name": "pauseDossier",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [{ "internalType": "uint256", "name": "_dossierId", "type": "uint256" }],
-    "name": "reactivateDossier",
+    "name": "resumeDossier",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_dossierId", "type": "uint256" }],
+    "name": "releaseNow",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -88,6 +95,7 @@ export const CANARY_DOSSIER_ABI = [
           { "internalType": "string", "name": "name", "type": "string" },
           { "internalType": "bool", "name": "isActive", "type": "bool" },
           { "internalType": "bool", "name": "isPermanentlyDisabled", "type": "bool" },
+          { "internalType": "bool", "name": "isReleased", "type": "bool" },
           { "internalType": "uint256", "name": "checkInInterval", "type": "uint256" },
           { "internalType": "uint256", "name": "lastCheckIn", "type": "uint256" },
           { "internalType": "string[]", "name": "encryptedFileHashes", "type": "string[]" },
@@ -169,7 +177,25 @@ export const CANARY_DOSSIER_ABI = [
       { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
       { "indexed": true, "internalType": "uint256", "name": "dossierId", "type": "uint256" }
     ],
-    "name": "DossierTriggered",
+    "name": "DossierPaused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": true, "internalType": "uint256", "name": "dossierId", "type": "uint256" }
+    ],
+    "name": "DossierResumed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": true, "internalType": "uint256", "name": "dossierId", "type": "uint256" }
+    ],
+    "name": "DossierReleased",
     "type": "event"
   },
   {
@@ -188,6 +214,7 @@ export interface Dossier {
   name: string;
   isActive: boolean;
   isPermanentlyDisabled: boolean;
+  isReleased: boolean;
   checkInInterval: bigint;
   lastCheckIn: bigint;
   encryptedFileHashes: string[];
@@ -1398,51 +1425,77 @@ export class ContractService {
   }
 
   /**
-   * Deactivate a dossier
+   * Pause a dossier
    */
-  static async deactivateDossier(dossierId: bigint): Promise<string> {
+  static async pauseDossier(dossierId: bigint): Promise<string> {
     try {
-      console.log('🛑 Deactivating dossier:', dossierId.toString());
+      console.log('⏸️ Pausing dossier:', dossierId.toString());
       
       const hash = await writeContract(config, {
         address: CANARY_DOSSIER_ADDRESS,
         abi: CANARY_DOSSIER_ABI,
-        functionName: 'deactivateDossier',
+        functionName: 'pauseDossier',
         args: [dossierId],
       });
       
       await waitForTransactionReceipt(config, { hash });
       
-      console.log('✅ Dossier deactivated successfully!');
+      console.log('✅ Dossier paused successfully!');
       return hash;
       
     } catch (error) {
-      console.error('❌ Failed to deactivate dossier:', error);
+      console.error('❌ Failed to pause dossier:', error);
       throw error;
     }
   }
 
   /**
-   * Reactivate a dossier
+   * Resume a paused dossier
    */
-  static async reactivateDossier(dossierId: bigint): Promise<string> {
+  static async resumeDossier(dossierId: bigint): Promise<string> {
     try {
-      console.log('🔄 Reactivating dossier:', dossierId.toString());
+      console.log('▶️ Resuming dossier:', dossierId.toString());
       
       const hash = await writeContract(config, {
         address: CANARY_DOSSIER_ADDRESS,
         abi: CANARY_DOSSIER_ABI,
-        functionName: 'reactivateDossier',
+        functionName: 'resumeDossier',
         args: [dossierId],
       });
       
       await waitForTransactionReceipt(config, { hash });
       
-      console.log('✅ Dossier reactivated successfully!');
+      console.log('✅ Dossier resumed successfully!');
       return hash;
       
     } catch (error) {
-      console.error('❌ Failed to reactivate dossier:', error);
+      console.error('❌ Failed to resume dossier:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Release dossier data immediately (irreversible action)
+   */
+  static async releaseNow(dossierId: bigint): Promise<string> {
+    try {
+      console.log('🔓 Releasing dossier data immediately:', dossierId.toString());
+      console.warn('⚠️ This action is PERMANENT and releases data immediately!');
+      
+      const hash = await writeContract(config, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        functionName: 'releaseNow',
+        args: [dossierId],
+      });
+      
+      await waitForTransactionReceipt(config, { hash });
+      
+      console.log('✅ Dossier data released successfully!');
+      return hash;
+      
+    } catch (error) {
+      console.error('❌ Failed to release dossier data:', error);
       throw error;
     }
   }

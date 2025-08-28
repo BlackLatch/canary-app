@@ -114,6 +114,7 @@ const Home = () => {
   const [documentDetailView, setDocumentDetailView] = useState(false);
   const [showMediaRecorder, setShowMediaRecorder] = useState(false);
   const [showDisableConfirm, setShowDisableConfirm] = useState<bigint | null>(null);
+  const [showReleaseConfirm, setShowReleaseConfirm] = useState<bigint | null>(null);
   const [showDemoPopup, setShowDemoPopup] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2182,15 +2183,15 @@ const Home = () => {
                            try {
                              let txHash: string;
                              if (selectedDocument.isActive) {
-                               txHash = await ContractService.deactivateDossier(selectedDocument.id);
+                               txHash = await ContractService.pauseDossier(selectedDocument.id);
                              } else {
-                               txHash = await ContractService.reactivateDossier(selectedDocument.id);
+                               txHash = await ContractService.resumeDossier(selectedDocument.id);
                              }
                              
                              await loadUserDossiers();
                              setActivityLog(prev => [
                                { 
-                                 type: `Document #${selectedDocument.id.toString()} ${selectedDocument.isActive ? 'deactivated' : 'resumed'}`, 
+                                 type: `Document #${selectedDocument.id.toString()} ${selectedDocument.isActive ? 'paused' : 'resumed'}`, 
                                  date: new Date().toLocaleString(),
                                  txHash: txHash
                                },
@@ -2452,9 +2453,12 @@ const Home = () => {
                           if (dossier.isPermanentlyDisabled) {
                             timeDisplay = 'Permanently Disabled';
                             timeColor = 'text-red-500';
+                          } else if (dossier.isReleased) {
+                            timeDisplay = 'Released';
+                            timeColor = 'text-green-500';
                           } else if (!dossier.isActive) {
-                            timeDisplay = 'Deactivated';
-                            timeColor = 'text-muted';
+                            timeDisplay = 'Paused';
+                            timeColor = 'text-yellow-500';
                           } else if (fullyExpired) {
                             timeDisplay = '⚠ FULLY EXPIRED';
                             timeColor = 'text-red-600';
@@ -2616,9 +2620,9 @@ const Home = () => {
                                           toast.error('Failed to check in. Please try again.');
                                         }
                                       }}
-                                      disabled={!dossier.isActive || dossier.isPermanentlyDisabled}
+                                      disabled={!dossier.isActive || dossier.isPermanentlyDisabled || dossier.isReleased}
                                       className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                        dossier.isActive && !dossier.isPermanentlyDisabled
+                                        dossier.isActive && !dossier.isPermanentlyDisabled && !dossier.isReleased
                                           ? theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
                                           : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-black/30 text-gray-500 border-gray-600'
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -2627,14 +2631,14 @@ const Home = () => {
                                     </button>
                                     
                                     <button
-                                      disabled={dossier.isPermanentlyDisabled}
+                                      disabled={dossier.isPermanentlyDisabled || dossier.isReleased}
                                       onClick={async () => {
-                                        if (dossier.isPermanentlyDisabled) return;
+                                        if (dossier.isPermanentlyDisabled || dossier.isReleased) return;
                                         try {
                                           let txHash: string;
                                           // Use smart wallet for gasless transaction only in standard mode
                                           if (smartWalletClient && authMode === 'standard') {
-                                            const functionName = dossier.isActive ? 'deactivateDossier' : 'reactivateDossier';
+                                            const functionName = dossier.isActive ? 'pauseDossier' : 'resumeDossier';
                                             const txData = encodeFunctionData({
                                               abi: CANARY_DOSSIER_ABI,
                                               functionName,
@@ -2649,16 +2653,16 @@ const Home = () => {
                                             });
                                           } else {
                                             if (dossier.isActive) {
-                                              txHash = await ContractService.deactivateDossier(dossier.id);
+                                              txHash = await ContractService.pauseDossier(dossier.id);
                                             } else {
-                                              txHash = await ContractService.reactivateDossier(dossier.id);
+                                              txHash = await ContractService.resumeDossier(dossier.id);
                                             }
                                           }
                                           
                                           await loadUserDossiers();
                                           setActivityLog(prev => [
                                             { 
-                                              type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'deactivated' : 'resumed'}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
+                                              type: `Document #${dossier.id.toString()} ${dossier.isActive ? 'paused' : 'resumed'}${smartWalletClient && authMode === 'standard' ? ' (gasless)' : ''}`, 
                                               date: new Date().toLocaleString(),
                                               txHash: txHash
                                             },
@@ -2684,7 +2688,7 @@ const Home = () => {
                                         }
                                       }}
                                       className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                        dossier.isPermanentlyDisabled
+                                        dossier.isPermanentlyDisabled || dossier.isReleased
                                           ? theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-black/30 text-gray-500 border-gray-600 cursor-not-allowed'
                                           : theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
                                       } disabled:opacity-50`}
@@ -2705,8 +2709,30 @@ const Home = () => {
                                     </button>
                                   </div>
                                   
-                                  {/* Permanently Disable Action - Hidden if already permanently disabled */}
-                                  {!dossier.isPermanentlyDisabled && (
+                                  {/* Release Now Action - Hidden if already released or permanently disabled */}
+                                  {!dossier.isPermanentlyDisabled && !dossier.isReleased && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowReleaseConfirm(dossier.id);
+                                      }}
+                                      className={`w-full py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${
+                                        theme === 'light' 
+                                          ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-300' 
+                                          : 'bg-green-900/30 text-green-400 hover:bg-green-900/50 border-green-600'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                        </svg>
+                                        <span>RELEASE NOW</span>
+                                      </div>
+                                    </button>
+                                  )}
+                                  
+                                  {/* Permanently Disable Action - Hidden if already permanently disabled or released */}
+                                  {!dossier.isPermanentlyDisabled && !dossier.isReleased && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3615,6 +3641,129 @@ const Home = () => {
                 }`}
               >
                 Permanently Disable
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+    
+    {/* Release Now Confirmation Popup */}
+    {showReleaseConfirm !== null && (
+      <>
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] animate-fade-in"
+          onClick={() => setShowReleaseConfirm(null)}
+        />
+        
+        {/* Popup */}
+        <div className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none">
+          <div 
+            className={`pointer-events-auto max-w-md w-full mx-4 animate-slide-up editorial-card-bordered ${
+              theme === 'light' 
+                ? 'bg-white border-gray-300' 
+                : 'bg-black border-gray-600'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                </svg>
+                <h2 className={`editorial-header-small uppercase tracking-wide ${
+                  theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                }`}>
+                  Confirm Release Now
+                </h2>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6">
+              <p className={`text-sm mb-4 ${
+                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+              }`}>
+                <strong className="text-red-600">Warning:</strong> This action is permanent and cannot be undone. Once released, your encrypted data will be immediately accessible to all designated recipients.
+              </p>
+              
+              <ul className={`list-none space-y-2 text-sm ${
+                theme === 'light' ? 'text-green-700' : 'text-green-500'
+              }`}>
+                <li>• The document data will be released immediately</li>
+                <li>• Recipients will be able to decrypt the data</li>
+                <li>• This action is recorded on the blockchain</li>
+                <li>• This cannot be reversed or stopped</li>
+              </ul>
+            </div>
+            
+            {/* Actions */}
+            <div className={`flex gap-3 p-6 border-t ${
+              theme === 'light' ? 'border-gray-300' : 'border-gray-600'
+            }`}>
+              <button
+                onClick={() => setShowReleaseConfirm(null)}
+                className={`flex-1 py-2.5 px-4 border rounded-lg transition-all font-medium ${
+                  theme === 'light'
+                    ? 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
+                    : 'bg-transparent text-gray-100 border-gray-600 hover:bg-white/10'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    // Find the dossier to release
+                    const dossierToRelease = userDossiers.find(d => d.id === showReleaseConfirm);
+                    if (!dossierToRelease) {
+                      toast.error('Document not found');
+                      setShowReleaseConfirm(null);
+                      return;
+                    }
+                    
+                    const releaseToast = toast.loading('Releasing document data...');
+                    
+                    // Call the contract to release the dossier data
+                    const txHash = await ContractService.releaseNow(showReleaseConfirm);
+                    
+                    toast.success('Document data released successfully', { id: releaseToast });
+                    
+                    // Reload dossiers to reflect the change
+                    await loadUserDossiers();
+                    
+                    // Close the detail view if we're viewing the released document
+                    if (selectedDocument?.id === showReleaseConfirm) {
+                      closeDocumentDetail();
+                    }
+                    
+                    // Add to activity log
+                    setActivityLog(prev => [
+                      { 
+                        type: `🔓 Document #${showReleaseConfirm.toString()} data released`, 
+                        date: new Date().toLocaleString(),
+                        txHash: txHash
+                      },
+                      ...prev
+                    ]);
+                    
+                    setShowReleaseConfirm(null);
+                  } catch (error) {
+                    console.error('Failed to release document:', error);
+                    toast.error('Failed to release document. Please try again.');
+                  }
+                }}
+                className={`flex-1 py-2.5 px-4 border rounded-lg transition-all font-medium ${
+                  theme === 'light'
+                    ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                    : 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                }`}
+              >
+                Release Now
               </button>
             </div>
           </div>

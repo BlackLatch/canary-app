@@ -11,15 +11,18 @@ contract CanaryDossier {
     // Events
     event DossierCreated(address indexed user, uint256 indexed dossierId, string name);
     event CheckInPerformed(address indexed user, uint256 indexed dossierId);
-    event DossierTriggered(address indexed user, uint256 indexed dossierId);
+    event DossierPaused(address indexed user, uint256 indexed dossierId);
+    event DossierResumed(address indexed user, uint256 indexed dossierId);
+    event DossierReleased(address indexed user, uint256 indexed dossierId);
     event DossierPermanentlyDisabled(address indexed user, uint256 indexed dossierId);
     
     // Structs
     struct Dossier {
         uint256 id;
         string name;
-        bool isActive;
+        bool isActive; // false when paused
         bool isPermanentlyDisabled; // Once set to true, cannot be reversed
+        bool isReleased; // Once set to true, data is permanently released
         uint256 checkInInterval; // in seconds
         uint256 lastCheckIn;
         string[] encryptedFileHashes; // IPFS hashes for encrypted files
@@ -70,6 +73,7 @@ contract CanaryDossier {
             name: _name,
             isActive: true,
             isPermanentlyDisabled: false,
+            isReleased: false,
             checkInInterval: _checkInInterval,
             lastCheckIn: block.timestamp,
             encryptedFileHashes: _encryptedFileHashes,
@@ -87,7 +91,8 @@ contract CanaryDossier {
      */
     function checkIn(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
         require(!dossiers[msg.sender][_dossierId].isPermanentlyDisabled, "Dossier permanently disabled");
-        require(dossiers[msg.sender][_dossierId].isActive, "Dossier not active");
+        require(!dossiers[msg.sender][_dossierId].isReleased, "Dossier already released");
+        require(dossiers[msg.sender][_dossierId].isActive, "Dossier is paused");
         
         dossiers[msg.sender][_dossierId].lastCheckIn = block.timestamp;
         emit CheckInPerformed(msg.sender, _dossierId);
@@ -120,13 +125,14 @@ contract CanaryDossier {
     {
         Dossier memory dossier = dossiers[_user][_dossierId];
         
-        // If permanently disabled, never stay encrypted
-        if (dossier.isPermanentlyDisabled) {
+        // If permanently disabled or released, never stay encrypted
+        if (dossier.isPermanentlyDisabled || dossier.isReleased) {
             return false;
         }
         
+        // If paused, data stays encrypted but doesn't require check-ins
         if (!dossier.isActive) {
-            return false;
+            return true; // Keep encrypted when paused
         }
         
         uint256 timeSinceLastCheckIn = block.timestamp - dossier.lastCheckIn;
@@ -134,25 +140,46 @@ contract CanaryDossier {
     }
     
     /**
-     * @dev Deactivate a dossier (releases data)
+     * @dev Pause a dossier (temporarily stops check-in requirements)
      */
-    function deactivateDossier(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
+    function pauseDossier(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
         require(!dossiers[msg.sender][_dossierId].isPermanentlyDisabled, "Dossier permanently disabled");
+        require(!dossiers[msg.sender][_dossierId].isReleased, "Dossier already released");
+        require(dossiers[msg.sender][_dossierId].isActive, "Dossier already paused");
+        
         dossiers[msg.sender][_dossierId].isActive = false;
-        emit DossierTriggered(msg.sender, _dossierId);
+        emit DossierPaused(msg.sender, _dossierId);
     }
     
     /**
-     * @dev Reactivate a dossier
+     * @dev Resume a paused dossier
      */
-    function reactivateDossier(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
-        require(!dossiers[msg.sender][_dossierId].isPermanentlyDisabled, "Cannot reactivate permanently disabled dossier");
+    function resumeDossier(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
+        require(!dossiers[msg.sender][_dossierId].isPermanentlyDisabled, "Cannot resume permanently disabled dossier");
+        require(!dossiers[msg.sender][_dossierId].isReleased, "Cannot resume released dossier");
+        require(!dossiers[msg.sender][_dossierId].isActive, "Dossier already active");
+        
         dossiers[msg.sender][_dossierId].isActive = true;
         dossiers[msg.sender][_dossierId].lastCheckIn = block.timestamp;
+        emit DossierResumed(msg.sender, _dossierId);
     }
     
     /**
-     * @dev Permanently disable a dossier (irreversible - releases data permanently)
+     * @dev Release dossier data immediately (irreversible - releases data now)
+     * @notice This action is permanent and releases the data immediately
+     */
+    function releaseNow(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
+        require(!dossiers[msg.sender][_dossierId].isPermanentlyDisabled, "Dossier already permanently disabled");
+        require(!dossiers[msg.sender][_dossierId].isReleased, "Dossier already released");
+        
+        dossiers[msg.sender][_dossierId].isReleased = true;
+        dossiers[msg.sender][_dossierId].isActive = false;
+        
+        emit DossierReleased(msg.sender, _dossierId);
+    }
+    
+    /**
+     * @dev Permanently disable a dossier (irreversible - prevents all operations)
      * @notice This action is permanent and cannot be undone
      */
     function permanentlyDisableDossier(uint256 _dossierId) external validDossier(msg.sender, _dossierId) {
