@@ -2989,97 +2989,193 @@ const Home = () => {
 
                   {/* Step 4: Release Mode */}
                   {currentStep === 4 && (
-                    <div className="spacing-medium">
-                      <div className="text-center spacing-medium">
-                        <p className="editorial-body text-gray-900 max-w-lg mx-auto font-semibold">
-                          How should your document be released if the deadman switch is triggered?
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          Release Mode
+                        </h3>
+                        <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Step 4 of 6
                         </p>
                       </div>
-                      <div className="max-w-lg mx-auto space-y-4">
+                      
+                      <div className="text-center">
+                        <p className={`editorial-body mb-8 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                          Choose how your document will be released if the deadman switch is triggered
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                        {/* Public Release Option */}
                         <div 
-                          className={`editorial-card-bordered cursor-pointer transition-all ${
-                            releaseMode === 'public' ? 'border-gray-900 bg-gray-50 dark:bg-black/20' : 'hover:border-gray-600 dark:hover:border-gray-400'
+                          className={`border rounded-lg p-6 cursor-pointer transition-all ${
+                            releaseMode === 'public' 
+                              ? theme === 'light'
+                                ? 'border-black bg-gray-50' 
+                                : 'border-white bg-white/5'
+                              : theme === 'light'
+                                ? 'border-gray-300 hover:border-gray-400 bg-white'
+                                : 'border-gray-600 hover:border-gray-500 bg-black/20'
                           }`}
                           onClick={() => setReleaseMode('public')}
                         >
-                          <div className="flex items-start">
-                            <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
-                              releaseMode === 'public' ? 'border-gray-900 bg-gray-900 dark:bg-white' : 'border-gray-400'
-                            }`}>
-                              {releaseMode === 'public' && <div className="w-full h-full rounded-full bg-white dark:bg-black scale-50"></div>}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className={`editorial-header text-lg font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                Public Release
+                              </h4>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                releaseMode === 'public' 
+                                  ? theme === 'light' 
+                                    ? 'border-black bg-black' 
+                                    : 'border-white bg-white'
+                                  : theme === 'light'
+                                    ? 'border-gray-400'
+                                    : 'border-gray-500'
+                              }`}>
+                                {releaseMode === 'public' && (
+                                  <div className={`w-2 h-2 rounded-full ${theme === 'light' ? 'bg-white' : 'bg-black'}`}></div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="editorial-header text-sm text-gray-900 dark:text-gray-100">Public Release</h4>
-                              <p className="editorial-body text-sm text-secondary font-medium text-gray-600 dark:text-gray-400">
-                                Document will be made publicly accessible when triggered
+                            
+                            <div className={`text-sm space-y-3 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                              <p>
+                                Your document will be automatically decrypted and made publicly accessible when your check-in deadline expires.
                               </p>
+                              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                                <p className="font-semibold mb-2">Best for:</p>
+                                <ul className="space-y-1 text-xs">
+                                  <li>• Whistleblowing information</li>
+                                  <li>• Public interest disclosures</li>
+                                  <li>• Documents intended for mass distribution</li>
+                                  <li>• Evidence that needs wide visibility</li>
+                                </ul>
+                              </div>
                             </div>
                           </div>
                         </div>
                         
+                        {/* Emergency Contacts Option */}
                         <div 
-                          className={`editorial-card-bordered cursor-pointer transition-all ${
-                            releaseMode === 'contacts' ? 'border-gray-900 bg-gray-50 dark:bg-black/20' : 'hover:border-gray-600 dark:hover:border-gray-400'
+                          className={`border rounded-lg p-6 cursor-pointer transition-all ${
+                            releaseMode === 'contacts' 
+                              ? theme === 'light'
+                                ? 'border-black bg-gray-50' 
+                                : 'border-white bg-white/5'
+                              : theme === 'light'
+                                ? 'border-gray-300 hover:border-gray-400 bg-white'
+                                : 'border-gray-600 hover:border-gray-500 bg-black/20'
                           }`}
                           onClick={() => setReleaseMode('contacts')}
                         >
-                          <div className="flex items-start">
-                            <div className={`w-4 h-4 rounded-full border-2 mr-4 mt-1 ${
-                              releaseMode === 'contacts' ? 'border-gray-900 bg-gray-900 dark:bg-white' : 'border-gray-400'
-                            }`}>
-                              {releaseMode === 'contacts' && <div className="w-full h-full rounded-full bg-white dark:bg-black scale-50"></div>}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className={`editorial-header text-lg font-bold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                Emergency Contacts
+                              </h4>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                releaseMode === 'contacts' 
+                                  ? theme === 'light' 
+                                    ? 'border-black bg-black' 
+                                    : 'border-white bg-white'
+                                  : theme === 'light'
+                                    ? 'border-gray-400'
+                                    : 'border-gray-500'
+                              }`}>
+                                {releaseMode === 'contacts' && (
+                                  <div className={`w-2 h-2 rounded-full ${theme === 'light' ? 'bg-white' : 'bg-black'}`}></div>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <h4 className="editorial-header text-sm text-gray-900 dark:text-gray-100">Emergency Contacts</h4>
-                              <p className="editorial-body text-sm text-secondary font-medium spacing-small">
-                                Document will be sent to specific people when triggered
+                            
+                            <div className={`text-sm space-y-3 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                              <p>
+                                Your document will be sent only to specific trusted contacts when your check-in deadline expires.
                               </p>
-                              {releaseMode === 'contacts' && (
-                                <div className="space-y-3">
-                                  {emergencyContacts.map((contact, index) => (
-                                    <div key={index} className="flex gap-2">
-                                      <input
-                                        type="text"
-                                        placeholder="Email address or Ethereum address"
-                                        className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
-                                        style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
-                                        value={contact}
-                                        onChange={(e) => {
-                                          const newContacts = [...emergencyContacts];
-                                          newContacts[index] = e.target.value;
-                                          setEmergencyContacts(newContacts);
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' && contact.trim()) {
-                                            setCurrentStep(Math.min(6, currentStep + 1));
-                                          }
-                                        }}
-                                      />
-                                      {emergencyContacts.length > 1 && (
-                                        <button
-                                          onClick={() => {
-                                            const newContacts = emergencyContacts.filter((_, i) => i !== index);
-                                            setEmergencyContacts(newContacts);
-                                          }}
-                                          className="px-2 py-1 border border-red-600 rounded-lg text-xs text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                                        >
-                                          Remove
-                                        </button>
-                                      )}
-                                    </div>
-                                  ))}
-                                  <button
-                                    onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
-                                    className="px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-sm"
-                                  >
-                                    + Add contact
-                                  </button>
-                                </div>
-                              )}
+                              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                                <p className="font-semibold mb-2">Best for:</p>
+                                <ul className="space-y-1 text-xs">
+                                  <li>• Personal wills and testaments</li>
+                                  <li>• Confidential business documents</li>
+                                  <li>• Sensitive family information</li>
+                                  <li>• Private legal documents</li>
+                                </ul>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Contact Input Fields */}
+                      {releaseMode === 'contacts' && (
+                        <div className={`mt-6 p-6 border rounded-lg ${
+                          theme === 'light' 
+                            ? 'border-gray-300 bg-gray-50' 
+                            : 'border-gray-600 bg-black/40'
+                        }`}>
+                          <h5 className={`font-semibold mb-3 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                            Add Emergency Contacts
+                          </h5>
+                          <p className={`text-sm mb-4 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                            These addresses will receive access to decrypt your document if the deadman switch is triggered.
+                          </p>
+                          <div className="space-y-3">
+                            {emergencyContacts.map((contact, index) => (
+                              <div key={index} className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Ethereum address (0x...)"
+                                  className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                                  style={{ 
+                                    borderColor: theme === 'light' ? '#e5e7eb' : '#4b5563',
+                                    backgroundColor: theme === 'light' ? '#ffffff' : 'rgba(0,0,0,0.2)',
+                                    color: theme === 'light' ? '#000000' : '#f3f4f6'
+                                  }}
+                                  value={contact}
+                                  onChange={(e) => {
+                                    const newContacts = [...emergencyContacts];
+                                    newContacts[index] = e.target.value;
+                                    setEmergencyContacts(newContacts);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && contact.trim()) {
+                                      if (index === emergencyContacts.length - 1) {
+                                        setEmergencyContacts([...emergencyContacts, '']);
+                                      }
+                                    }
+                                  }}
+                                />
+                                {emergencyContacts.length > 1 && (
+                                  <button
+                                    onClick={() => {
+                                      const newContacts = emergencyContacts.filter((_, i) => i !== index);
+                                      setEmergencyContacts(newContacts);
+                                    }}
+                                    className={`px-3 py-2 border rounded-lg text-sm transition-colors ${
+                                      theme === 'light'
+                                        ? 'border-red-300 text-red-600 hover:bg-red-50'
+                                        : 'border-red-800 text-red-400 hover:bg-red-900/20'
+                                    }`}
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => setEmergencyContacts([...emergencyContacts, ''])}
+                              className={`px-3 py-2 border rounded-lg text-sm transition-colors ${
+                                theme === 'light'
+                                  ? 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                                  : 'border-gray-600 text-gray-300 hover:bg-white/5'
+                              }`}
+                            >
+                              + Add another contact
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
