@@ -1905,8 +1905,8 @@ const Home = () => {
                           <div className="flex items-center gap-4">
                             <div className={`status-indicator text-xs ${
                               (() => {
-                                if (selectedDocument.isPermanentlyDisabled) return 'status-expired';
-                                if (selectedDocument.isReleased) return 'status-active';
+                                if (selectedDocument.isPermanentlyDisabled === true) return 'status-expired';
+                                if (selectedDocument.isReleased === true) return 'status-active';
                                 if (!selectedDocument.isActive) return 'status-inactive';
                                 
                                 const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
@@ -1921,8 +1921,8 @@ const Home = () => {
                               <div className="status-dot"></div>
                               <span>
                                 {(() => {
-                                  if (selectedDocument.isPermanentlyDisabled) return 'Permanently Disabled';
-                                  if (selectedDocument.isReleased) return 'Released';
+                                  if (selectedDocument.isPermanentlyDisabled === true) return 'Permanently Disabled';
+                                  if (selectedDocument.isReleased === true) return 'Released';
                                   if (!selectedDocument.isActive) return 'Paused';
                                   
                                   const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
@@ -2181,7 +2181,7 @@ const Home = () => {
                       })()}
                       
                       {/* Pause/Resume Button - Hidden if released or permanently disabled */}
-                      {!selectedDocument.isPermanentlyDisabled && !selectedDocument.isReleased && (
+                      {selectedDocument.isPermanentlyDisabled !== true && selectedDocument.isReleased !== true && (
                         <button
                           onClick={async (e) => {
                            e.stopPropagation();
@@ -2226,7 +2226,7 @@ const Home = () => {
                       )}
                       
                       {/* Release Now Button - Hidden if already released or permanently disabled */}
-                      {!selectedDocument.isPermanentlyDisabled && !selectedDocument.isReleased && (
+                      {selectedDocument.isPermanentlyDisabled !== true && selectedDocument.isReleased !== true && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2248,7 +2248,7 @@ const Home = () => {
                       )}
                       
                       {/* Permanently Disable Button - Hidden if already disabled or released */}
-                      {!selectedDocument.isPermanentlyDisabled && !selectedDocument.isReleased && (
+                      {selectedDocument.isPermanentlyDisabled !== true && selectedDocument.isReleased !== true && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2480,10 +2480,10 @@ const Home = () => {
                           let timeDisplay = '';
                           let graceDisplay = '';
                           
-                          if (dossier.isPermanentlyDisabled) {
+                          if (dossier.isPermanentlyDisabled === true) {
                             timeDisplay = 'Permanently Disabled';
                             timeColor = 'text-red-500';
-                          } else if (dossier.isReleased) {
+                          } else if (dossier.isReleased === true) {
                             timeDisplay = 'Released';
                             timeColor = 'text-green-500';
                           } else if (!dossier.isActive) {
@@ -2650,9 +2650,9 @@ const Home = () => {
                                           toast.error('Failed to check in. Please try again.');
                                         }
                                       }}
-                                      disabled={!dossier.isActive || dossier.isPermanentlyDisabled || dossier.isReleased}
+                                      disabled={!dossier.isActive || dossier.isPermanentlyDisabled === true || dossier.isReleased === true}
                                       className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                        dossier.isActive && !dossier.isPermanentlyDisabled && !dossier.isReleased
+                                        dossier.isActive && dossier.isPermanentlyDisabled !== true && dossier.isReleased !== true
                                           ? theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
                                           : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-black/30 text-gray-500 border-gray-600'
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -2661,9 +2661,9 @@ const Home = () => {
                                     </button>
                                     
                                     <button
-                                      disabled={dossier.isPermanentlyDisabled || dossier.isReleased}
+                                      disabled={dossier.isPermanentlyDisabled === true || dossier.isReleased === true}
                                       onClick={async () => {
-                                        if (dossier.isPermanentlyDisabled || dossier.isReleased) return;
+                                        if (dossier.isPermanentlyDisabled === true || dossier.isReleased === true) return;
                                         try {
                                           let txHash: string;
                                           // Use smart wallet for gasless transaction only in standard mode
@@ -2718,7 +2718,7 @@ const Home = () => {
                                         }
                                       }}
                                       className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                        dossier.isPermanentlyDisabled || dossier.isReleased
+                                        dossier.isPermanentlyDisabled === true || dossier.isReleased === true
                                           ? theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-black/30 text-gray-500 border-gray-600 cursor-not-allowed'
                                           : theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
                                       } disabled:opacity-50`}
@@ -2740,7 +2740,7 @@ const Home = () => {
                                   </div>
                                   
                                   {/* Release Now Action - Hidden if already released or permanently disabled */}
-                                  {!dossier.isPermanentlyDisabled && !dossier.isReleased && (
+                                  {dossier.isPermanentlyDisabled !== true && dossier.isReleased !== true && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -2762,7 +2762,7 @@ const Home = () => {
                                   )}
                                   
                                   {/* Permanently Disable Action - Hidden if already permanently disabled or released */}
-                                  {!dossier.isPermanentlyDisabled && !dossier.isReleased && (
+                                  {dossier.isPermanentlyDisabled !== true && dossier.isReleased !== true && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();

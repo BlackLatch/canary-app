@@ -94,8 +94,6 @@ export const CANARY_DOSSIER_ABI = [
           { "internalType": "uint256", "name": "id", "type": "uint256" },
           { "internalType": "string", "name": "name", "type": "string" },
           { "internalType": "bool", "name": "isActive", "type": "bool" },
-          { "internalType": "bool", "name": "isPermanentlyDisabled", "type": "bool" },
-          { "internalType": "bool", "name": "isReleased", "type": "bool" },
           { "internalType": "uint256", "name": "checkInInterval", "type": "uint256" },
           { "internalType": "uint256", "name": "lastCheckIn", "type": "uint256" },
           { "internalType": "string[]", "name": "encryptedFileHashes", "type": "string[]" },
@@ -213,8 +211,8 @@ export interface Dossier {
   id: bigint;
   name: string;
   isActive: boolean;
-  isPermanentlyDisabled: boolean;
-  isReleased: boolean;
+  isPermanentlyDisabled?: boolean; // Optional - not in deployed contract yet
+  isReleased?: boolean; // Optional - not in deployed contract yet
   checkInInterval: bigint;
   lastCheckIn: bigint;
   encryptedFileHashes: string[];
@@ -1333,7 +1331,19 @@ export class ContractService {
         args: [userAddress, dossierId],
       });
       
-      return result as Dossier;
+      // Add default values for new fields that don't exist in deployed contract yet
+      const dossier = result as any;
+      return {
+        id: dossier.id,
+        name: dossier.name,
+        isActive: dossier.isActive,
+        isPermanentlyDisabled: dossier.isPermanentlyDisabled || false, // Default to false if missing
+        isReleased: dossier.isReleased || false, // Default to false if missing
+        checkInInterval: dossier.checkInInterval,
+        lastCheckIn: dossier.lastCheckIn,
+        encryptedFileHashes: dossier.encryptedFileHashes,
+        recipients: dossier.recipients
+      } as Dossier;
       
     } catch (error) {
       console.error('❌ Failed to get dossier:', error);
