@@ -748,7 +748,7 @@ const Home = () => {
       setIsLoadingDossiers(false);
       console.log(`✅ Loaded ${dossiers.length} dossiers with accurate decryptable status`);
       
-      // If user has no documents and is on documents view, optionally show create form
+      // If user has no dossiers and is on documents view, optionally show create form
       // Don't force navigation or automatically open create form
       if (dossiers.length === 0 && currentView === 'documents') {
         // User can click the create button when ready
@@ -771,14 +771,14 @@ const Home = () => {
       const activeDossiers = userDossiers.filter(d => d.isActive);
       
       if (activeDossiers.length === 0) {
-        toast.error('No active documents to check in for');
+        toast.error('No active dossiers to check in for');
         return;
       }
 
       setIsCheckingIn(true);
       
       // Show loading state first
-      const checkInToast = toast.loading(authMode === 'standard' ? 'Updating your documents...' : 'Checking in to all active documents...');
+      const checkInToast = toast.loading(authMode === 'standard' ? 'Updating your dossiers...' : 'Checking in to all active dossiers...');
       
       try {
         console.log('✅ Performing bulk on-chain check-in for all active dossiers...');
@@ -809,14 +809,14 @@ const Home = () => {
         // Success - all active dossiers checked in with single transaction
         toast.success(
           authMode === 'standard' 
-            ? `✅ All ${activeDossiers.length} documents updated!` 
-            : `✅ Successfully checked in to all ${activeDossiers.length} active documents!`, 
+            ? `✅ All ${activeDossiers.length} dossiers updated!` 
+            : `✅ Successfully checked in to all ${activeDossiers.length} active dossiers!`, 
           { id: checkInToast }
         );
         
         setActivityLog(prev => [
           { 
-            type: `✅ Bulk check-in successful for ${activeDossiers.length} documents`, 
+            type: `✅ Bulk check-in successful for ${activeDossiers.length} dossiers`, 
             date: now.toLocaleString(),
             txHash: txHash
           },
@@ -835,9 +835,9 @@ const Home = () => {
         
         if (error instanceof Error) {
           if (error.message.includes('No dossiers found')) {
-            errorMessage = 'No documents found to check in to.';
+            errorMessage = 'No dossiers found to check in to.';
           } else if (error.message.includes('No active dossiers')) {
-            errorMessage = 'No active documents found to check in to.';
+            errorMessage = 'No active dossiers found to check in to.';
           } else if (error.message.includes('user rejected') || error.message.includes('rejected by user')) {
             errorMessage = 'Check-in cancelled';
             isUserRejection = true;
@@ -876,7 +876,7 @@ const Home = () => {
     } else if (!address) {
       toast.error('Wallet address not available');
     } else if (userDossiers.length === 0) {
-      toast.error('No documents created yet. Create a document first.');
+      toast.error('No dossiers created yet. Create a dossier first.');
     } else {
       // Fallback to local check-in only
       setActivityLog(prev => [
@@ -917,7 +917,7 @@ const Home = () => {
     
     // If connected but no dossiers, show appropriate message
     if (hasWalletConnection() && userDossiers.length === 0) {
-      return 'No documents created yet';
+      return 'No dossiers created yet';
     }
     
     // If not connected, show disconnected status
@@ -2375,7 +2375,7 @@ const Home = () => {
                   DOSSIERS
                 </h1>
                 <p className="editorial-body text-gray-600 dark:text-gray-400">
-                  Create and manage encrypted documents with conditional release triggers
+                  Create and manage encrypted dossiers with conditional release triggers
                 </p>
               </div>
 
@@ -2436,7 +2436,7 @@ const Home = () => {
                     <div className="flex items-center justify-between mb-8">
                       <div className="flex items-center gap-6">
                         <span className="editorial-label text-gray-500 dark:text-gray-400">
-                          {userDossiers.filter(d => showInactiveDocuments || d.isActive).length} DOCUMENT{userDossiers.filter(d => showInactiveDocuments || d.isActive).length !== 1 ? 'S' : ''}
+                          {userDossiers.filter(d => showInactiveDocuments || d.isActive).length} DOSSIER{userDossiers.filter(d => showInactiveDocuments || d.isActive).length !== 1 ? 'S' : ''}
                         </span>
                       </div>
                       
@@ -2491,14 +2491,14 @@ const Home = () => {
                                 ? 'text-gray-900' 
                                 : 'text-gray-100'
                             }`}>
-                              CREATE DOCUMENT
+                              CREATE DOSSIER
                             </h3>
                             <p className={`editorial-body-small break-words ${
                               theme === 'light' 
                                 ? 'text-gray-600' 
                                 : 'text-gray-400'
                             }`}>
-                              Encrypt and protect a new file with cryptographic deadman switches
+                              Encrypt and protect a new dossier with cryptographic deadman switches
                             </p>
                           </div>
                         </div>
