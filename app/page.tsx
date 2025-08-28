@@ -65,6 +65,7 @@ const Home = () => {
   const [checkInInterval, setCheckInInterval] = useState('60'); // Default to 1 hour in minutes
   const [customInterval, setCustomInterval] = useState('');
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
   const [encryptedCapsule, setEncryptedCapsule] = useState<any>(null);
@@ -421,6 +422,7 @@ const Home = () => {
           console.log('⚠️ Smart wallet not available, using regular transaction');
           result = await ContractService.createDossier(
             dossierName,
+            description || '',
             checkInMinutes,
             recipients,
             fileHashes
@@ -2739,6 +2741,7 @@ const Home = () => {
                     setTraceJson(null);
                     setUploadedFile(null);
                     setName('');
+                    setDescription('');
                     setCheckInInterval('60');
                     setCustomInterval('');
                     setEmergencyContacts(['']);
@@ -2817,44 +2820,84 @@ const Home = () => {
 
                   {/* Step Content */}
                   <div className="max-w-xl mx-auto">
-                    {/* Step 1: Document Name */}
+                    {/* Step 1: Document Details */}
                     {currentStep === 1 && (
                       <div className="space-y-6">
                         <div className="text-center">
                           <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                            Document Name
+                            Document Details
                           </h3>
                           <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                             Step 1 of 6
                           </p>
                         </div>
                         
-                        <div className="text-center">
-                          <p className={`editorial-body mb-6 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                            Give your encrypted document a memorable name for<br/>easy identification.
-                          </p>
+                        <div className="space-y-6 max-w-md mx-auto">
+                          <div>
+                            <label className={`block text-sm font-semibold mb-2 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                              Dossier Title <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder="Enter a title for your dossier..."
+                                className="w-full px-4 py-3 border rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                                style={{ 
+                                  borderColor: theme === 'light' ? '#e5e7eb' : '#4b5563',
+                                  backgroundColor: theme === 'light' ? '#ffffff' : 'rgba(0,0,0,0.2)',
+                                  color: theme === 'light' ? '#000000' : '#f3f4f6' 
+                                }}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                autoFocus
+                              />
+                              {!name && (
+                                <button
+                                  onClick={() => {
+                                    // Generate a random title
+                                    const adjectives = ['Secure', 'Protected', 'Confidential', 'Private', 'Critical', 'Essential'];
+                                    const nouns = ['Document', 'File', 'Archive', 'Record', 'Dossier', 'Package'];
+                                    const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+                                    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+                                    const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+                                    setName(`${randomAdj} ${randomNoun} ${randomNum}`);
+                                  }}
+                                  className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs rounded border transition-colors ${
+                                    theme === 'light' 
+                                      ? 'border-gray-300 text-gray-600 hover:bg-gray-50' 
+                                      : 'border-gray-600 text-gray-400 hover:bg-white/5'
+                                  }`}
+                                  type="button"
+                                >
+                                  Generate
+                                </button>
+                              )}
+                            </div>
+                            <p className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                              A unique title to identify this dossier
+                            </p>
+                          </div>
                           
-                          <input
-                            type="text"
-                            placeholder="Enter document name..."
-                            className="w-full px-4 py-3 border rounded-lg text-center font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
-                            style={{ 
-                              borderColor: theme === 'light' ? '#e5e7eb' : '#4b5563',
-                              backgroundColor: theme === 'light' ? '#ffffff' : 'rgba(0,0,0,0.2)',
-                              color: theme === 'light' ? '#000000' : '#f3f4f6' 
-                            }}
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && name.trim()) {
-                                setCurrentStep(Math.min(6, currentStep + 1));
-                              }
-                            }}
-                            autoFocus
-                          />
-                          <p className={`editorial-body text-xs mt-2 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-                            This helps identify the document in your protected collection
-                          </p>
+                          <div>
+                            <label className={`block text-sm font-semibold mb-2 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                              Description <span className="text-gray-400">(Optional)</span>
+                            </label>
+                            <textarea
+                              placeholder="Add a description of what this dossier contains..."
+                              className="w-full px-4 py-3 border rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 resize-none"
+                              style={{ 
+                                borderColor: theme === 'light' ? '#e5e7eb' : '#4b5563',
+                                backgroundColor: theme === 'light' ? '#ffffff' : 'rgba(0,0,0,0.2)',
+                                color: theme === 'light' ? '#000000' : '#f3f4f6' 
+                              }}
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              rows={3}
+                            />
+                            <p className={`text-xs mt-1 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                              Additional details about the document contents (stored on-chain)
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}

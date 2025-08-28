@@ -20,6 +20,7 @@ contract CanaryDossier {
     struct Dossier {
         uint256 id;
         string name;
+        string description; // Optional description of the dossier
         bool isActive; // false when paused
         bool isPermanentlyDisabled; // Once set to true, cannot be reversed
         bool isReleased; // Once set to true, data is permanently released
@@ -53,6 +54,7 @@ contract CanaryDossier {
      */
     function createDossier(
         string memory _name,
+        string memory _description,
         uint256 _checkInInterval,
         address[] memory _recipients,
         string[] memory _encryptedFileHashes
@@ -71,6 +73,7 @@ contract CanaryDossier {
         dossiers[msg.sender][dossierId] = Dossier({
             id: dossierId,
             name: _name,
+            description: _description,
             isActive: true,
             isPermanentlyDisabled: false,
             isReleased: false,

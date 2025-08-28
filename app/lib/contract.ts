@@ -210,6 +210,7 @@ export const CANARY_DOSSIER_ABI = [
 export interface Dossier {
   id: bigint;
   name: string;
+  description?: string; // Optional - not in deployed contract yet
   isActive: boolean;
   isPermanentlyDisabled?: boolean; // Optional - not in deployed contract yet
   isReleased?: boolean; // Optional - not in deployed contract yet
@@ -488,6 +489,7 @@ export class ContractService {
    */
   static async createDossier(
     name: string,
+    description: string,
     checkInIntervalMinutes: number,
     recipients: Address[],
     encryptedFileHashes: string[]
@@ -613,7 +615,7 @@ export class ContractService {
           address: CANARY_DOSSIER_ADDRESS,
           abi: CANARY_DOSSIER_ABI,
           functionName: 'createDossier',
-          args: [name, checkInIntervalSeconds, recipients, encryptedFileHashes],
+          args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
           gas: BigInt(500000), // Explicit gas limit
         });
 
@@ -634,7 +636,7 @@ export class ContractService {
               address: CANARY_DOSSIER_ADDRESS,
               abi: CANARY_DOSSIER_ABI,
               functionName: 'createDossier',
-              args: [name, checkInIntervalSeconds, recipients, encryptedFileHashes],
+              args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
               gas: BigInt(800000), // Higher gas limit
             });
             console.log('✅ Transaction submitted with higher gas:', hash);
