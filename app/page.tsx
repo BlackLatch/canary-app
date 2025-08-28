@@ -2757,11 +2757,11 @@ const Home = () => {
                                 : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
                               {step === 1 ? 'NAME' :
-                               step === 2 ? 'UPLOAD' :
+                               step === 2 ? 'MODE' :
                                step === 3 ? 'INTERVAL' :
-                               step === 4 ? 'MODE' :
+                               step === 4 ? 'UPLOAD' :
                                step === 5 ? 'REVIEW' :
-                               'FINALIZE'}
+                               'ENCRYPT'}
                             </span>
                           </div>
                           {index < 5 && (
@@ -2824,178 +2824,15 @@ const Home = () => {
                       </div>
                     )}
 
-                  {/* Step 2: File Upload */}
+                  {/* Step 2: Release Mode */}
                   {currentStep === 2 && (
-                    <div className="text-center spacing-medium">
-                      <div className="spacing-medium">
-                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          Select or record the content you want to encrypt and protect with the deadman switch.
-                        </p>
-                      </div>
-                      
-                      {!showMediaRecorder ? (
-                        <div className="max-w-md mx-auto space-y-4">
-                          {/* File Upload Option */}
-                          <div
-                            className={`border-2 text-center py-8 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
-                              theme === 'light' 
-                                ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
-                                : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
-                            }`}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Upload className="mx-auto spacing-small text-secondary group-hover:text-primary transition-colors" size={32} />
-                            <div className="spacing-small">
-                              <p className={`editorial-header text-base font-semibold transition-colors ${
-                                theme === 'light' 
-                                  ? 'text-gray-900 group-hover:text-black' 
-                                  : 'text-gray-100 group-hover:text-white'
-                              }`}>
-                                {uploadedFile ? uploadedFile.name : 'Upload File'}
-                              </p>
-                              <p className={`editorial-body text-xs font-medium transition-colors ${
-                                theme === 'light' 
-                                  ? 'text-gray-700 group-hover:text-gray-900' 
-                                  : 'text-gray-300 group-hover:text-gray-100'
-                              }`}>
-                                {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
-                              </p>
-                            </div>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              onChange={handleFileUpload}
-                              className="hidden"
-                            />
-                          </div>
-                          
-                          {/* OR Divider */}
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
-                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-widest">OR</span>
-                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
-                          </div>
-                          
-                          {/* Recording Options */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              onClick={() => setShowMediaRecorder(true)}
-                              className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
-                                theme === 'light' 
-                                  ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
-                                  : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
-                              } flex flex-col items-center gap-2`}
-                            >
-                              <Mic className="w-6 h-6 text-blue-600" />
-                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                                Voice Recording
-                              </span>
-                            </button>
-                            
-                            <button
-                              onClick={() => setShowMediaRecorder(true)}
-                              className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
-                                theme === 'light' 
-                                  ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
-                                  : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
-                              } flex flex-col items-center gap-2`}
-                            >
-                              <Video className="w-6 h-6 text-red-600" />
-                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                                Video Recording
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="max-w-2xl mx-auto">
-                          <MediaRecorder
-                            onFileReady={(file: File) => {
-                              setUploadedFile(file);
-                              setShowMediaRecorder(false);
-                            }}
-                            onCancel={() => setShowMediaRecorder(false)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Step 3: Check-in Frequency */}
-                  {currentStep === 3 && (
-                    <div className="text-center spacing-medium">
-                      <div className="spacing-medium">
-                        <p className="editorial-body text-gray-900 max-w-lg mx-auto font-semibold">
-                          How often do you need to check in to prevent the document from being released automatically?
-                        </p>
-                      </div>
-                      <div className="max-w-sm mx-auto">
-                        <select 
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg monospace-accent text-center cursor-pointer text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
-                          style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
-                          value={checkInInterval}
-                          onChange={(e) => {
-                            setCheckInInterval(e.target.value);
-                            if (e.target.value !== 'custom') {
-                              setCustomInterval('');
-                            }
-                          }}
-                        >
-                          {intervalOptions.map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        
-                        {checkInInterval === 'custom' && (
-                          <div className="mt-4 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                min="1"
-                                max="720"
-                                placeholder="Enter hours"
-                                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-center font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
-                                style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
-                                value={customInterval}
-                                onChange={(e) => {
-                                  const hours = parseInt(e.target.value);
-                                  if (!isNaN(hours) && hours >= 1 && hours <= 720) {
-                                    setCustomInterval(e.target.value);
-                                  } else if (e.target.value === '') {
-                                    setCustomInterval('');
-                                  }
-                                }}
-                              />
-                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                                hours
-                              </span>
-                            </div>
-                            <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-                              Min: 1 hour | Max: 30 days (720 hours)
-                            </p>
-                          </div>
-                        )}
-                        
-                        <p className="editorial-body text-sm text-gray-700 spacing-tiny font-medium mt-3">
-                          The document will be released if no check-in is received within this timeframe
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 4: Release Mode */}
-                  {currentStep === 4 && (
                     <div className="space-y-6">
                       <div className="text-center">
                         <h3 className={`editorial-header text-2xl font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
                           Release Mode
                         </h3>
                         <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Step 4 of 6
+                          Step 2 of 6
                         </p>
                       </div>
                       
@@ -3179,6 +3016,169 @@ const Home = () => {
                     </div>
                   )}
 
+                  {/* Step 3: Check-in Frequency */}
+                  {currentStep === 3 && (
+                    <div className="text-center spacing-medium">
+                      <div className="spacing-medium">
+                        <p className="editorial-body text-gray-900 max-w-lg mx-auto font-semibold">
+                          How often do you need to check in to prevent the document from being released automatically?
+                        </p>
+                      </div>
+                      <div className="max-w-sm mx-auto">
+                        <select 
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg monospace-accent text-center cursor-pointer text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                          style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
+                          value={checkInInterval}
+                          onChange={(e) => {
+                            setCheckInInterval(e.target.value);
+                            if (e.target.value !== 'custom') {
+                              setCustomInterval('');
+                            }
+                          }}
+                        >
+                          {intervalOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        
+                        {checkInInterval === 'custom' && (
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                max="720"
+                                placeholder="Enter hours"
+                                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-center font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                                style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
+                                value={customInterval}
+                                onChange={(e) => {
+                                  const hours = parseInt(e.target.value);
+                                  if (!isNaN(hours) && hours >= 1 && hours <= 720) {
+                                    setCustomInterval(e.target.value);
+                                  } else if (e.target.value === '') {
+                                    setCustomInterval('');
+                                  }
+                                }}
+                              />
+                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                                hours
+                              </span>
+                            </div>
+                            <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                              Min: 1 hour | Max: 30 days (720 hours)
+                            </p>
+                          </div>
+                        )}
+                        
+                        <p className="editorial-body text-sm text-gray-700 spacing-tiny font-medium mt-3">
+                          The document will be released if no check-in is received within this timeframe
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: File Upload */}
+                  {currentStep === 4 && (
+                    <div className="text-center spacing-medium">
+                      <div className="spacing-medium">
+                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          Select or record the content you want to encrypt and protect with the deadman switch.
+                        </p>
+                      </div>
+                      
+                      {!showMediaRecorder ? (
+                        <div className="max-w-md mx-auto space-y-4">
+                          {/* File Upload Option */}
+                          <div
+                            className={`border-2 text-center py-8 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
+                              theme === 'light' 
+                                ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
+                                : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
+                            }`}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="mx-auto spacing-small text-secondary group-hover:text-primary transition-colors" size={32} />
+                            <div className="spacing-small">
+                              <p className={`editorial-header text-base font-semibold transition-colors ${
+                                theme === 'light' 
+                                  ? 'text-gray-900 group-hover:text-black' 
+                                  : 'text-gray-100 group-hover:text-white'
+                              }`}>
+                                {uploadedFile ? uploadedFile.name : 'Upload File'}
+                              </p>
+                              <p className={`editorial-body text-xs font-medium transition-colors ${
+                                theme === 'light' 
+                                  ? 'text-gray-700 group-hover:text-gray-900' 
+                                  : 'text-gray-300 group-hover:text-gray-100'
+                              }`}>
+                                {uploadedFile ? 'File ready for encryption' : 'Click to browse or drag and drop'}
+                              </p>
+                            </div>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                          </div>
+                          
+                          {/* OR Divider */}
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-widest">OR</span>
+                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                          </div>
+                          
+                          {/* Recording Options */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => setShowMediaRecorder(true)}
+                              className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
+                                theme === 'light' 
+                                  ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
+                                  : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
+                              } flex flex-col items-center gap-2`}
+                            >
+                              <Mic className="w-6 h-6 text-blue-600" />
+                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                Voice Recording
+                              </span>
+                            </button>
+                            
+                            <button
+                              onClick={() => setShowMediaRecorder(true)}
+                              className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
+                                theme === 'light' 
+                                  ? 'bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white' 
+                                  : 'bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5'
+                              } flex flex-col items-center gap-2`}
+                            >
+                              <Video className="w-6 h-6 text-red-600" />
+                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                Video Recording
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="max-w-2xl mx-auto">
+                          <MediaRecorder
+                            onFileReady={(file: File) => {
+                              setUploadedFile(file);
+                              setShowMediaRecorder(false);
+                            }}
+                            onCancel={() => setShowMediaRecorder(false)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Step 5: Review & Encrypt */}
                   {currentStep === 5 && (
                     <div className="text-center spacing-medium">
@@ -3194,8 +3194,10 @@ const Home = () => {
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">File</span>
-                            <span className="editorial-body text-sm text-primary font-semibold">{uploadedFile?.name || 'No file selected'}</span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Release Mode</span>
+                            <span className="editorial-body text-sm text-primary font-semibold">
+                              {releaseMode === 'public' ? 'Public Release' : 'Emergency Contacts'}
+                            </span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="editorial-label-small text-gray-700 dark:text-gray-300">Check-in Frequency</span>
@@ -3206,10 +3208,8 @@ const Home = () => {
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Release Mode</span>
-                            <span className="editorial-body text-sm text-primary font-semibold">
-                              {releaseMode === 'public' ? 'Public Release' : 'Emergency Contacts'}
-                            </span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">File</span>
+                            <span className="editorial-body text-sm text-primary font-semibold">{uploadedFile?.name || 'No file selected'}</span>
                           </div>
                           {releaseMode === 'contacts' && (
                             <div className="pt-3 border-t border-gray-300">
@@ -3336,7 +3336,7 @@ const Home = () => {
                             toast.error('Please enter a document name');
                             return;
                           }
-                          if (currentStep === 2 && !uploadedFile) {
+                          if (currentStep === 4 && !uploadedFile) {
                             toast.error('Please upload a file');
                             return;
                           }
@@ -3344,7 +3344,7 @@ const Home = () => {
                             toast.error('Please enter a custom interval in hours');
                             return;
                           }
-                          if (currentStep === 4 && releaseMode === 'contacts' && !emergencyContacts.some(c => c.trim())) {
+                          if (currentStep === 2 && releaseMode === 'contacts' && !emergencyContacts.some(c => c.trim())) {
                             toast.error('Please add at least one emergency contact');
                             return;
                           }
