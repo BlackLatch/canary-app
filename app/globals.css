@@ -261,7 +261,7 @@ html, body {
   box-shadow: 0 0 0 2px rgba(184, 233, 148, 0.2);
 }
 
-.status-expired .status-dot {
+.status-released .status-dot {
   background: #FF6B6B;
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }

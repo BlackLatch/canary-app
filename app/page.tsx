@@ -2572,7 +2572,7 @@ const Home = () => {
                                       const remainingMs = intervalMs - timeSinceLastCheckIn;
                                       const isTimeExpired = remainingMs <= 0;
                                       
-                                      return isTimeExpired ? 'status-expired' : 'status-active';
+                                      return isTimeExpired ? 'status-released' : 'status-active';
                                     })()
                                   }`}>
                                     <div className="status-dot"></div>
@@ -2586,7 +2586,7 @@ const Home = () => {
                                         const remainingMs = intervalMs - timeSinceLastCheckIn;
                                         const isTimeExpired = remainingMs <= 0;
                                         
-                                        return isTimeExpired ? 'Expired' : 'Active';
+                                        return isTimeExpired ? 'Released' : 'Active';
                                       })()}
                                     </span>
                                   </div>
