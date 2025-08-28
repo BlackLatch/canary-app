@@ -1950,7 +1950,7 @@ const Home = () => {
                             <div className={`text-xs font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                               Document #{selectedDocument.id.toString()}
                             </div>
-                            {/* Release Mode Badge */}
+                            {/* Release Visibility Badge */}
                             <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium uppercase tracking-wider border ${
                               selectedDocument.recipients && selectedDocument.recipients.length > 0
                                 ? theme === 'light' 
@@ -2627,7 +2627,7 @@ const Home = () => {
                               
                               {/* Card Body - Simplified */}
                               <div className="flex-1 mb-4">
-                                {/* Release Mode Indicator */}
+                                {/* Release Visibility Indicator */}
                                 <div className="text-center mb-4">
                                   <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wider border ${
                                     dossier.recipients && dossier.recipients.length > 0
@@ -2762,7 +2762,7 @@ const Home = () => {
                   <div className="flex items-center justify-between">
                     {/* Step indicators with labels */}
                     <div className="flex items-center gap-3">
-                      {[1, 2, 3, 4, 5, 6].map((step, index) => (
+                      {[1, 2, 3, 4, 5].map((step, index) => (
                         <React.Fragment key={step}>
                           <div 
                             className={`flex items-center gap-2 ${
@@ -2798,11 +2798,10 @@ const Home = () => {
                                step === 2 ? 'VISIBILITY' :
                                step === 3 ? 'SCHEDULE' :
                                step === 4 ? 'ENCRYPT' :
-                               step === 5 ? 'REVIEW' :
                                'FINALIZE'}
                             </span>
                           </div>
-                          {index < 5 && (
+                          {index < 4 && (
                             <div className={`h-px w-8 ${
                               step < currentStep
                                 ? theme === 'light' ? 'bg-black' : 'bg-gray-100'
@@ -2828,7 +2827,7 @@ const Home = () => {
                             Document Details
                           </h3>
                           <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                            Step 1 of 6
+                            Step 1 of 5
                           </p>
                         </div>
                         
@@ -2910,7 +2909,7 @@ const Home = () => {
                           Visibility
                         </h3>
                         <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Step 2 of 6
+                          Step 2 of 5
                         </p>
                       </div>
                       
@@ -3102,7 +3101,7 @@ const Home = () => {
                           Check-in Schedule
                         </h3>
                         <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Step 3 of 6
+                          Step 3 of 5
                         </p>
                       </div>
                       
@@ -3175,7 +3174,7 @@ const Home = () => {
                           File Encryption
                         </h3>
                         <p className={`editorial-body text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Step 4 of 6
+                          Step 4 of 5
                         </p>
                       </div>
                       
@@ -3275,12 +3274,12 @@ const Home = () => {
                     </div>
                   )}
 
-                  {/* Step 5: Review & Encrypt */}
+                  {/* Step 5: Finalize */}
                   {currentStep === 5 && (
                     <div className="text-center spacing-medium">
                       <div className="spacing-medium">
                         <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          Please review your settings before encrypting the document.
+                          Please review your settings before finalizing the dossier.
                         </p>
                       </div>
                       <div className="max-w-lg mx-auto">
@@ -3290,7 +3289,7 @@ const Home = () => {
                             <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Release Mode</span>
+                            <span className="editorial-label-small text-gray-700 dark:text-gray-300">Release Visibility</span>
                             <span className="editorial-body text-sm text-primary font-semibold">
                               {releaseMode === 'public' ? 'Public Release' : 'Emergency Contacts'}
                             </span>
@@ -3363,55 +3362,10 @@ const Home = () => {
                     </div>
                   )}
 
-                  {currentStep === 6 && (
-                    <div className="text-center spacing-medium">
-                      <div className="spacing-medium">
-                        <p className={`editorial-body max-w-md mx-auto font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          This is the final step. Your document will be encrypted, uploaded, and registered on the blockchain.
-                        </p>
-                      </div>
-                      <div className="max-w-lg mx-auto">
-                        <div className={`border rounded-lg px-6 py-5 text-left space-y-4 spacing-medium ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                          <div className="flex justify-between items-center">
-                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Document Name</span>
-                            <span className="editorial-header text-sm monospace-accent text-primary">{name || 'Untitled'}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>File</span>
-                            <span className="editorial-body text-sm text-primary font-semibold">{uploadedFile?.name || 'No file selected'}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Check-in Frequency</span>
-                            <span className="monospace-accent text-sm text-primary font-semibold">
-                              {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className={`editorial-label-small ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Release Mode</span>
-                            <span className="editorial-body text-sm text-primary font-semibold capitalize">{releaseMode}</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={processCanaryTrigger}
-                          disabled={isProcessing}
-                          className="editorial-button-primary editorial-button-large w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isProcessing ? (
-                            <div className="flex items-center justify-center gap-3">
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                              <span>{authMode === 'standard' ? 'Securing your document...' : 'Finalizing document...'}</span>
-                            </div>
-                          ) : (
-                            authMode === 'standard' ? 'Secure Document' : 'Finalize & Upload'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                   {/* Navigation */}
-                  {currentStep < 6 && !traceJson && (
+                  {currentStep < 5 && !traceJson && (
                     <div className={`flex justify-between pt-6 mt-6 border-t ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
                       <button
                         onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
@@ -3444,7 +3398,7 @@ const Home = () => {
                             toast.error('Please add at least one emergency contact');
                             return;
                           }
-                          setCurrentStep(Math.min(6, currentStep + 1));
+                          setCurrentStep(Math.min(5, currentStep + 1));
                         }}
                         className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                           theme === 'light'
@@ -3452,7 +3406,7 @@ const Home = () => {
                             : 'bg-white text-black border-white hover:bg-gray-100'
                         }`}
                       >
-                        {currentStep === 5 ? 'Finalize' : 'Next'}
+                        {currentStep === 4 ? 'Finalize' : 'Next'}
                       </button>
                     </div>
                   )}
