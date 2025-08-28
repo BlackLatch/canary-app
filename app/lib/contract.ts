@@ -69,6 +69,13 @@ export const CANARY_DOSSIER_ABI = [
     "type": "function"
   },
   {
+    "inputs": [{ "internalType": "uint256", "name": "_dossierId", "type": "uint256" }],
+    "name": "permanentlyDisableDossier",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       { "internalType": "address", "name": "_user", "type": "address" },
       { "internalType": "uint256", "name": "_dossierId", "type": "uint256" }
@@ -80,6 +87,7 @@ export const CANARY_DOSSIER_ABI = [
           { "internalType": "uint256", "name": "id", "type": "uint256" },
           { "internalType": "string", "name": "name", "type": "string" },
           { "internalType": "bool", "name": "isActive", "type": "bool" },
+          { "internalType": "bool", "name": "isPermanentlyDisabled", "type": "bool" },
           { "internalType": "uint256", "name": "checkInInterval", "type": "uint256" },
           { "internalType": "uint256", "name": "lastCheckIn", "type": "uint256" },
           { "internalType": "string[]", "name": "encryptedFileHashes", "type": "string[]" },
@@ -163,6 +171,15 @@ export const CANARY_DOSSIER_ABI = [
     ],
     "name": "DossierTriggered",
     "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": true, "internalType": "uint256", "name": "dossierId", "type": "uint256" }
+    ],
+    "name": "DossierPermanentlyDisabled",
+    "type": "event"
   }
 ] as const;
 
@@ -170,6 +187,7 @@ export interface Dossier {
   id: bigint;
   name: string;
   isActive: boolean;
+  isPermanentlyDisabled: boolean;
   checkInInterval: bigint;
   lastCheckIn: bigint;
   encryptedFileHashes: string[];
@@ -1425,6 +1443,32 @@ export class ContractService {
       
     } catch (error) {
       console.error('❌ Failed to reactivate dossier:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Permanently disable a dossier (irreversible action)
+   */
+  static async permanentlyDisableDossier(dossierId: bigint): Promise<string> {
+    try {
+      console.log('⛔ Permanently disabling dossier:', dossierId.toString());
+      console.warn('⚠️ This action is PERMANENT and cannot be undone!');
+      
+      const hash = await writeContract(config, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        functionName: 'permanentlyDisableDossier',
+        args: [dossierId],
+      });
+      
+      await waitForTransactionReceipt(config, { hash });
+      
+      console.log('✅ Dossier permanently disabled successfully!');
+      return hash;
+      
+    } catch (error) {
+      console.error('❌ Failed to permanently disable dossier:', error);
       throw error;
     }
   }

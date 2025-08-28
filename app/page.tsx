@@ -2449,7 +2449,10 @@ const Home = () => {
                           let timeDisplay = '';
                           let graceDisplay = '';
                           
-                          if (!dossier.isActive) {
+                          if (dossier.isPermanentlyDisabled) {
+                            timeDisplay = 'Permanently Disabled';
+                            timeColor = 'text-red-500';
+                          } else if (!dossier.isActive) {
                             timeDisplay = 'Deactivated';
                             timeColor = 'text-muted';
                           } else if (fullyExpired) {
@@ -2613,9 +2616,9 @@ const Home = () => {
                                           toast.error('Failed to check in. Please try again.');
                                         }
                                       }}
-                                      disabled={!dossier.isActive}
+                                      disabled={!dossier.isActive || dossier.isPermanentlyDisabled}
                                       className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                        dossier.isActive 
+                                        dossier.isActive && !dossier.isPermanentlyDisabled
                                           ? theme === 'light' ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900' : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
                                           : theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-black/30 text-gray-500 border-gray-600'
                                       } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -2624,7 +2627,9 @@ const Home = () => {
                                     </button>
                                     
                                     <button
+                                      disabled={dossier.isPermanentlyDisabled}
                                       onClick={async () => {
+                                        if (dossier.isPermanentlyDisabled) return;
                                         try {
                                           let txHash: string;
                                           // Use smart wallet for gasless transaction only in standard mode
@@ -2678,7 +2683,11 @@ const Home = () => {
                                           toast.error(errorMessage);
                                         }
                                       }}
-                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'}`}
+                                      className={`flex-1 py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                                        dossier.isPermanentlyDisabled
+                                          ? theme === 'light' ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-black/30 text-gray-500 border-gray-600 cursor-not-allowed'
+                                          : theme === 'light' ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
+                                      } disabled:opacity-50`}
                                     >
                                       <div className="flex items-center justify-center gap-1">
                                         {dossier.isActive ? (
@@ -2696,25 +2705,27 @@ const Home = () => {
                                     </button>
                                   </div>
                                   
-                                  {/* Permanently Disable Action */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowDisableConfirm(dossier.id);
-                                    }}
-                                    className={`w-full py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${
-                                      theme === 'light' 
-                                        ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' 
-                                        : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-center gap-1.5">
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                      <span>DISABLE</span>
-                                    </div>
-                                  </button>
+                                  {/* Permanently Disable Action - Hidden if already permanently disabled */}
+                                  {!dossier.isPermanentlyDisabled && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowDisableConfirm(dossier.id);
+                                      }}
+                                      className={`w-full py-2.5 px-3 text-xs font-medium border rounded-lg transition-all uppercase tracking-wider ${
+                                        theme === 'light' 
+                                          ? 'bg-white text-gray-900 hover:bg-gray-50 border-gray-300' 
+                                          : 'bg-transparent text-gray-100 hover:bg-white/10 border-gray-600'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <span>DISABLE</span>
+                                      </div>
+                                    </button>
+                                  )}
                                   
                                   {/* Decrypt Action - Download Button */}
                                   {(() => {
@@ -3568,8 +3579,8 @@ const Home = () => {
                     
                     const disableToast = toast.loading('Permanently disabling document...');
                     
-                    // Call the contract to deactivate the dossier (permanent in this context)
-                    const txHash = await ContractService.deactivateDossier(showDisableConfirm);
+                    // Call the contract to permanently disable the dossier (irreversible)
+                    const txHash = await ContractService.permanentlyDisableDossier(showDisableConfirm);
                     
                     toast.success('Document permanently disabled', { id: disableToast });
                     
