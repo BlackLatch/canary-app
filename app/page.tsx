@@ -63,6 +63,7 @@ const Home = () => {
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [checkInInterval, setCheckInInterval] = useState('60'); // Default to 1 hour in minutes
+  const [customInterval, setCustomInterval] = useState('');
   const [name, setName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
@@ -131,13 +132,12 @@ const Home = () => {
   };
 
   const intervalOptions = [
-    { value: '1', label: '1 Minute (Testing)' },
-    { value: '5', label: '5 Minutes' },
-    { value: '15', label: '15 Minutes' },
     { value: '60', label: '1 Hour' },
-    { value: '360', label: '6 Hours' },
-    { value: '720', label: '12 Hours' },
-    { value: '1440', label: '24 Hours' }
+    { value: '1440', label: '1 Day' },
+    { value: '10080', label: '1 Week' },
+    { value: '43200', label: '1 Month' },
+    { value: '525600', label: '1 Year' },
+    { value: 'custom', label: 'Custom' }
   ];
 
   // Helper function to check if we have a valid wallet connection (wagmi or Privy)
@@ -219,9 +219,17 @@ const Home = () => {
       return;
     }
 
-    if (!checkInInterval || parseInt(checkInInterval) <= 0) {
+    if (!checkInInterval || (checkInInterval === 'custom' && !customInterval)) {
       toast.error('Please set a valid check-in interval');
       return;
+    }
+    
+    if (checkInInterval === 'custom') {
+      const hours = parseInt(customInterval);
+      if (isNaN(hours) || hours < 1 || hours > 720) {
+        toast.error('Custom interval must be between 1 hour and 30 days (720 hours)');
+        return;
+      }
     }
 
     // Require wallet connection for dossier-only mode
@@ -343,7 +351,9 @@ const Home = () => {
       // Step 4: Create dossier on-chain
       console.log('📝 Step 4: Creating dossier on-chain...');
       const dossierName = name || `Encrypted file: ${traceJson.original_filename}`;
-      const checkInMinutes = parseInt(checkInInterval);
+      const checkInMinutes = checkInInterval === 'custom' 
+        ? parseInt(customInterval) * 60  // Convert hours to minutes
+        : parseInt(checkInInterval);
       // Recipients should match the address used for creation
       const recipients = [queryAddress];
       const fileHashes = [traceJson.payload_uri];
@@ -2709,6 +2719,8 @@ const Home = () => {
                     setTraceJson(null);
                     setUploadedFile(null);
                     setName('');
+                    setCheckInInterval('60');
+                    setCustomInterval('');
                     setEmergencyContacts(['']);
                     setReleaseMode('public');
                   }}
@@ -2924,7 +2936,12 @@ const Home = () => {
                           className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg monospace-accent text-center cursor-pointer text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
                           style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
                           value={checkInInterval}
-                          onChange={(e) => setCheckInInterval(e.target.value)}
+                          onChange={(e) => {
+                            setCheckInInterval(e.target.value);
+                            if (e.target.value !== 'custom') {
+                              setCustomInterval('');
+                            }
+                          }}
                         >
                           {intervalOptions.map(option => (
                             <option key={option.value} value={option.value}>
@@ -2932,7 +2949,38 @@ const Home = () => {
                             </option>
                           ))}
                         </select>
-                        <p className="editorial-body text-sm text-gray-700 spacing-tiny font-medium">
+                        
+                        {checkInInterval === 'custom' && (
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                max="720"
+                                placeholder="Enter hours"
+                                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-center font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                                style={{ color: theme === 'light' ? '#000000' : '#f3f4f6' }}
+                                value={customInterval}
+                                onChange={(e) => {
+                                  const hours = parseInt(e.target.value);
+                                  if (!isNaN(hours) && hours >= 1 && hours <= 720) {
+                                    setCustomInterval(e.target.value);
+                                  } else if (e.target.value === '') {
+                                    setCustomInterval('');
+                                  }
+                                }}
+                              />
+                              <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                                hours
+                              </span>
+                            </div>
+                            <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                              Min: 1 hour | Max: 30 days (720 hours)
+                            </p>
+                          </div>
+                        )}
+                        
+                        <p className="editorial-body text-sm text-gray-700 spacing-tiny font-medium mt-3">
                           The document will be released if no check-in is received within this timeframe
                         </p>
                       </div>
@@ -3056,7 +3104,9 @@ const Home = () => {
                           <div className="flex justify-between items-center">
                             <span className="editorial-label-small text-gray-700 dark:text-gray-300">Check-in Frequency</span>
                             <span className="monospace-accent text-sm text-primary font-semibold">
-                              {intervalOptions.find(opt => opt.value === checkInInterval)?.label}
+                              {checkInInterval === 'custom' 
+                                ? `${customInterval} hour${customInterval !== '1' ? 's' : ''}`
+                                : intervalOptions.find(opt => opt.value === checkInInterval)?.label}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -3192,6 +3242,10 @@ const Home = () => {
                           }
                           if (currentStep === 2 && !uploadedFile) {
                             toast.error('Please upload a file');
+                            return;
+                          }
+                          if (currentStep === 3 && checkInInterval === 'custom' && !customInterval) {
+                            toast.error('Please enter a custom interval in hours');
                             return;
                           }
                           if (currentStep === 4 && releaseMode === 'contacts' && !emergencyContacts.some(c => c.trim())) {
