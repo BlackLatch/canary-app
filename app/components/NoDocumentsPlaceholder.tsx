@@ -13,9 +13,9 @@ interface NoDocumentsPlaceholderProps {
 export default function NoDocumentsPlaceholder({
   theme,
   onCreateClick,
-  title = 'No Documents Yet',
-  description = 'Create your first encrypted document to get started',
-  buttonText = 'CREATE DOCUMENT'
+  title = 'No Dossiers Yet',
+  description = 'Create your first encrypted dossier to get started',
+  buttonText = 'CREATE DOSSIER'
 }: NoDocumentsPlaceholderProps) {
   return (
     <div className={`text-center py-16 border rounded-lg ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
@@ -35,7 +35,7 @@ export default function NoDocumentsPlaceholder({
         className={`px-6 py-3 border rounded-lg font-medium uppercase tracking-wider transition-all inline-flex items-center gap-2 ${
           theme === 'light' 
             ? 'bg-black text-white hover:bg-gray-800 border-black' 
-            : 'bg-white text-black hover:bg-gray-100 border-white'
+            : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
         }`}
       >
         <span>{buttonText}</span>

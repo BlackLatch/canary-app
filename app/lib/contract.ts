@@ -207,6 +207,13 @@ export const CANARY_DOSSIER_ABI = [
   }
 ] as const;
 
+// DossierV2 Contract - deployed with enhanced features
+export const CANARY_DOSSIER_V2_ADDRESS: Address = process.env.NEXT_PUBLIC_CANARY_DOSSIER_V2_ADDRESS as Address || '0x7616ed018d9eF80487fa50A2736E1081BDB7cE8c';
+
+// Import the DossierV2 ABI
+import dossierV2ABI from './dossierV2.abi.json';
+export const CANARY_DOSSIER_V2_ABI = dossierV2ABI as any;
+
 export interface Dossier {
   id: bigint;
   name: string;
@@ -1786,6 +1793,155 @@ export class ContractService {
       result.errors.push(`Debug failed: ${error}`);
       result.isValid = false;
       return result;
+    }
+  }
+
+  /**
+   * DossierV2 Functions - New Enhanced Features
+   */
+  
+  /**
+   * Create a new dossier using V2 contract with enhanced features
+   */
+  static async createDossierV2(
+    name: string,
+    description: string,
+    checkInIntervalMinutes: number,
+    recipients: Address[],
+    encryptedFileHashes: string[]
+  ): Promise<{ dossierId: bigint; txHash: string }> {
+    try {
+      console.log('📝 Creating V2 dossier on-chain...');
+      
+      const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
+      
+      // Use V2 contract
+      const hash = await writeContract(config, {
+        address: CANARY_DOSSIER_V2_ADDRESS,
+        abi: CANARY_DOSSIER_V2_ABI,
+        functionName: 'createDossier',
+        args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
+        gas: BigInt(500000),
+      });
+      
+      console.log('⏳ Waiting for transaction confirmation...');
+      await waitForTransactionReceipt(config, { hash });
+      
+      // Get the dossier ID by reading from the V2 contract
+      const account = await getAccount(config);
+      let dossierId: bigint = BigInt(0);
+      
+      try {
+        const dossierIds = await readContract(config, {
+          address: CANARY_DOSSIER_V2_ADDRESS,
+          abi: CANARY_DOSSIER_V2_ABI,
+          functionName: 'getUserDossierIds',
+          args: [account.address],
+        });
+        
+        const ids = dossierIds as bigint[];
+        if (ids.length > 0) {
+          dossierId = ids[ids.length - 1]; // Get the last (newest) dossier ID
+        }
+      } catch (readError) {
+        console.warn('Failed to read dossier ID from V2 contract:', readError);
+      }
+      
+      console.log('✅ V2 Dossier created successfully!');
+      console.log('Dossier ID:', dossierId.toString());
+      console.log('Transaction hash:', hash);
+      
+      return { dossierId, txHash: hash };
+      
+    } catch (error) {
+      console.error('❌ Failed to create V2 dossier:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Update check-in interval for an existing dossier (V2 only)
+   */
+  static async updateCheckInInterval(dossierId: bigint, newIntervalMinutes: number): Promise<string> {
+    try {
+      console.log('📝 Updating check-in interval for dossier:', dossierId.toString());
+      console.log('New interval:', newIntervalMinutes, 'minutes');
+      
+      const newIntervalSeconds = BigInt(newIntervalMinutes * 60);
+      
+      // Use V2 contract
+      const hash = await writeContract(config, {
+        address: CANARY_DOSSIER_V2_ADDRESS,
+        abi: CANARY_DOSSIER_V2_ABI,
+        functionName: 'updateCheckInInterval',
+        args: [dossierId, newIntervalSeconds],
+        gas: BigInt(200000),
+      });
+      
+      await waitForTransactionReceipt(config, { hash });
+      
+      console.log('✅ Check-in interval updated successfully!');
+      return hash;
+      
+    } catch (error) {
+      console.error('❌ Failed to update check-in interval:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a file hash to an existing dossier (V2 only)
+   */
+  static async addFileHash(dossierId: bigint, fileHash: string): Promise<string> {
+    try {
+      console.log('📎 Adding file hash to dossier:', dossierId.toString());
+      console.log('File hash:', fileHash);
+      
+      // Use V2 contract
+      const hash = await writeContract(config, {
+        address: CANARY_DOSSIER_V2_ADDRESS,
+        abi: CANARY_DOSSIER_V2_ABI,
+        functionName: 'addFileHash',
+        args: [dossierId, fileHash],
+        gas: BigInt(200000),
+      });
+      
+      await waitForTransactionReceipt(config, { hash });
+      
+      console.log('✅ File hash added successfully!');
+      return hash;
+      
+    } catch (error) {
+      console.error('❌ Failed to add file hash:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add multiple file hashes to an existing dossier (V2 only)
+   */
+  static async addMultipleFileHashes(dossierId: bigint, fileHashes: string[]): Promise<string> {
+    try {
+      console.log('📎 Adding multiple file hashes to dossier:', dossierId.toString());
+      console.log('File hashes:', fileHashes);
+      
+      // Use V2 contract
+      const hash = await writeContract(config, {
+        address: CANARY_DOSSIER_V2_ADDRESS,
+        abi: CANARY_DOSSIER_V2_ABI,
+        functionName: 'addMultipleFileHashes',
+        args: [dossierId, fileHashes],
+        gas: BigInt(300000 + fileHashes.length * 50000), // Dynamic gas based on file count
+      });
+      
+      await waitForTransactionReceipt(config, { hash });
+      
+      console.log('✅ File hashes added successfully!');
+      return hash;
+      
+    } catch (error) {
+      console.error('❌ Failed to add file hashes:', error);
+      throw error;
     }
   }
 } 
