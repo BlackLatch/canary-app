@@ -94,6 +94,7 @@ const Home = () => {
   });
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [checkInInterval, setCheckInInterval] = useState("60"); // Default to 1 hour in minutes
   const [customInterval, setCustomInterval] = useState("");
   const [name, setName] = useState("");
@@ -263,8 +264,11 @@ const Home = () => {
   };
 
   const processCanaryTrigger = async () => {
-    if (!uploadedFile) {
-      toast.error("Please select a file first");
+    // Use uploadedFiles array if it has files, otherwise fall back to single uploadedFile
+    const filesToProcess = uploadedFiles.length > 0 ? uploadedFiles : (uploadedFile ? [uploadedFile] : []);
+    
+    if (filesToProcess.length === 0) {
+      toast.error("Please add at least one file");
       return;
     }
 
@@ -411,34 +415,46 @@ const Home = () => {
         }
       }
 
-      const encryptionResult = await encryptFileWithDossier(
-        uploadedFile,
-        condition,
-        name,
-        nextDossierId,
-        queryAddress,
-        walletProvider,
-      );
+      // Step 2b: Encrypt all files
+      console.log(`🔒 Step 2b: Encrypting ${filesToProcess.length} file(s)...`);
+      const encryptedFiles = [];
+      const fileHashes = [];
+      
+      for (let i = 0; i < filesToProcess.length; i++) {
+        const file = filesToProcess[i];
+        console.log(`📄 Encrypting file ${i + 1}/${filesToProcess.length}: ${file.name}`);
+        
+        const encryptionResult = await encryptFileWithDossier(
+          file,
+          condition,
+          name,
+          nextDossierId,
+          queryAddress,
+          walletProvider,
+        );
+        
+        console.log(`✅ File ${i + 1} encrypted`);
+        
+        // Step 3: Upload each encrypted file
+        console.log(`📦 Uploading encrypted file ${i + 1}...`);
+        const { commitResult, traceJson } = await commitEncryptedFileToPinata(encryptionResult);
+        console.log(`📦 File ${i + 1} stored:`, commitResult.storageType);
+        
+        encryptedFiles.push({ encryptionResult, commitResult, traceJson });
+        fileHashes.push(traceJson.payload_uri);
+      }
 
-      console.log("✅ File encrypted with Dossier contract condition");
-
-      // Step 3: Upload encrypted file
-      console.log("📦 Step 3: Uploading encrypted file...");
-      const { commitResult, traceJson } =
-        await commitEncryptedFileToPinata(encryptionResult);
-      console.log("📦 Storage result:", commitResult);
+      console.log(`✅ All ${filesToProcess.length} files encrypted and uploaded`);
 
       // Step 4: Create dossier on-chain
       console.log("📝 Step 4: Creating dossier on-chain...");
-      const dossierName =
-        name || `Encrypted file: ${traceJson.original_filename}`;
+      const dossierName = name || `Encrypted dossier with ${filesToProcess.length} file(s)`;
       const checkInMinutes =
         checkInInterval === "custom"
           ? parseInt(customInterval) * 60 // Convert hours to minutes
           : parseInt(checkInInterval);
       // Recipients should match the address used for creation
       const recipients = [queryAddress];
-      const fileHashes = [traceJson.payload_uri];
 
       let dossierId: bigint;
       let contractTxHash: string;
@@ -599,40 +615,47 @@ const Home = () => {
       }
 
       // Step 5: Store results
-      setEncryptedCapsule(encryptionResult);
+      // Store the first encrypted file's data for backward compatibility
+      if (encryptedFiles.length > 0) {
+        setEncryptedCapsule(encryptedFiles[0].encryptionResult);
+        
+        // Create enhanced trace JSON with dossier information
+        const enhancedTraceJson = {
+          ...encryptedFiles[0].traceJson,
+          dossier_id: dossierId?.toString() || "pending",
+          user_address: address,
+          contract_address: CANARY_DOSSIER_ADDRESS,
+          contract_chain_id: polygonAmoy.id.toString(),
+          contract_tx_hash: contractTxHash,
+          check_in_interval_minutes: checkInMinutes,
+          condition_type: "dossier_contract_verification",
+          encryption_method: "dossier_only",
+          gasless: !!smartWalletClient,
+          total_files: encryptedFiles.length,
+          all_file_hashes: fileHashes,
+        };
+        
+        setTraceJson(enhancedTraceJson);
+      }
 
-      // Create enhanced trace JSON with dossier information
-      const enhancedTraceJson = {
-        ...traceJson,
-        dossier_id: dossierId?.toString() || "pending",
-        user_address: address,
-        contract_address: CANARY_DOSSIER_ADDRESS,
-        contract_chain_id: polygonAmoy.id.toString(),
-        contract_tx_hash: contractTxHash,
-        check_in_interval_minutes: checkInMinutes,
-        condition_type: "dossier_contract_verification",
-        encryption_method: "dossier_only",
-        gasless: !!smartWalletClient,
-      };
-
-      setTraceJson(enhancedTraceJson);
-
-      // Add to uploads table
-      const uploadId = `upload-${Date.now()}`;
-      setUploads((prev) => [
-        ...prev,
-        {
-          id: uploadId,
-          filename: uploadedFile.name,
-          status: "committed",
-          storageType: commitResult.storageType,
-          encryptionType: "dossier-only",
-          createdAt: new Date(),
-          payloadUri: commitResult.payloadUri,
-          contractDossierId: dossierId?.toString() || "pending",
-          contractTxHash: contractTxHash,
-        },
-      ]);
+      // Add all files to uploads table
+      encryptedFiles.forEach((file, index) => {
+        const uploadId = `upload-${Date.now()}-${index}`;
+        setUploads((prev) => [
+          ...prev,
+          {
+            id: uploadId,
+            filename: filesToProcess[index].name,
+            status: "committed",
+            storageType: file.commitResult.storageType,
+            encryptionType: "dossier-only",
+            createdAt: new Date(),
+            payloadUri: file.commitResult.payloadUri,
+            contractDossierId: dossierId?.toString() || "pending",
+            contractTxHash: contractTxHash,
+          },
+        ]);
+      });
 
       // Load updated dossiers
       await fetchUserDossiers();
@@ -640,19 +663,19 @@ const Home = () => {
       // Add to activity log
       setActivityLog((prev) => [
         {
-          type: `✅ Dossier #${dossierId?.toString() || "pending"} created with contract condition${smartWalletClient && authMode === "standard" ? " (gasless)" : ""}`,
+          type: `✅ Dossier #${dossierId?.toString() || "pending"} created with ${encryptedFiles.length} file(s)${smartWalletClient && authMode === "standard" ? " (gasless)" : ""}`,
           date: new Date().toLocaleString(),
         },
         {
-          type: `🔒 File encrypted with Dossier-only condition`,
+          type: `🔒 ${encryptedFiles.length} file(s) encrypted with Dossier-only condition`,
           date: new Date().toLocaleString(),
         },
         {
-          type: `📁 IPFS hash ${traceJson.payload_uri} stored on-chain`,
+          type: `📁 ${fileHashes.length} IPFS hash(es) stored on-chain`,
           date: new Date().toLocaleString(),
         },
         {
-          type: `📦 File committed to ${commitResult.storageType}`,
+          type: `📦 Files committed to ${encryptedFiles[0]?.commitResult.storageType || "storage"}`,
           date: new Date().toLocaleString(),
         },
         ...prev,
@@ -670,6 +693,7 @@ const Home = () => {
       setEncryptedCapsule(null);
       setTraceJson(null);
       setUploadedFile(null);
+      setUploadedFiles([]);
       setName("");
       setEmergencyContacts([""]);
       setReleaseMode("public");
@@ -3823,6 +3847,7 @@ const Home = () => {
                             setEncryptedCapsule(null);
                             setTraceJson(null);
                             setUploadedFile(null);
+                            setUploadedFiles([]);
                             setName("");
                             setDescription("");
                             setCheckInInterval("60");
@@ -4738,129 +4763,179 @@ const Home = () => {
                                   </p>
                                 </div>
 
-                                <div className="text-center">
-                                  <p
-                                    className={`editorial-body mb-8 ${theme === "light" ? "text-gray-700" : "text-gray-300"}`}
-                                  >
-                                    Select or record the content you want to
-                                    encrypt and protect
-                                  </p>
-                                </div>
-
                                 {!showMediaRecorder ? (
                                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Left Column - File Upload/Recording Options */}
-                                    <div className="space-y-4">
-                                      {/* File Encryption Option */}
-                                      <div
-                                        className={`border-2 text-center py-8 cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
+                                    {/* Left Column - Files List and Add Options */}
+                                    <div
+                                      className={`p-6 rounded-lg border h-fit ${
+                                        theme === "light"
+                                          ? "bg-white border-gray-200"
+                                          : "bg-black/40 border-gray-700"
+                                      }`}
+                                    >
+                                      <h4
+                                        className={`editorial-label-small uppercase tracking-wider mb-4 ${
                                           theme === "light"
-                                            ? "bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white"
-                                            : "bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5"
+                                            ? "text-gray-700"
+                                            : "text-gray-300"
                                         }`}
-                                        onDragOver={handleDragOver}
-                                        onDrop={handleDrop}
-                                        onClick={() =>
-                                          fileInputRef.current?.click()
-                                        }
                                       >
-                                        <Upload
-                                          className="mx-auto spacing-small text-secondary group-hover:text-primary transition-colors"
-                                          size={32}
-                                        />
-                                        <div className="spacing-small">
-                                          <p
-                                            className={`editorial-header text-base font-semibold transition-colors ${
-                                              theme === "light"
-                                                ? "text-gray-900 group-hover:text-black"
-                                                : "text-gray-100 group-hover:text-white"
-                                            }`}
-                                          >
-                                            {uploadedFile
-                                              ? uploadedFile.name
-                                              : "Encrypt File"}
-                                          </p>
-                                          <p
-                                            className={`editorial-body text-xs font-medium transition-colors ${
-                                              theme === "light"
-                                                ? "text-gray-700 group-hover:text-gray-900"
-                                                : "text-gray-300 group-hover:text-gray-100"
-                                            }`}
-                                          >
-                                            {uploadedFile
-                                              ? "File ready for encryption"
-                                              : "Click to browse or drag and drop"}
-                                          </p>
+                                        Files to Encrypt
+                                      </h4>
+                                      
+                                      {/* Files List */}
+                                      {uploadedFiles.length > 0 && (
+                                        <div className="mb-4 space-y-2">
+                                          {uploadedFiles.map((file, index) => (
+                                            <div
+                                              key={index}
+                                              className={`flex items-center justify-between p-3 rounded border ${
+                                                theme === "light"
+                                                  ? "bg-gray-50 border-gray-200"
+                                                  : "bg-black/20 border-gray-600"
+                                              }`}
+                                            >
+                                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                {file.type.startsWith("audio/") ? (
+                                                  <Mic className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                                                ) : file.type.startsWith("video/") ? (
+                                                  <Video className="w-4 h-4 text-red-600 flex-shrink-0" />
+                                                ) : (
+                                                  <Upload className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                                                )}
+                                                <span className={`text-sm truncate ${
+                                                  theme === "light" ? "text-gray-900" : "text-gray-100"
+                                                }`}>
+                                                  {file.name}
+                                                </span>
+                                                <span className={`text-xs ${
+                                                  theme === "light" ? "text-gray-500" : "text-gray-400"
+                                                }`}>
+                                                  ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                                </span>
+                                              </div>
+                                              <button
+                                                onClick={() => {
+                                                  setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+                                                  if (uploadedFiles.length === 1) {
+                                                    setUploadedFile(null);
+                                                  }
+                                                }}
+                                                className={`ml-2 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors`}
+                                              >
+                                                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                              </button>
+                                            </div>
+                                          ))}
                                         </div>
-                                        <input
-                                          ref={fileInputRef}
-                                          type="file"
-                                          onChange={handleFileUpload}
-                                          className="hidden"
-                                        />
-                                      </div>
-
-                                      {/* OR Divider */}
-                                      <div className="flex items-center gap-3">
-                                        <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
-                                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-widest">
-                                          OR
-                                        </span>
-                                        <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
-                                      </div>
-
-                                      {/* Recording Options */}
-                                      <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                          onClick={() =>
-                                            setShowMediaRecorder(true)
-                                          }
-                                          className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
-                                            theme === "light"
-                                              ? "bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white"
-                                              : "bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5"
-                                          } flex flex-col items-center gap-2`}
-                                        >
-                                          <Mic className="w-6 h-6 text-blue-600" />
-                                          <span
-                                            className={`text-sm font-medium ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
-                                          >
-                                            Voice Recording
-                                          </span>
-                                        </button>
-
-                                        <button
-                                          onClick={() =>
-                                            setShowMediaRecorder(true)
-                                          }
-                                          className={`p-4 border-2 rounded transition-all duration-200 hover:shadow-sm ${
-                                            theme === "light"
-                                              ? "bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white"
-                                              : "bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5"
-                                          } flex flex-col items-center gap-2`}
-                                        >
-                                          <Video className="w-6 h-6 text-red-600" />
-                                          <span
-                                            className={`text-sm font-medium ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
-                                          >
-                                            Video Recording
-                                          </span>
-                                        </button>
-                                      </div>
-
-                                      {uploadedFile && (
+                                      )}
+                                      
+                                      {/* Add Files Section */}
+                                      <div className="space-y-3">
+                                        {/* File Upload */}
                                         <div
-                                          className={`p-4 rounded-lg border ${
+                                          className={`border-2 border-dashed text-center py-6 px-4 rounded-lg cursor-pointer transition-all duration-200 group ${
                                             theme === "light"
-                                              ? "bg-green-50 border-green-200"
-                                              : "bg-green-900/10 border-green-800"
+                                              ? "bg-gray-50 border-gray-300 hover:border-gray-900 hover:bg-white"
+                                              : "bg-black/20 border-gray-600 hover:border-gray-500 hover:bg-white/5"
                                           }`}
+                                          onDragOver={handleDragOver}
+                                          onDrop={(e) => {
+                                            e.preventDefault();
+                                            const files = Array.from(e.dataTransfer.files);
+                                            setUploadedFiles(prev => [...prev, ...files]);
+                                            if (files.length > 0 && !uploadedFile) {
+                                              setUploadedFile(files[0]);
+                                            }
+                                          }}
+                                          onClick={() => fileInputRef.current?.click()}
                                         >
-                                          <p
-                                            className={`text-sm ${theme === "light" ? "text-green-800" : "text-green-400"}`}
+                                          <Upload className="mx-auto mb-2 text-gray-400" size={24} />
+                                          <p className={`text-sm font-medium ${
+                                            theme === "light" ? "text-gray-700" : "text-gray-300"
+                                          }`}>
+                                            Click to browse or drag files here
+                                          </p>
+                                          <p className={`text-xs mt-1 ${
+                                            theme === "light" ? "text-gray-500" : "text-gray-400"
+                                          }`}>
+                                            Multiple files allowed (up to 100MB each)
+                                          </p>
+                                          <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            multiple
+                                            onChange={(e) => {
+                                              if (e.target.files) {
+                                                const files = Array.from(e.target.files);
+                                                setUploadedFiles(prev => [...prev, ...files]);
+                                                if (files.length > 0 && !uploadedFile) {
+                                                  setUploadedFile(files[0]);
+                                                }
+                                              }
+                                            }}
+                                            className="hidden"
+                                          />
+                                        </div>
+                                        
+                                        {/* OR Divider */}
+                                        <div className="flex items-center gap-3">
+                                          <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-widest">
+                                            OR
+                                          </span>
+                                          <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                                        </div>
+                                        
+                                        {/* Recording Options */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <button
+                                            onClick={() => setShowMediaRecorder(true)}
+                                            className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-sm ${
+                                              theme === "light"
+                                                ? "bg-white border-gray-300 hover:border-gray-900"
+                                                : "bg-black/40 border-gray-600 hover:border-gray-500"
+                                            } flex flex-col items-center gap-2`}
                                           >
-                                            <strong>File ready:</strong>{" "}
-                                            {uploadedFile.name}
+                                            <Mic className="w-6 h-6 text-blue-600" />
+                                            <span className={`text-sm font-medium ${
+                                              theme === "light" ? "text-gray-900" : "text-gray-100"
+                                            }`}>
+                                              Voice Recording
+                                            </span>
+                                          </button>
+                                          
+                                          <button
+                                            onClick={() => setShowMediaRecorder(true)}
+                                            className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-sm ${
+                                              theme === "light"
+                                                ? "bg-white border-gray-300 hover:border-gray-900"
+                                                : "bg-black/40 border-gray-600 hover:border-gray-500"
+                                            } flex flex-col items-center gap-2`}
+                                          >
+                                            <Video className="w-6 h-6 text-red-600" />
+                                            <span className={`text-sm font-medium ${
+                                              theme === "light" ? "text-gray-900" : "text-gray-100"
+                                            }`}>
+                                              Video Recording
+                                            </span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* File Count Summary */}
+                                      {uploadedFiles.length > 0 && (
+                                        <div className={`mt-4 p-3 rounded-lg border ${
+                                          theme === "light"
+                                            ? "bg-green-50 border-green-200"
+                                            : "bg-green-900/10 border-green-800"
+                                        }`}>
+                                          <p className={`text-sm font-medium ${
+                                            theme === "light" ? "text-green-800" : "text-green-400"
+                                          }`}>
+                                            {uploadedFiles.length} file{uploadedFiles.length !== 1 ? "s" : ""} ready for encryption
                                           </p>
                                         </div>
                                       )}
@@ -4868,14 +4943,14 @@ const Home = () => {
 
                                     {/* Right Column - Explainer */}
                                     <div
-                                      className={`p-6 rounded-lg border ${
+                                      className={`p-6 rounded-lg border h-fit ${
                                         theme === "light"
                                           ? "bg-gray-50 border-gray-200"
                                           : "bg-white/5 border-gray-700"
                                       }`}
                                     >
                                       <h4
-                                        className={`text-sm font-semibold mb-3 ${
+                                        className={`editorial-label-small uppercase tracking-wider mb-4 ${
                                           theme === "light"
                                             ? "text-gray-700"
                                             : "text-gray-300"
@@ -4956,7 +5031,10 @@ const Home = () => {
                                   <div className="max-w-2xl mx-auto">
                                     <MediaRecorder
                                       onFileReady={(file: File) => {
-                                        setUploadedFile(file);
+                                        setUploadedFiles(prev => [...prev, file]);
+                                        if (!uploadedFile) {
+                                          setUploadedFile(file);
+                                        }
                                         setShowMediaRecorder(false);
                                       }}
                                       onCancel={() =>
@@ -5038,11 +5116,13 @@ const Home = () => {
                                       </div>
                                       <div className="flex justify-between items-center">
                                         <span className="editorial-label-small text-gray-700 dark:text-gray-300">
-                                          File
+                                          Files
                                         </span>
                                         <span className="editorial-body text-sm text-primary font-semibold">
-                                          {uploadedFile?.name ||
-                                            "No file selected"}
+                                          {uploadedFiles.length > 0
+                                            ? `${uploadedFiles.length} file${uploadedFiles.length !== 1 ? "s" : ""} ready`
+                                            : uploadedFile?.name ||
+                                              "No files selected"}
                                         </span>
                                       </div>
                                       {releaseMode === "contacts" && (
@@ -5181,12 +5261,12 @@ const Home = () => {
                                     <button
                                       onClick={processCanaryTrigger}
                                       disabled={
-                                        !uploadedFile ||
+                                        (uploadedFiles.length === 0 && !uploadedFile) ||
                                         isProcessing ||
                                         !name.trim()
                                       }
                                       className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-3 min-w-[280px] ${
-                                        !uploadedFile || !name.trim()
+                                        (uploadedFiles.length === 0 && !uploadedFile) || !name.trim()
                                           ? "opacity-50 cursor-not-allowed"
                                           : "hover:shadow-lg transform hover:-translate-y-0.5"
                                       } ${
@@ -5217,6 +5297,7 @@ const Home = () => {
                                         setEncryptedCapsule(null);
                                         setTraceJson(null);
                                         setUploadedFile(null);
+                                        setUploadedFiles([]);
                                         setName("");
                                         setEmergencyContacts([""]);
                                         setReleaseMode("public");
@@ -5261,8 +5342,8 @@ const Home = () => {
                                     toast.error("Please enter a document name");
                                     return;
                                   }
-                                  if (currentStep === 4 && !uploadedFile) {
-                                    toast.error("Please upload a file");
+                                  if (currentStep === 4 && uploadedFiles.length === 0 && !uploadedFile) {
+                                    toast.error("Please add at least one file");
                                     return;
                                   }
                                   if (
