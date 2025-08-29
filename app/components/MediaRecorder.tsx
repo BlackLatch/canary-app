@@ -6,13 +6,14 @@ import { Upload, Mic, Video, Square, Play, Pause, Download, X } from 'lucide-rea
 interface MediaRecorderProps {
   onFileReady: (file: File) => void;
   onCancel?: () => void;
+  initialMode?: 'audio' | 'video';
 }
 
 type RecordingMode = 'audio' | 'video' | null;
 type RecordingState = 'idle' | 'recording' | 'paused' | 'stopped';
 
-export default function MediaRecorder({ onFileReady, onCancel }: MediaRecorderProps) {
-  const [mode, setMode] = useState<RecordingMode>(null);
+export default function MediaRecorder({ onFileReady, onCancel, initialMode }: MediaRecorderProps) {
+  const [mode, setMode] = useState<RecordingMode>(initialMode || null);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -31,6 +32,7 @@ export default function MediaRecorder({ onFileReady, onCancel }: MediaRecorderPr
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
 
   // Start recording
   const startRecording = useCallback(async (selectedMode: RecordingMode) => {
@@ -201,6 +203,13 @@ export default function MediaRecorder({ onFileReady, onCancel }: MediaRecorderPr
       }
     };
   }, []);
+
+  // Auto-start recording if initial mode is provided
+  useEffect(() => {
+    if (initialMode) {
+      startRecording(initialMode);
+    }
+  }, [initialMode, startRecording]);
 
   // Update preview when blob changes
   useEffect(() => {

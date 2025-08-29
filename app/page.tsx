@@ -155,6 +155,7 @@ const Home = () => {
     useState<DossierWithStatus | null>(null);
   const [documentDetailView, setDocumentDetailView] = useState(false);
   const [showMediaRecorder, setShowMediaRecorder] = useState(false);
+  const [mediaRecorderType, setMediaRecorderType] = useState<'voice' | 'video'>('voice');
   const [showDisableConfirm, setShowDisableConfirm] = useState<bigint | null>(
     null,
   );
@@ -4763,8 +4764,7 @@ const Home = () => {
                                   </p>
                                 </div>
 
-                                {!showMediaRecorder ? (
-                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     {/* Left Column - Files List and Add Options */}
                                     <div
                                       className={`p-6 rounded-lg border h-fit ${
@@ -4892,7 +4892,10 @@ const Home = () => {
                                         {/* Recording Options */}
                                         <div className="grid grid-cols-2 gap-3">
                                           <button
-                                            onClick={() => setShowMediaRecorder(true)}
+                                            onClick={() => {
+                                              setMediaRecorderType('voice');
+                                              setShowMediaRecorder(true);
+                                            }}
                                             className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-sm ${
                                               theme === "light"
                                                 ? "bg-white border-gray-300 hover:border-gray-900"
@@ -4908,7 +4911,10 @@ const Home = () => {
                                           </button>
                                           
                                           <button
-                                            onClick={() => setShowMediaRecorder(true)}
+                                            onClick={() => {
+                                              setMediaRecorderType('video');
+                                              setShowMediaRecorder(true);
+                                            }}
                                             className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-sm ${
                                               theme === "light"
                                                 ? "bg-white border-gray-300 hover:border-gray-900"
@@ -5027,20 +5033,34 @@ const Home = () => {
                                       </div>
                                     </div>
                                   </div>
-                                ) : (
-                                  <div className="max-w-2xl mx-auto">
-                                    <MediaRecorder
-                                      onFileReady={(file: File) => {
-                                        setUploadedFiles(prev => [...prev, file]);
-                                        if (!uploadedFile) {
-                                          setUploadedFile(file);
-                                        }
-                                        setShowMediaRecorder(false);
-                                      }}
-                                      onCancel={() =>
-                                        setShowMediaRecorder(false)
-                                      }
+                                
+                                {/* Media Recorder Modal */}
+                                {showMediaRecorder && (
+                                  <div className="fixed inset-0 z-50 flex items-center justify-center">
+                                    {/* Overlay */}
+                                    <div 
+                                      className="absolute inset-0 bg-black/60" 
+                                      onClick={() => setShowMediaRecorder(false)}
                                     />
+                                    
+                                    {/* Modal Content */}
+                                    <div className={`relative z-10 w-full max-w-2xl mx-4 p-6 rounded-lg ${
+                                      theme === "light" ? "bg-white" : "bg-gray-900"
+                                    }`}>
+                                      <MediaRecorder
+                                        initialMode={mediaRecorderType === 'voice' ? 'audio' : 'video'}
+                                        onFileReady={(file: File) => {
+                                          setUploadedFiles(prev => [...prev, file]);
+                                          if (!uploadedFile) {
+                                            setUploadedFile(file);
+                                          }
+                                          setShowMediaRecorder(false);
+                                        }}
+                                        onCancel={() =>
+                                          setShowMediaRecorder(false)
+                                        }
+                                      />
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -5170,7 +5190,7 @@ const Home = () => {
                                       }`}
                                     >
                                       <p>
-                                        When you click "Encrypt Dossier", the
+                                        When you click "Finalize", the
                                         following actions will occur:
                                       </p>
 
@@ -5283,7 +5303,7 @@ const Home = () => {
                                       ) : (
                                         <>
                                           <Shield size={20} />
-                                          <span>Encrypt Dossier</span>
+                                          <span>Finalize</span>
                                         </>
                                       )}
                                     </button>
