@@ -365,7 +365,11 @@ export class ContractService {
       }
 
       // Process parameters exactly as they would be sent to contract
+      console.log('🔍 DEBUG: Converting interval to seconds:');
+      console.log('  - Input (minutes):', checkInIntervalMinutes);
+      console.log('  - Multiplying by 60:', checkInIntervalMinutes * 60);
       const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
+      console.log('  - Result (seconds as BigInt):', checkInIntervalSeconds.toString());
       
       result.processedParams = {
         name: name,

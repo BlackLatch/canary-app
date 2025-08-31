@@ -454,6 +454,17 @@ const Home = () => {
         checkInInterval === "custom"
           ? parseInt(customInterval) * 60 // Convert hours to minutes
           : parseInt(checkInInterval);
+      
+      console.log("🔍 DEBUG: Check-in interval values:");
+      console.log("  - checkInInterval (raw):", checkInInterval);
+      console.log("  - checkInInterval type:", typeof checkInInterval);
+      console.log("  - Is custom?:", checkInInterval === "custom");
+      console.log("  - customInterval:", customInterval);
+      console.log("  - checkInMinutes (parsed):", checkInMinutes);
+      console.log("  - checkInMinutes type:", typeof checkInMinutes);
+      console.log("  - Expected seconds:", checkInMinutes * 60);
+      console.log("  - Expected seconds as BigInt:", BigInt(checkInMinutes * 60).toString());
+      
       // Recipients should match the address used for creation
       const recipients = [queryAddress];
 
@@ -4513,10 +4524,10 @@ const Home = () => {
                                     {/* Quick Time Buttons */}
                                     <div className="grid grid-cols-4 gap-2 mb-6">
                                       {[
-                                        { value: "1", label: "1H", hours: 1 },
-                                        { value: "24", label: "24H", hours: 24 },
-                                        { value: "720", label: "30D", hours: 720 },
-                                        { value: "8760", label: "1Y", hours: 8760 }
+                                        { value: "60", label: "1H", hours: 1 },
+                                        { value: "1440", label: "24H", hours: 24 },
+                                        { value: "43200", label: "30D", hours: 720 },
+                                        { value: "525600", label: "1Y", hours: 8760 }
                                       ].map((option) => (
                                         <button
                                           key={option.value}
