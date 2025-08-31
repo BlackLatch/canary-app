@@ -21,7 +21,6 @@ import {
 } from "./lib/taco";
 import { useTheme } from "./lib/theme-context";
 import MediaRecorder from "./components/MediaRecorder";
-import DemoPopup from "./components/DemoPopup";
 import NoDocumentsPlaceholder from "./components/NoDocumentsPlaceholder";
 import AcceptableUsePolicy from "./components/AcceptableUsePolicy";
 import { useSearchParams } from "next/navigation";
@@ -1451,10 +1450,6 @@ const Home = () => {
     return (
       <div className={theme}>
         <Toaster position="top-right" />
-        <DemoPopup
-          forceShow={showDemoPopup}
-          onClose={() => setShowDemoPopup(false)}
-        />
         <div
           className={`h-screen flex flex-col ${theme === "light" ? "bg-gray-50" : "bg-black"}`}
         >
@@ -1764,16 +1759,6 @@ const Home = () => {
               >
                 TESTNET DEMO · NO PRODUCTION GUARANTEES · USE AT YOUR OWN RISK
               </span>
-              <button
-                onClick={() => setShowDemoPopup(true)}
-                className={`text-xs font-medium tracking-wider uppercase underline hover:no-underline transition-all ${
-                  theme === "light"
-                    ? "text-gray-600 hover:text-gray-900"
-                    : "text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                [LEARN MORE]
-              </button>
             </div>
           </div>
         </div>
