@@ -23,6 +23,7 @@ import { useTheme } from "./lib/theme-context";
 import MediaRecorder from "./components/MediaRecorder";
 import DemoPopup from "./components/DemoPopup";
 import NoDocumentsPlaceholder from "./components/NoDocumentsPlaceholder";
+import AcceptableUsePolicy from "./components/AcceptableUsePolicy";
 import { useSearchParams } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -1607,8 +1608,9 @@ const Home = () => {
           <footer
             className={`border-t flex-shrink-0 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black"}`}
           >
-            <div className="max-w-7xl mx-auto px-6 py-3">
-              <div className="flex items-center justify-center gap-6">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              {/* Main footer links */}
+              <div className="flex items-center justify-center gap-6 mb-3">
                 <a
                   href="https://canaryapp.io"
                   target="_blank"
@@ -1684,9 +1686,47 @@ const Home = () => {
                 </a>
               </div>
 
+              {/* Legal links */}
               <div
                 className={`text-center mt-2 pt-2 border-t ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
               >
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <a
+                    href="/acceptable-use-policy"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Acceptable Use
+                  </a>
+                  <span className={`text-xs ${theme === "light" ? "text-gray-400" : "text-gray-600"}`}>•</span>
+                  <a
+                    href="/terms-of-service"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Terms
+                  </a>
+                  <span className={`text-xs ${theme === "light" ? "text-gray-400" : "text-gray-600"}`}>•</span>
+                  <a
+                    href="/privacy-policy"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Privacy
+                  </a>
+                  <span className={`text-xs ${theme === "light" ? "text-gray-400" : "text-gray-600"}`}>•</span>
+                  <a
+                    href="/law-enforcement"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Law Enforcement
+                  </a>
+                </div>
                 <p
                   className={`text-xs ${theme === "light" ? "text-gray-500" : "text-gray-400"}`}
                 >
@@ -1704,6 +1744,10 @@ const Home = () => {
   return (
     <div className={theme}>
       <Toaster position="top-right" />
+      <AcceptableUsePolicy 
+        theme={theme}
+        onAccepted={() => console.log('AUP accepted')}
+      />
       <DemoPopup
         forceShow={showDemoPopup}
         onClose={() => setShowDemoPopup(false)}
@@ -5422,8 +5466,9 @@ const Home = () => {
           <footer
             className={`border-t flex-shrink-0 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black"}`}
           >
-            <div className="max-w-7xl mx-auto px-6 py-3">
-              <div className="flex items-center justify-center gap-6">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              {/* Main footer links */}
+              <div className="flex items-center justify-center gap-6 mb-3">
                 <a
                   href="https://canaryapp.io"
                   target="_blank"
@@ -5499,9 +5544,47 @@ const Home = () => {
                 </a>
               </div>
 
+              {/* Legal links */}
               <div
                 className={`text-center mt-2 pt-2 border-t ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
               >
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <a
+                    href="/acceptable-use-policy"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Acceptable Use
+                  </a>
+                  <span className={`text-xs ${theme === "light" ? "text-gray-400" : "text-gray-600"}`}>•</span>
+                  <a
+                    href="/terms-of-service"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Terms
+                  </a>
+                  <span className={`text-xs ${theme === "light" ? "text-gray-400" : "text-gray-600"}`}>•</span>
+                  <a
+                    href="/privacy-policy"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Privacy
+                  </a>
+                  <span className={`text-xs ${theme === "light" ? "text-gray-400" : "text-gray-600"}`}>•</span>
+                  <a
+                    href="/law-enforcement"
+                    className={`text-xs transition-colors ${
+                      theme === "light" ? "text-gray-500 hover:text-gray-700" : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Law Enforcement
+                  </a>
+                </div>
                 <p
                   className={`text-xs ${theme === "light" ? "text-gray-500" : "text-gray-400"}`}
                 >
