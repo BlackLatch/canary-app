@@ -147,7 +147,7 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-[10001] p-4">
-        <div className={`editorial-card-bordered max-w-lg w-full ${
+        <div className={`editorial-card-bordered max-w-md w-full ${
           theme === 'light' 
             ? 'bg-white border-gray-300' 
             : 'bg-black border-gray-700'
@@ -156,106 +156,100 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
           {currentStep === 'demo' ? (
             <>
               {/* Demo Disclaimer Step */}
-              <div className={`editorial-card-header ${
+              <div className={`editorial-card-header py-3 px-4 ${
                 theme === 'light' ? 'border-gray-300' : 'border-gray-700'
               }`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded ${
-                      theme === 'light' ? 'bg-amber-100' : 'bg-amber-900/20'
-                    }`}>
-                      <AlertTriangle className="w-5 h-5 text-amber-600" />
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
                     <div>
-                      <h2 className="editorial-header text-xl">
+                      <h2 className="editorial-header text-lg">
                         Demo Environment
                       </h2>
-                      <p className={`editorial-label-small mt-0.5 ${
+                      <p className={`editorial-label-small text-xs ${
                         theme === 'light' ? 'text-gray-500' : 'text-gray-400'
                       }`}>
-                        Please read before continuing
+                        PLEASE READ BEFORE CONTINUING
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={handleClose}
-                    className={`p-1.5 rounded transition-colors ${
+                    className={`p-1 rounded transition-colors ${
                       theme === 'light' 
                         ? 'hover:bg-gray-100' 
                         : 'hover:bg-gray-800'
                     }`}
                   >
-                    <X size={18} className={theme === 'light' ? 'text-gray-500' : 'text-gray-400'} />
+                    <X size={16} className={theme === 'light' ? 'text-gray-500' : 'text-gray-400'} />
                   </button>
                 </div>
               </div>
 
-              <div className="spacing-medium">
-                <div className={`editorial-card-bordered p-4 ${
+              <div className="p-4 space-y-3">
+                <div className={`editorial-card-bordered p-3 ${
                   theme === 'light' 
                     ? 'bg-amber-50 border-amber-300' 
                     : 'bg-amber-900/10 border-amber-900/50'
                 }`}>
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <AlertTriangle className="w-3 h-3 text-amber-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className={`editorial-label-small font-semibold mb-1 ${
+                      <p className={`editorial-label-small font-semibold text-xs mb-1 ${
                         theme === 'light' ? 'text-amber-900' : 'text-amber-400'
                       }`}>
-                        Important Notice
+                        IMPORTANT NOTICE
                       </p>
-                      <p className="editorial-body text-sm">
-                        This is a demonstration version of Canary running on the Polygon Amoy testnet. 
-                        It is intended for testing and evaluation purposes only.
+                      <p className="editorial-body text-xs leading-relaxed">
+                        This is a demonstration version of Canary running on the Polygon Amoy testnet. It is intended for testing and evaluation purposes only.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="spacing-small">
-                  <h3 className={`editorial-label uppercase tracking-wider mb-3 ${
+                <div>
+                  <h3 className={`editorial-label uppercase tracking-wider text-xs mb-2 ${
                     theme === 'light' ? 'text-gray-700' : 'text-gray-300'
                   }`}>
-                    Demo Limitations:
+                    DEMO LIMITATIONS:
                   </h3>
-                  <ul className="space-y-2">
-                    <li className="editorial-body text-sm flex items-start gap-2">
+                  <ul className="space-y-1">
+                    <li className="editorial-body text-xs flex items-start gap-2">
                       <span className={`${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>•</span>
                       <span>Encrypted files may be periodically cleared</span>
                     </li>
-                    <li className="editorial-body text-sm flex items-start gap-2">
+                    <li className="editorial-body text-xs flex items-start gap-2">
                       <span className={`${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>•</span>
                       <span>Smart contract state may be reset without notice</span>
                     </li>
-                    <li className="editorial-body text-sm flex items-start gap-2">
+                    <li className="editorial-body text-xs flex items-start gap-2">
                       <span className={`${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>•</span>
                       <span>Features may be unstable or incomplete</span>
                     </li>
-                    <li className="editorial-body text-sm flex items-start gap-2">
+                    <li className="editorial-body text-xs flex items-start gap-2">
                       <span className={`${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>•</span>
                       <span>Not suitable for sensitive or production data</span>
                     </li>
                   </ul>
                 </div>
 
-                <div className={`editorial-card p-3 ${
+                <div className={`editorial-card p-2 ${
                   theme === 'light' ? 'bg-gray-50' : 'bg-gray-900/50'
                 }`}>
-                  <p className={`editorial-body text-xs ${
+                  <p className={`editorial-body text-xs leading-relaxed ${
                     theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                   }`}>
-                    By continuing, you acknowledge that this is a test environment and agree 
-                    not to store any sensitive or critical information.
+                    By continuing, you acknowledge that this is a test environment and agree not to store any sensitive or critical information.
                   </p>
                 </div>
               </div>
 
-              <div className={`editorial-card-footer ${
+              <div className={`editorial-card-footer py-3 px-4 ${
                 theme === 'light' ? 'border-gray-300' : 'border-gray-700'
               }`}>
                 <button
                   onClick={handleContinueToLegal}
-                  className={`w-full py-3 px-4 rounded font-medium transition-all ${
+                  className={`w-full py-2 px-3 rounded text-sm font-medium transition-all ${
                     theme === 'light'
                       ? 'bg-gray-900 text-white hover:bg-gray-800'
                       : 'bg-white text-gray-900 hover:bg-gray-100'
@@ -268,101 +262,96 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
           ) : (
             <>
               {/* Legal Acceptance Step */}
-              <div className={`editorial-card-header ${
+              <div className={`editorial-card-header py-3 px-4 ${
                 theme === 'light' ? 'border-gray-300' : 'border-gray-700'
               }`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded ${
-                    theme === 'light' ? 'bg-blue-100' : 'bg-blue-900/20'
-                  }`}>
-                    <Shield className="w-5 h-5 text-blue-600" />
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-600" />
                   <div>
-                    <h2 className="editorial-header text-xl">
+                    <h2 className="editorial-header text-lg">
                       Terms & Policies
                     </h2>
-                    <p className={`editorial-label-small mt-0.5 ${
+                    <p className={`editorial-label-small text-xs ${
                       theme === 'light' ? 'text-gray-500' : 'text-gray-400'
                     }`}>
-                      Review and accept to continue
+                      REVIEW AND ACCEPT TO CONTINUE
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="spacing-medium">
-                <p className="editorial-body mb-4">
+              <div className="p-4 space-y-3">
+                <p className="editorial-body text-xs">
                   To use Canary, you must review and accept our policies:
                 </p>
                 
-                <div className={`editorial-card-bordered p-4 ${
+                <div className={`editorial-card-bordered p-3 ${
                   theme === 'light' 
                     ? 'bg-gray-50 border-gray-200' 
                     : 'bg-gray-900/50 border-gray-700'
                 }`}>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <a
                       href="/acceptable-use-policy"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-3 editorial-body hover:underline ${
+                      className={`flex items-center gap-2 editorial-body text-xs hover:underline ${
                         theme === 'light' ? 'text-blue-600' : 'text-blue-400'
                       }`}
                     >
-                      <FileText size={16} />
+                      <FileText size={12} />
                       Acceptable Use Policy
                     </a>
                     <a
                       href="/terms-of-service"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-3 editorial-body hover:underline ${
+                      className={`flex items-center gap-2 editorial-body text-xs hover:underline ${
                         theme === 'light' ? 'text-blue-600' : 'text-blue-400'
                       }`}
                     >
-                      <FileText size={16} />
+                      <FileText size={12} />
                       Terms of Service
                     </a>
                     <a
                       href="/privacy-policy"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-3 editorial-body hover:underline ${
+                      className={`flex items-center gap-2 editorial-body text-xs hover:underline ${
                         theme === 'light' ? 'text-blue-600' : 'text-blue-400'
                       }`}
                     >
-                      <FileText size={16} />
+                      <FileText size={12} />
                       Privacy Policy
                     </a>
                   </div>
                 </div>
 
-                <div className={`editorial-card p-3 ${
+                <div className={`editorial-card p-2 ${
                   theme === 'light' ? 'bg-gray-100' : 'bg-black/40'
                 }`}>
-                  <div className={`monospace-accent text-xs space-y-1 ${
+                  <div className={`monospace-accent text-xs space-y-0.5 ${
                     theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                   }`}>
                     <div>Version: {POLICY_VERSION}</div>
-                    <div>Policy Hash: {POLICY_HASH}</div>
+                    <div>Policy Hash: {POLICY_HASH.slice(0, 12)}...</div>
                   </div>
                 </div>
 
-                <p className={`editorial-body text-xs ${
+                <p className={`editorial-body text-xs leading-relaxed ${
                   theme === 'light' ? 'text-gray-500' : 'text-gray-400'
                 }`}>
-                  By accepting, you'll sign a message acknowledging your agreement. 
-                  This signature will be stored locally and you won't be asked again for this version.
+                  By accepting, you'll sign a message acknowledging your agreement. This signature will be stored locally.
                 </p>
               </div>
 
-              <div className={`editorial-card-footer flex gap-3 ${
+              <div className={`editorial-card-footer py-3 px-4 flex gap-2 ${
                 theme === 'light' ? 'border-gray-300' : 'border-gray-700'
               }`}>
                 <button
                   onClick={handleDecline}
                   disabled={isSigning}
-                  className={`flex-1 py-3 px-4 rounded border font-medium transition-all ${
+                  className={`flex-1 py-2 px-3 rounded border text-sm font-medium transition-all ${
                     theme === 'light'
                       ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
                       : 'border-gray-600 text-gray-300 hover:bg-gray-800'
@@ -373,7 +362,7 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
                 <button
                   onClick={handleSign}
                   disabled={isSigning}
-                  className={`flex-1 py-3 px-4 rounded font-medium transition-all ${
+                  className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-all ${
                     theme === 'light'
                       ? 'bg-gray-900 text-white hover:bg-gray-800'
                       : 'bg-white text-gray-900 hover:bg-gray-100'
