@@ -163,7 +163,6 @@ const Home = () => {
   const [showReleaseConfirm, setShowReleaseConfirm] = useState<bigint | null>(
     null,
   );
-  const [showDemoPopup, setShowDemoPopup] = useState(false);
   const [showEditSchedule, setShowEditSchedule] = useState(false);
   const [showAddFiles, setShowAddFiles] = useState(false);
   const [newCheckInInterval, setNewCheckInInterval] = useState("");
@@ -1746,11 +1745,7 @@ const Home = () => {
       <Toaster position="top-right" />
       <AcceptableUsePolicy 
         theme={theme}
-        onAccepted={() => console.log('AUP accepted')}
-      />
-      <DemoPopup
-        forceShow={showDemoPopup}
-        onClose={() => setShowDemoPopup(false)}
+        onAccepted={() => console.log('AUP and demo disclaimer accepted')}
       />
       <Suspense fallback={null}>
         <HomeContent onViewChange={setCurrentView} />

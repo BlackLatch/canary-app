@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useSignTypedData } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
-import { Shield, ExternalLink } from 'lucide-react';
+import { AlertTriangle, FileText, Shield, X } from 'lucide-react';
 
 const POLICY_VERSION = '1.0.0';
 const POLICY_HASH = '0x1234567890abcdef'; // Replace with actual hash of policy content
@@ -32,6 +32,7 @@ interface AcceptableUsePolicyProps {
 
 export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUsePolicyProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<'demo' | 'legal'>('demo');
   const [isSigning, setIsSigning] = useState(false);
   const { address, isConnected } = useAccount();
   const { user, authenticated } = usePrivy();
@@ -58,6 +59,7 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       
       // Show modal if not signed or outdated version
       setIsOpen(true);
+      setCurrentStep('demo'); // Start with demo disclaimer
     };
 
     // Check when user authenticates
@@ -66,6 +68,10 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       setTimeout(checkSignature, 500);
     }
   }, [authenticated, isConnected, address, user]);
+
+  const handleContinueToLegal = () => {
+    setCurrentStep('legal');
+  };
 
   const handleSign = async () => {
     try {
@@ -126,6 +132,12 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
     window.location.href = 'https://canaryapp.io';
   };
 
+  const handleClose = () => {
+    if (currentStep === 'demo') {
+      handleContinueToLegal();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -135,107 +147,238 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-[10001] p-4">
-        <div className={`max-w-lg w-full rounded-lg shadow-xl ${
-          theme === 'light' ? 'bg-white' : 'bg-gray-900'
+        <div className={`max-w-lg w-full rounded-lg border ${
+          theme === 'light' 
+            ? 'bg-white border-gray-300' 
+            : 'bg-black border-gray-700'
         }`}>
-          {/* Header */}
-          <div className={`p-6 border-b ${
-            theme === 'light' ? 'border-gray-200' : 'border-gray-700'
-          }`}>
-            <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-blue-600" />
-              <h2 className={`text-xl font-bold ${
-                theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+          
+          {currentStep === 'demo' ? (
+            <>
+              {/* Demo Disclaimer Step */}
+              <div className={`p-6 border-b ${
+                theme === 'light' ? 'border-gray-200' : 'border-gray-700'
               }`}>
-                Acceptable Use Policy
-              </h2>
-            </div>
-          </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${
+                      theme === 'light' ? 'bg-amber-100' : 'bg-amber-900/30'
+                    }`}>
+                      <AlertTriangle className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <h2 className={`editorial-header text-xl font-bold ${
+                        theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                      }`}>
+                        Demo Environment
+                      </h2>
+                      <p className={`text-xs mt-0.5 ${
+                        theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                      }`}>
+                        Please read before continuing
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleClose}
+                    className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                  >
+                    <X size={20} className={theme === 'light' ? 'text-gray-500' : 'text-gray-400'} />
+                  </button>
+                </div>
+              </div>
 
-          {/* Content */}
-          <div className={`p-6 space-y-4 ${
-            theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-          }`}>
-            <p>
-              By using Canary, you agree to our policies and terms. Please review:
-            </p>
-            
-            <div className="space-y-2">
-              <a
-                href="/acceptable-use-policy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-2 text-sm hover:underline ${
-                  theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                }`}
-              >
-                <ExternalLink size={14} />
-                Acceptable Use Policy
-              </a>
-              <a
-                href="/terms-of-service"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-2 text-sm hover:underline ${
-                  theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                }`}
-              >
-                <ExternalLink size={14} />
-                Terms of Service
-              </a>
-              <a
-                href="/privacy-policy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-2 text-sm hover:underline ${
-                  theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                }`}
-              >
-                <ExternalLink size={14} />
-                Privacy Policy
-              </a>
-            </div>
+              <div className={`p-6 space-y-4 ${
+                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+              }`}>
+                <div className={`p-4 rounded-lg border ${
+                  theme === 'light' 
+                    ? 'bg-amber-50 border-amber-200' 
+                    : 'bg-amber-900/20 border-amber-800'
+                }`}>
+                  <p className={`text-sm font-semibold mb-2 ${
+                    theme === 'light' ? 'text-amber-900' : 'text-amber-400'
+                  }`}>
+                    ⚠️ Important Notice
+                  </p>
+                  <p className="text-sm">
+                    This is a demonstration version of Canary running on the Polygon Amoy testnet. 
+                    It is intended for testing and evaluation purposes only.
+                  </p>
+                </div>
 
-            <div className={`p-3 rounded-lg text-xs font-mono ${
-              theme === 'light' ? 'bg-gray-100' : 'bg-black/40'
-            }`}>
-              <div>Version: {POLICY_VERSION}</div>
-              <div>Policy Hash: {POLICY_HASH}</div>
-            </div>
+                <div className="space-y-3">
+                  <h3 className={`font-semibold text-sm ${
+                    theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                  }`}>
+                    Demo Limitations:
+                  </h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className={theme === 'light' ? 'text-gray-400' : 'text-gray-500'}>•</span>
+                      <span>Encrypted files may be periodically cleared</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className={theme === 'light' ? 'text-gray-400' : 'text-gray-500'}>•</span>
+                      <span>Smart contract state may be reset without notice</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className={theme === 'light' ? 'text-gray-400' : 'text-gray-500'}>•</span>
+                      <span>Features may be unstable or incomplete</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className={theme === 'light' ? 'text-gray-400' : 'text-gray-500'}>•</span>
+                      <span>Not suitable for sensitive or production data</span>
+                    </li>
+                  </ul>
+                </div>
 
-            <p className="text-sm">
-              You will sign a message acknowledging your acceptance. This signature 
-              will be stored locally and you won't be asked again for this version.
-            </p>
-          </div>
+                <div className={`text-xs p-3 rounded-lg ${
+                  theme === 'light' ? 'bg-gray-100' : 'bg-gray-900'
+                }`}>
+                  <p>
+                    By continuing, you acknowledge that this is a test environment and agree 
+                    not to store any sensitive or critical information.
+                  </p>
+                </div>
+              </div>
 
-          {/* Actions */}
-          <div className={`p-6 border-t flex gap-3 ${
-            theme === 'light' ? 'border-gray-200' : 'border-gray-700'
-          }`}>
-            <button
-              onClick={handleDecline}
-              disabled={isSigning}
-              className={`flex-1 py-2.5 px-4 rounded-lg border font-medium transition-colors ${
-                theme === 'light'
-                  ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  : 'border-gray-600 text-gray-300 hover:bg-white/5'
-              } disabled:opacity-50`}
-            >
-              Decline
-            </button>
-            <button
-              onClick={handleSign}
-              disabled={isSigning}
-              className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-colors ${
-                theme === 'light'
-                  ? 'bg-gray-900 text-white hover:bg-gray-800'
-                  : 'bg-white text-gray-900 hover:bg-gray-100'
-              } disabled:opacity-50`}
-            >
-              {isSigning ? 'Signing...' : 'Accept & Sign'}
-            </button>
-          </div>
+              <div className={`p-6 border-t ${
+                theme === 'light' ? 'border-gray-200' : 'border-gray-700'
+              }`}>
+                <button
+                  onClick={handleContinueToLegal}
+                  className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+                    theme === 'light'
+                      ? 'bg-gray-900 text-white hover:bg-gray-800'
+                      : 'bg-white text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  I Understand, Continue
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Legal Acceptance Step */}
+              <div className={`p-6 border-b ${
+                theme === 'light' ? 'border-gray-200' : 'border-gray-700'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    theme === 'light' ? 'bg-blue-100' : 'bg-blue-900/30'
+                  }`}>
+                    <Shield className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className={`editorial-header text-xl font-bold ${
+                      theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                    }`}>
+                      Terms & Policies
+                    </h2>
+                    <p className={`text-xs mt-0.5 ${
+                      theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
+                      Review and accept to continue
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-6 space-y-4 ${
+                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+              }`}>
+                <p className="text-sm">
+                  To use Canary, you must review and accept our policies:
+                </p>
+                
+                <div className={`space-y-3 p-4 rounded-lg border ${
+                  theme === 'light' 
+                    ? 'bg-gray-50 border-gray-200' 
+                    : 'bg-gray-900 border-gray-700'
+                }`}>
+                  <a
+                    href="/acceptable-use-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-3 text-sm hover:underline ${
+                      theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    Acceptable Use Policy
+                  </a>
+                  <a
+                    href="/terms-of-service"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-3 text-sm hover:underline ${
+                      theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    Terms of Service
+                  </a>
+                  <a
+                    href="/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-3 text-sm hover:underline ${
+                      theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    Privacy Policy
+                  </a>
+                </div>
+
+                <div className={`p-3 rounded-lg text-xs font-mono ${
+                  theme === 'light' ? 'bg-gray-100' : 'bg-black/40'
+                }`}>
+                  <div className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
+                    Version: {POLICY_VERSION}
+                  </div>
+                  <div className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
+                    Policy Hash: {POLICY_HASH}
+                  </div>
+                </div>
+
+                <p className={`text-xs ${
+                  theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  By accepting, you'll sign a message acknowledging your agreement. 
+                  This signature will be stored locally and you won't be asked again for this version.
+                </p>
+              </div>
+
+              <div className={`p-6 border-t flex gap-3 ${
+                theme === 'light' ? 'border-gray-200' : 'border-gray-700'
+              }`}>
+                <button
+                  onClick={handleDecline}
+                  disabled={isSigning}
+                  className={`flex-1 py-3 px-4 rounded-lg border font-medium transition-colors ${
+                    theme === 'light'
+                      ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-600 text-gray-300 hover:bg-white/5'
+                  } disabled:opacity-50`}
+                >
+                  Decline
+                </button>
+                <button
+                  onClick={handleSign}
+                  disabled={isSigning}
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                    theme === 'light'
+                      ? 'bg-gray-900 text-white hover:bg-gray-800'
+                      : 'bg-white text-gray-900 hover:bg-gray-100'
+                  } disabled:opacity-50`}
+                >
+                  {isSigning ? 'Signing...' : 'Accept & Sign'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
