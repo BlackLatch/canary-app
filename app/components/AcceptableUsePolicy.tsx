@@ -83,7 +83,7 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       }
 
       const message = {
-        statement: `I acknowledge that I have read and agree to the Canary Acceptable Use Policy, Terms of Service, and Privacy Policy.`,
+        statement: `I acknowledge that I have read and agree to the Canary Acceptable Use Policy and Terms of Service.`,
         version: POLICY_VERSION,
         policyHash: POLICY_HASH,
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
@@ -241,8 +241,8 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
                 <p className={`editorial-body mb-4 ${
                   theme === 'light' ? 'text-gray-700' : 'text-gray-300'
                 }`}>
-                  To continue, please review and accept our core policies. These set out how Canary can be used, 
-                  what's expected of you, and how your information is handled.
+                  To continue, please review and accept our policies. These set out how Canary can be used 
+                  and what's expected of you.
                 </p>
                 
                 <div className={`p-4 rounded border mb-4 ${
@@ -277,17 +277,6 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
                     >
                       <span className={`${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>•</span>
                       Terms of Service
-                    </a>
-                    <a
-                      href="/privacy-policy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`flex items-center gap-2 text-sm hover:underline ${
-                        theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                      }`}
-                    >
-                      <span className={`${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>•</span>
-                      Privacy Policy
                     </a>
                   </div>
                 </div>
