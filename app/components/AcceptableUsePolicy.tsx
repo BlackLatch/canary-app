@@ -6,7 +6,6 @@ import { usePrivy } from '@privy-io/react-auth';
 import { AlertTriangle, FileText, Shield, X } from 'lucide-react';
 
 const POLICY_VERSION = '1.0.0';
-const POLICY_HASH = '0x1234567890abcdef'; // Replace with actual hash of policy content
 
 // EIP-712 Domain
 const domain = {
@@ -20,7 +19,6 @@ const types = {
   AcceptableUsePolicy: [
     { name: 'statement', type: 'string' },
     { name: 'version', type: 'string' },
-    { name: 'policyHash', type: 'string' },
     { name: 'timestamp', type: 'uint256' },
   ],
 } as const;
@@ -85,7 +83,6 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       const message = {
         statement: `I acknowledge that I have read and agree to the Canary Acceptable Use Policy and Terms of Service.`,
         version: POLICY_VERSION,
-        policyHash: POLICY_HASH,
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
       };
 
