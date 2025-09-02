@@ -109,7 +109,10 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       const storageKey = `canary_aup_signature_${identifier}`;
       const signatureData = {
         signature,
-        message,
+        message: {
+          ...message,
+          timestamp: message.timestamp.toString() // Convert BigInt to string for JSON serialization
+        },
         version: POLICY_VERSION,
         timestamp: Date.now(),
         identifier,

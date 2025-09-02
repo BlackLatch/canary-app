@@ -31,6 +31,7 @@
     "ethers": "^5.7.2",
     "helia": "^5.4.2",
     "lucide-react": "^0.515.0",
+    "marked": "^16.2.1",
     "next": "15.3.3",
     "permissionless": "^0.2.50",
     "react": "^19.0.0",

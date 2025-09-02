@@ -6,7 +6,6 @@ import { useTheme } from '@/app/lib/theme-context';
 import { useAccount, useDisconnect } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import PublicReleasesView from '@/app/components/PublicReleasesView';
-import DemoPopup from '@/app/components/DemoPopup';
 import Link from 'next/link';
 
 export default function PublicReleasesPage() {
@@ -38,7 +37,6 @@ export default function PublicReleasesPage() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <DemoPopup />
       
       {/* Alpha Status Indicator - Non-dismissable */}
       <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`}>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { marked } from 'marked';
 
 export default function TermsOfService() {
   const [content, setContent] = useState<string>('');
@@ -14,58 +15,48 @@ export default function TermsOfService() {
       setTheme('dark');
     }
 
-    // Load the markdown content
+    // Load and parse the markdown content
     fetch('/canary-terms-of-service.md')
       .then(res => res.text())
-      .then(text => {
-        // Process the markdown more carefully
-        let html = text;
-        
-        // First, handle multi-line list items by joining them
-        html = html.replace(/^- (.+?)(?=\n(?:- |\n|#|$))/gms, (match, content) => {
-          const cleanContent = content.replace(/\n(?!- )/g, ' ').trim();
-          return `<li class="editorial-body mb-2">• ${cleanContent}</li>`;
-        });
-        
-        // Wrap consecutive list items in ul tags
-        html = html.replace(/(<li class="editorial-body.*?<\/li>\s*)+/g, (match) => {
-          return `<ul class="space-y-2 mb-4">${match}</ul>`;
-        });
-        
-        // Headers
-        html = html
-          .replace(/^# (.+)$/gm, '<h1 class="editorial-header text-3xl mb-6 mt-8">$1</h1>')
-          .replace(/^## (.+)$/gm, '<h2 class="editorial-header text-2xl mt-8 mb-4">$2</h2>')
-          .replace(/^### (.+)$/gm, '<h3 class="editorial-label uppercase tracking-wider text-sm mt-6 mb-3">$1</h3>');
-        
-        // Horizontal rules
-        html = html.replace(/^---$/gm, '<hr class="border-t border-gray-300 dark:border-gray-700 my-8">');
-        
-        // Bold and italic
-        html = html
-          .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-          .replace(/_(.+?)_/g, '<em>$1</em>');
-        
-        // Links
-        html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 dark:text-blue-400 hover:underline">$1</a>');
-        
-        // Paragraphs - split on double newlines
-        const paragraphs = html.split(/\n\n+/);
-        html = paragraphs
-          .map(p => {
-            p = p.trim();
-            if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<hr')) {
-              return p;
-            }
-            if (p) {
-              return `<p class="editorial-body mb-4">${p}</p>`;
-            }
-            return '';
-          })
-          .filter(p => p)
-          .join('\n');
-        
-        setContent(html);
+      .then((text) => {
+        try {
+          // Parse markdown to HTML first
+          let html = marked.parse(text, {
+            breaks: true,
+            gfm: true
+          });
+          
+          // Apply custom styles to the HTML
+          // Headers
+          html = html.replace(/<h1>(.*?)<\/h1>/g, '<h1 class="editorial-header text-3xl mb-3 mt-6">$1</h1>');
+          html = html.replace(/<h2>(.*?)<\/h2>/g, '<h2 class="editorial-header text-2xl mt-6 mb-2">$1</h2>');
+          html = html.replace(/<h3>(.*?)<\/h3>/g, '<h3 class="editorial-label uppercase tracking-wider text-sm mt-4 mb-2">$1</h3>');
+          html = html.replace(/<h4>(.*?)<\/h4>/g, '<h4 class="editorial-header mt-4 mb-2">$1</h4>');
+          html = html.replace(/<h5>(.*?)<\/h5>/g, '<h5 class="editorial-header mt-4 mb-2">$1</h5>');
+          html = html.replace(/<h6>(.*?)<\/h6>/g, '<h6 class="editorial-header mt-4 mb-2">$1</h6>');
+          
+          // Paragraphs
+          html = html.replace(/<p>/g, '<p class="mb-2 leading-relaxed">');
+          
+          // Lists
+          html = html.replace(/<ul>/g, '<ul class="list-disc mb-3 ml-6 leading-snug">');
+          html = html.replace(/<ol>/g, '<ol class="list-decimal mb-3 ml-6 leading-snug">');
+          html = html.replace(/<li>/g, '<li class="mb-1">');
+          
+          // Links
+          html = html.replace(/<a /g, '<a class="text-blue-600 dark:text-blue-400 hover:underline" ');
+          
+          // Strong
+          html = html.replace(/<strong>/g, '<strong class="font-semibold">');
+          
+          // Horizontal rules
+          html = html.replace(/<hr>/g, '<hr class="border-t border-gray-300 dark:border-gray-700 my-6" />');
+          
+          setContent(html);
+        } catch (err) {
+          console.error('Error parsing markdown:', err);
+          setContent('<p class="text-red-600">Error loading content. Please refresh the page.</p>');
+        }
       })
       .catch(err => {
         console.error('Failed to load policy:', err);
