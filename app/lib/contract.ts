@@ -1313,7 +1313,7 @@ export class ContractService {
   }
   
   /**
-   * Get user's dossier IDs
+   * Get user's dossier IDs from V1 contract
    */
   static async getUserDossierIds(userAddress: Address): Promise<bigint[]> {
     try {
@@ -1327,13 +1327,49 @@ export class ContractService {
       return result as bigint[];
       
     } catch (error) {
-      console.error('❌ Failed to get user dossier IDs:', error);
-      throw error;
+      console.error('❌ Failed to get user dossier IDs from V1:', error);
+      return []; // Return empty array instead of throwing to allow V2 to work
     }
+  }
+
+  /**
+   * Get user's dossier IDs from V2 contract
+   */
+  static async getUserDossierIdsV2(userAddress: Address): Promise<bigint[]> {
+    try {
+      const result = await readContract(config, {
+        address: CANARY_DOSSIER_V2_ADDRESS,
+        abi: CANARY_DOSSIER_V2_ABI,
+        functionName: 'getUserDossierIds',
+        args: [userAddress],
+      });
+      
+      return result as bigint[];
+      
+    } catch (error) {
+      console.error('❌ Failed to get user dossier IDs from V2:', error);
+      return []; // Return empty array instead of throwing to allow V1 to work
+    }
+  }
+
+  /**
+   * Get user's dossier IDs from both V1 and V2 contracts
+   */
+  static async getAllUserDossierIds(userAddress: Address): Promise<{ v1: bigint[], v2: bigint[] }> {
+    console.log('📋 Fetching dossier IDs from both V1 and V2 contracts...');
+    
+    const [v1Ids, v2Ids] = await Promise.all([
+      this.getUserDossierIds(userAddress),
+      this.getUserDossierIdsV2(userAddress)
+    ]);
+    
+    console.log(`📊 Found ${v1Ids.length} V1 dossiers and ${v2Ids.length} V2 dossiers`);
+    
+    return { v1: v1Ids, v2: v2Ids };
   }
   
   /**
-   * Get dossier details
+   * Get dossier details from V1 contract
    */
   static async getDossier(userAddress: Address, dossierId: bigint): Promise<Dossier> {
     try {
@@ -1359,7 +1395,39 @@ export class ContractService {
       } as Dossier;
       
     } catch (error) {
-      console.error('❌ Failed to get dossier:', error);
+      console.error('❌ Failed to get V1 dossier:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get dossier details from V2 contract
+   */
+  static async getDossierV2(userAddress: Address, dossierId: bigint): Promise<Dossier> {
+    try {
+      const result = await readContract(config, {
+        address: CANARY_DOSSIER_V2_ADDRESS,
+        abi: CANARY_DOSSIER_V2_ABI,
+        functionName: 'getDossier',
+        args: [userAddress, dossierId],
+      });
+      
+      // V2 should have all the latest fields
+      const dossier = result as any;
+      return {
+        id: dossier.id,
+        name: dossier.name,
+        isActive: dossier.isActive,
+        isPermanentlyDisabled: dossier.isPermanentlyDisabled || false,
+        isReleased: dossier.isReleased || false,
+        checkInInterval: dossier.checkInInterval,
+        lastCheckIn: dossier.lastCheckIn,
+        encryptedFileHashes: dossier.encryptedFileHashes,
+        recipients: dossier.recipients
+      } as Dossier;
+      
+    } catch (error) {
+      console.error('❌ Failed to get V2 dossier:', error);
       throw error;
     }
   }

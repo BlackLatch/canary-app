@@ -943,51 +943,67 @@ const Home = () => {
       console.log("🔑 Auth mode:", authMode);
       console.log("🎯 Using address:", currentAddress);
 
-      const dossierIds = await ContractService.getUserDossierIds(
+      // Get dossier IDs from both V1 and V2 contracts
+      const { v1: v1DossierIds, v2: v2DossierIds } = await ContractService.getAllUserDossierIds(
         currentAddress as Address,
       );
 
       const dossiers: DossierWithStatus[] = [];
-      for (const id of dossierIds) {
-        const dossier = await ContractService.getDossier(
-          currentAddress as Address,
-          id,
-        );
-
-        // Check the actual decryptable status according to contract
-        let shouldStayEncrypted = true;
-        let isDecryptable = false;
+      
+      // Process V1 dossiers
+      for (const id of v1DossierIds) {
         try {
-          shouldStayEncrypted =
-            await ContractService.shouldDossierStayEncrypted(
-              currentAddress as Address,
-              id,
-            );
-          isDecryptable = !shouldStayEncrypted;
-        } catch (error) {
-          console.warn(
-            `Could not check encryption status for dossier #${id.toString()}:`,
-            error,
+          const dossier = await ContractService.getDossier(
+            currentAddress as Address,
+            id,
           );
-          // If contract call fails, assume not decryptable for security
-          isDecryptable = false;
+          
+          const currentTime = Date.now() / 1000;
+          const timeSinceLastCheckIn = currentTime - Number(dossier.lastCheckIn);
+          const shouldStayEncrypted = timeSinceLastCheckIn < Number(dossier.checkInInterval);
+          const isDecryptable = dossier.isActive && !shouldStayEncrypted;
+
+          const dossierWithStatus: DossierWithStatus = {
+            ...dossier,
+            isDecryptable: isDecryptable,
+          };
+
+          dossiers.push(dossierWithStatus);
+
           console.log(
-            `⚠️ Contract call failed for dossier #${id.toString()}, assuming encrypted for security`,
+            `📄 V1 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}`,
           );
+        } catch (error) {
+          console.error(`❌ Failed to load V1 dossier #${id.toString()}:`, error);
         }
+      }
+      
+      // Process V2 dossiers
+      for (const id of v2DossierIds) {
+        try {
+          const dossier = await ContractService.getDossierV2(
+            currentAddress as Address,
+            id,
+          );
+          
+          const currentTime = Date.now() / 1000;
+          const timeSinceLastCheckIn = currentTime - Number(dossier.lastCheckIn);
+          const shouldStayEncrypted = timeSinceLastCheckIn < Number(dossier.checkInInterval);
+          const isDecryptable = dossier.isActive && !shouldStayEncrypted;
 
-        // Add accurate decryptable status to dossier object
-        const dossierWithStatus: DossierWithStatus = {
-          ...dossier,
-          isDecryptable: isDecryptable,
-        };
+          const dossierWithStatus: DossierWithStatus = {
+            ...dossier,
+            isDecryptable: isDecryptable,
+          };
 
-        dossiers.push(dossierWithStatus);
+          dossiers.push(dossierWithStatus);
 
-        // Log the true status for debugging
-        console.log(
-          `📄 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}`,
-        );
+          console.log(
+            `📄 V2 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}`,
+          );
+        } catch (error) {
+          console.error(`❌ Failed to load V2 dossier #${id.toString()}:`, error);
+        }
       }
 
       setUserDossiers(dossiers);
