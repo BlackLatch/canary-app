@@ -4303,26 +4303,25 @@ const Home = () => {
                                         <p className="text-base leading-relaxed">
                                           Your document will be automatically
                                           decrypted and made publicly accessible
-                                          when your check-in deadline expires.
+                                          if no check-in occurs by your selected
+                                          deadline.
                                         </p>
                                         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                                           <p className="font-semibold mb-3 text-sm">
-                                            Best for:
+                                            Recommended when:
                                           </p>
                                           <ul className="space-y-2 text-sm">
                                             <li>
-                                              • Whistleblowing information
+                                              • You intend for the document to become public
                                             </li>
                                             <li>
-                                              • Public interest disclosures
+                                              • Broad visibility or long-term access is desired
                                             </li>
                                             <li>
-                                              • Documents intended for mass
-                                              distribution
+                                              • Recipients are undefined or not individually selected
                                             </li>
                                             <li>
-                                              • Evidence that needs wide
-                                              visibility
+                                              • You want to ensure availability regardless of personal access
                                             </li>
                                           </ul>
                                         </div>
@@ -4373,25 +4372,25 @@ const Home = () => {
                                         className={`space-y-4 ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
                                       >
                                         <p className="text-base leading-relaxed">
-                                          Your document will be sent only to
-                                          specific trusted contacts when your
-                                          check-in deadline expires.
+                                          Your document will be privately sent
+                                          to specific contacts if no check-in
+                                          occurs by your selected deadline.
                                         </p>
                                         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                                           <p className="font-semibold mb-3 text-sm">
-                                            Best for:
+                                            Recommended when:
                                           </p>
                                           <ul className="space-y-2 text-sm">
                                             <li>
-                                              • Personal wills and testaments
+                                              • You want to share with selected individuals only
                                             </li>
                                             <li>
-                                              • Confidential business documents
+                                              • Privacy and discretion are priorities
                                             </li>
                                             <li>
-                                              • Sensitive family information
+                                              • You need direct delivery without public exposure
                                             </li>
-                                            <li>• Private legal documents</li>
+                                            <li>• Recipients are trusted and known in advance</li>
                                           </ul>
                                         </div>
                                       </div>

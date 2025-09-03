@@ -38,14 +38,7 @@ export default function PublicReleasesPage() {
   }, [theme]);
 
   return (
-    <>
-      {/* Demo Disclaimer - shown when [learn more] is clicked */}
-      <DemoDisclaimer 
-        theme={theme} 
-        forceShow={showDemoDisclaimer}
-        onClose={() => setShowDemoDisclaimer(false)}
-      />
-      <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden">
       
       {/* Alpha Status Indicator - Non-dismissable */}
       <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`}>
@@ -263,6 +256,5 @@ export default function PublicReleasesPage() {
           </div>
         </footer>
       </div>
-    </>
   );
 }
