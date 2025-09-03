@@ -5,26 +5,35 @@ import { AlertTriangle, X } from 'lucide-react';
 
 interface DemoDisclaimerProps {
   theme: 'light' | 'dark';
+  forceShow?: boolean;
+  onClose?: () => void;
 }
 
-export default function DemoDisclaimer({ theme }: DemoDisclaimerProps) {
+export default function DemoDisclaimer({ theme, forceShow = false, onClose }: DemoDisclaimerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
-    // Check if user has opted to not show again
-    const hideDemo = localStorage.getItem('canary_hide_demo_disclaimer');
-    if (!hideDemo || hideDemo !== 'true') {
-      // Small delay to let the page render first
-      setTimeout(() => setIsOpen(true), 500);
+    if (forceShow) {
+      setIsOpen(true);
+    } else {
+      // Check if user has opted to not show again
+      const hideDemo = localStorage.getItem('canary_hide_demo_disclaimer');
+      if (!hideDemo || hideDemo !== 'true') {
+        // Small delay to let the page render first
+        setTimeout(() => setIsOpen(true), 500);
+      }
     }
-  }, []);
+  }, [forceShow]);
 
   const handleClose = () => {
-    if (dontShowAgain) {
+    if (!forceShow && dontShowAgain) {
       localStorage.setItem('canary_hide_demo_disclaimer', 'true');
     }
     setIsOpen(false);
+    if (onClose) {
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -81,18 +90,20 @@ export default function DemoDisclaimer({ theme }: DemoDisclaimerProps) {
               Future updates may reset or change how this demo works, which could affect access to anything created here.
             </p>
 
-            {/* Don't show again checkbox */}
-            <label className={`flex items-center gap-2 cursor-pointer ${
-              theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-            }`}>
-              <input
-                type="checkbox"
-                checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="rounded border-gray-300 dark:border-gray-600"
-              />
-              <span className="text-sm">Don't show this again</span>
-            </label>
+            {/* Don't show again checkbox - only show for automatic popups */}
+            {!forceShow && (
+              <label className={`flex items-center gap-2 cursor-pointer ${
+                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  className="rounded border-gray-300 dark:border-gray-600"
+                />
+                <span className="text-sm">Don't show this again</span>
+              </label>
+            )}
           </div>
 
           {/* Footer */}

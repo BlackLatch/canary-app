@@ -38,8 +38,6 @@ import {
   ContractService,
   CANARY_DOSSIER_ADDRESS,
   CANARY_DOSSIER_ABI,
-  CANARY_DOSSIER_V2_ADDRESS,
-  CANARY_DOSSIER_V2_ABI,
   Dossier,
   isOnPolygonAmoy,
   getNetworkName,
@@ -173,6 +171,7 @@ const Home = () => {
   const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
   const [showAUPForEncrypt, setShowAUPForEncrypt] = useState(false);
   const [hasAcceptedAUP, setHasAcceptedAUP] = useState(false);
+  const [showDemoDisclaimer, setShowDemoDisclaimer] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const additionalFilesInputRef = useRef<HTMLInputElement>(null);
@@ -491,9 +490,9 @@ const Home = () => {
         // Use smart wallet for gasless transaction only in standard mode
         let result;
         if (smartWalletClient && authMode === "standard") {
-          // Create the transaction data - use V2 contract for enhanced features
+          // Create the transaction data for enhanced features
           const txData = encodeFunctionData({
-            abi: CANARY_DOSSIER_V2_ABI,
+            abi: CANARY_DOSSIER_ABI,
             functionName: "createDossier",
             args: [
               dossierName,
@@ -505,12 +504,12 @@ const Home = () => {
           });
 
           console.log(
-            "🚀 Using smart wallet with V2 contract for gasless transaction...",
+            "🚀 Using smart wallet for gasless transaction...",
           );
           const txHash = await smartWalletClient.sendTransaction({
             account: smartWalletClient.account,
             chain: polygonAmoy,
-            to: CANARY_DOSSIER_V2_ADDRESS,
+            to: CANARY_DOSSIER_ADDRESS,
             data: txData,
           });
 
@@ -562,31 +561,17 @@ const Home = () => {
             "⚠️ Smart wallet not available, using regular transaction",
           );
 
-          // Use V2 contract for new dossiers to enable enhanced features
-          // (update schedule, add files after creation)
-          try {
-            console.log(
-              "🚀 Creating dossier with V2 contract for enhanced features...",
-            );
-            result = await ContractService.createDossierV2(
-              dossierName,
-              description || "",
-              checkInMinutes,
-              recipients,
-              fileHashes,
-            );
-            toast.success("Enhanced dossier created with update capabilities");
-          } catch (v2Error) {
-            console.warn("V2 creation failed, falling back to V1:", v2Error);
-            // Fallback to V1 if V2 fails
-            result = await ContractService.createDossier(
-              dossierName,
-              description || "",
-              checkInMinutes,
-              recipients,
-              fileHashes,
-            );
-          }
+          console.log(
+            "📝 Creating dossier...",
+          );
+          result = await ContractService.createDossier(
+            dossierName,
+            description || "",
+            checkInMinutes,
+            recipients,
+            fileHashes,
+          );
+          toast.success("Dossier created successfully");
         }
 
         dossierId = result.dossierId;
@@ -943,15 +928,15 @@ const Home = () => {
       console.log("🔑 Auth mode:", authMode);
       console.log("🎯 Using address:", currentAddress);
 
-      // Get dossier IDs from both V1 and V2 contracts
-      const { v1: v1DossierIds, v2: v2DossierIds } = await ContractService.getAllUserDossierIds(
+      // Get dossier IDs from contract
+      const dossierIds = await ContractService.getUserDossierIds(
         currentAddress as Address,
       );
 
       const dossiers: DossierWithStatus[] = [];
       
-      // Process V1 dossiers
-      for (const id of v1DossierIds) {
+      // Process dossiers
+      for (const id of dossierIds) {
         try {
           const dossier = await ContractService.getDossier(
             currentAddress as Address,
@@ -971,38 +956,10 @@ const Home = () => {
           dossiers.push(dossierWithStatus);
 
           console.log(
-            `📄 V1 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}`,
+            `📄 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}`,
           );
         } catch (error) {
-          console.error(`❌ Failed to load V1 dossier #${id.toString()}:`, error);
-        }
-      }
-      
-      // Process V2 dossiers
-      for (const id of v2DossierIds) {
-        try {
-          const dossier = await ContractService.getDossierV2(
-            currentAddress as Address,
-            id,
-          );
-          
-          const currentTime = Date.now() / 1000;
-          const timeSinceLastCheckIn = currentTime - Number(dossier.lastCheckIn);
-          const shouldStayEncrypted = timeSinceLastCheckIn < Number(dossier.checkInInterval);
-          const isDecryptable = dossier.isActive && !shouldStayEncrypted;
-
-          const dossierWithStatus: DossierWithStatus = {
-            ...dossier,
-            isDecryptable: isDecryptable,
-          };
-
-          dossiers.push(dossierWithStatus);
-
-          console.log(
-            `📄 V2 Dossier #${id.toString()}: isActive=${dossier.isActive}, shouldStayEncrypted=${shouldStayEncrypted}, isDecryptable=${isDecryptable}, fileHashes=${dossier.encryptedFileHashes.length}`,
-          );
-        } catch (error) {
-          console.error(`❌ Failed to load V2 dossier #${id.toString()}:`, error);
+          console.error(`❌ Failed to load dossier #${id.toString()}:`, error);
         }
       }
 
@@ -1753,7 +1710,11 @@ const Home = () => {
   return (
     <div className={theme}>
       <Toaster position="top-right" />
-      <DemoDisclaimer theme={theme} />
+      <DemoDisclaimer 
+        theme={theme} 
+        forceShow={showDemoDisclaimer}
+        onClose={() => setShowDemoDisclaimer(false)}
+      />
       <Suspense fallback={null}>
         <HomeContent onViewChange={setCurrentView} />
       </Suspense>
@@ -1769,8 +1730,14 @@ const Home = () => {
               <span
                 className={`text-xs font-medium tracking-wider uppercase ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
               >
-                TESTNET DEMO · NO PRODUCTION GUARANTEES · USE AT YOUR OWN RISK
+                FOR DEMONSTRATION PURPOSES ONLY
               </span>
+              <button
+                onClick={() => setShowDemoDisclaimer(true)}
+                className={`text-xs hover:underline ${theme === "light" ? "text-red-600" : "text-red-400"}`}
+              >
+                [learn more]
+              </button>
             </div>
           </div>
         </div>
@@ -2609,19 +2576,19 @@ const Home = () => {
                                     </div>
                                     {/* Release Visibility Badge */}
                                     <div
-                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium uppercase tracking-wider border ${
+                                      className={`inline-flex items-center gap-2 px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                                         selectedDocument.recipients &&
                                         selectedDocument.recipients.length > 0
                                           ? theme === "light"
-                                            ? "bg-amber-50 text-amber-800 border-amber-300"
-                                            : "bg-amber-900/10 text-amber-400 border-amber-600"
+                                            ? "bg-black text-white border-black"
+                                            : "bg-white text-gray-900 border-white"
                                           : theme === "light"
-                                            ? "bg-green-50 text-green-800 border-green-300"
-                                            : "bg-green-900/10 text-green-400 border-green-600"
+                                            ? "bg-white text-gray-700 border-gray-300"
+                                            : "bg-black/20 text-gray-300 border-gray-600"
                                       }`}
                                     >
                                       <svg
-                                        className="w-3.5 h-3.5"
+                                        className="w-4 h-4"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -3724,19 +3691,19 @@ const Home = () => {
                                             {/* Release Visibility Indicator */}
                                             <div className="text-center mb-4">
                                               <div
-                                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wider border ${
+                                                className={`inline-flex items-center gap-2 px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                                                   dossier.recipients &&
                                                   dossier.recipients.length > 0
                                                     ? theme === "light"
-                                                      ? "bg-amber-50 text-amber-800 border-amber-300"
-                                                      : "bg-amber-900/10 text-amber-400 border-amber-600"
+                                                      ? "bg-black text-white border-black"
+                                                      : "bg-white text-gray-900 border-white"
                                                     : theme === "light"
-                                                      ? "bg-green-50 text-green-800 border-green-300"
-                                                      : "bg-green-900/10 text-green-400 border-green-600"
+                                                      ? "bg-white text-gray-700 border-gray-300"
+                                                      : "bg-black/20 text-gray-300 border-gray-600"
                                                 }`}
                                               >
                                                 <svg
-                                                  className="w-3.5 h-3.5"
+                                                  className="w-4 h-4"
                                                   fill="none"
                                                   stroke="currentColor"
                                                   viewBox="0 0 24 24"

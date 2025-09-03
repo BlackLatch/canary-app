@@ -4,13 +4,17 @@ import type { Address } from 'viem';
 import { config } from './web3'; // Use the main wagmi config
 import { ensureCorrectNetwork } from './network-switch';
 
-// Deployed contract address on Polygon Amoy (testnet)
+// DossierV2 Contract - deployed with enhanced features
 // IMPORTANT: This contract is ONLY deployed on Polygon Amoy, not on mainnet
 // All transactions must be on chain ID 80002 (Polygon Amoy)
-export const CANARY_DOSSIER_ADDRESS: Address = '0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0';
+export const CANARY_DOSSIER_ADDRESS: Address = process.env.NEXT_PUBLIC_CANARY_DOSSIER_V2_ADDRESS as Address || '0x7616ed018d9eF80487fa50A2736E1081BDB7cE8c';
 
-// Contract ABI - generated from your simplified Dossier.sol
-export const CANARY_DOSSIER_ABI = [
+// Import the DossierV2 ABI
+import dossierV2ABI from './dossierV2.abi.json';
+export const CANARY_DOSSIER_ABI = dossierV2ABI as any;
+
+// Legacy V1 ABI (removed) - keeping structure for reference
+const LEGACY_V1_ABI = [
   // Constructor
   {
     "inputs": [],
@@ -206,13 +210,6 @@ export const CANARY_DOSSIER_ABI = [
     "type": "event"
   }
 ] as const;
-
-// DossierV2 Contract - deployed with enhanced features
-export const CANARY_DOSSIER_V2_ADDRESS: Address = process.env.NEXT_PUBLIC_CANARY_DOSSIER_V2_ADDRESS as Address || '0x7616ed018d9eF80487fa50A2736E1081BDB7cE8c';
-
-// Import the DossierV2 ABI
-import dossierV2ABI from './dossierV2.abi.json';
-export const CANARY_DOSSIER_V2_ABI = dossierV2ABI as any;
 
 export interface Dossier {
   id: bigint;
@@ -1313,7 +1310,7 @@ export class ContractService {
   }
   
   /**
-   * Get user's dossier IDs from V1 contract
+   * Get user's dossier IDs
    */
   static async getUserDossierIds(userAddress: Address): Promise<bigint[]> {
     try {
@@ -1327,49 +1324,13 @@ export class ContractService {
       return result as bigint[];
       
     } catch (error) {
-      console.error('❌ Failed to get user dossier IDs from V1:', error);
-      return []; // Return empty array instead of throwing to allow V2 to work
+      console.error('❌ Failed to get user dossier IDs:', error);
+      throw error;
     }
-  }
-
-  /**
-   * Get user's dossier IDs from V2 contract
-   */
-  static async getUserDossierIdsV2(userAddress: Address): Promise<bigint[]> {
-    try {
-      const result = await readContract(config, {
-        address: CANARY_DOSSIER_V2_ADDRESS,
-        abi: CANARY_DOSSIER_V2_ABI,
-        functionName: 'getUserDossierIds',
-        args: [userAddress],
-      });
-      
-      return result as bigint[];
-      
-    } catch (error) {
-      console.error('❌ Failed to get user dossier IDs from V2:', error);
-      return []; // Return empty array instead of throwing to allow V1 to work
-    }
-  }
-
-  /**
-   * Get user's dossier IDs from both V1 and V2 contracts
-   */
-  static async getAllUserDossierIds(userAddress: Address): Promise<{ v1: bigint[], v2: bigint[] }> {
-    console.log('📋 Fetching dossier IDs from both V1 and V2 contracts...');
-    
-    const [v1Ids, v2Ids] = await Promise.all([
-      this.getUserDossierIds(userAddress),
-      this.getUserDossierIdsV2(userAddress)
-    ]);
-    
-    console.log(`📊 Found ${v1Ids.length} V1 dossiers and ${v2Ids.length} V2 dossiers`);
-    
-    return { v1: v1Ids, v2: v2Ids };
   }
   
   /**
-   * Get dossier details from V1 contract
+   * Get dossier details
    */
   static async getDossier(userAddress: Address, dossierId: bigint): Promise<Dossier> {
     try {
@@ -1380,43 +1341,12 @@ export class ContractService {
         args: [userAddress, dossierId],
       });
       
-      // Add default values for new fields that don't exist in deployed contract yet
+      // V2 has all the latest fields
       const dossier = result as any;
       return {
         id: dossier.id,
         name: dossier.name,
-        isActive: dossier.isActive,
-        isPermanentlyDisabled: dossier.isPermanentlyDisabled || false, // Default to false if missing
-        isReleased: dossier.isReleased || false, // Default to false if missing
-        checkInInterval: dossier.checkInInterval,
-        lastCheckIn: dossier.lastCheckIn,
-        encryptedFileHashes: dossier.encryptedFileHashes,
-        recipients: dossier.recipients
-      } as Dossier;
-      
-    } catch (error) {
-      console.error('❌ Failed to get V1 dossier:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get dossier details from V2 contract
-   */
-  static async getDossierV2(userAddress: Address, dossierId: bigint): Promise<Dossier> {
-    try {
-      const result = await readContract(config, {
-        address: CANARY_DOSSIER_V2_ADDRESS,
-        abi: CANARY_DOSSIER_V2_ABI,
-        functionName: 'getDossier',
-        args: [userAddress, dossierId],
-      });
-      
-      // V2 should have all the latest fields
-      const dossier = result as any;
-      return {
-        id: dossier.id,
-        name: dossier.name,
+        description: dossier.description || '',
         isActive: dossier.isActive,
         isPermanentlyDisabled: dossier.isPermanentlyDisabled || false,
         isReleased: dossier.isReleased || false,
@@ -1427,7 +1357,7 @@ export class ContractService {
       } as Dossier;
       
     } catch (error) {
-      console.error('❌ Failed to get V2 dossier:', error);
+      console.error('❌ Failed to get dossier:', error);
       throw error;
     }
   }
@@ -1873,9 +1803,9 @@ export class ContractService {
    */
   
   /**
-   * Create a new dossier using V2 contract with enhanced features
+   * Create a new dossier with enhanced features (description, update capabilities)
    */
-  static async createDossierV2(
+  static async createDossier(
     name: string,
     description: string,
     checkInIntervalMinutes: number,
@@ -1889,8 +1819,8 @@ export class ContractService {
       
       // Use V2 contract
       const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_V2_ADDRESS,
-        abi: CANARY_DOSSIER_V2_ABI,
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
         functionName: 'createDossier',
         args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
         gas: BigInt(500000),
@@ -1905,8 +1835,8 @@ export class ContractService {
       
       try {
         const dossierIds = await readContract(config, {
-          address: CANARY_DOSSIER_V2_ADDRESS,
-          abi: CANARY_DOSSIER_V2_ABI,
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
           functionName: 'getUserDossierIds',
           args: [account.address],
         });
@@ -1943,8 +1873,8 @@ export class ContractService {
       
       // Use V2 contract
       const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_V2_ADDRESS,
-        abi: CANARY_DOSSIER_V2_ABI,
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
         functionName: 'updateCheckInInterval',
         args: [dossierId, newIntervalSeconds],
         gas: BigInt(200000),
@@ -1971,8 +1901,8 @@ export class ContractService {
       
       // Use V2 contract
       const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_V2_ADDRESS,
-        abi: CANARY_DOSSIER_V2_ABI,
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
         functionName: 'addFileHash',
         args: [dossierId, fileHash],
         gas: BigInt(200000),
@@ -1999,8 +1929,8 @@ export class ContractService {
       
       // Use V2 contract
       const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_V2_ADDRESS,
-        abi: CANARY_DOSSIER_V2_ABI,
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
         functionName: 'addMultipleFileHashes',
         args: [dossierId, fileHashes],
         gas: BigInt(300000 + fileHashes.length * 50000), // Dynamic gas based on file count

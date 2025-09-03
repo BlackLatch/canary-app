@@ -6,6 +6,7 @@ import { useTheme } from '@/app/lib/theme-context';
 import { useAccount, useDisconnect } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import PublicReleasesView from '@/app/components/PublicReleasesView';
+import DemoDisclaimer from '@/app/components/DemoDisclaimer';
 import Link from 'next/link';
 
 export default function PublicReleasesPage() {
@@ -13,6 +14,7 @@ export default function PublicReleasesPage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { authenticated, user, logout } = usePrivy();
+  const [showDemoDisclaimer, setShowDemoDisclaimer] = useState(false);
   const [authMode, setAuthMode] = useState<'standard' | 'advanced'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('canary-auth-mode') as 'standard' | 'advanced') || 'standard';
@@ -36,15 +38,28 @@ export default function PublicReleasesPage() {
   }, [theme]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <>
+      {/* Demo Disclaimer - shown when [learn more] is clicked */}
+      <DemoDisclaimer 
+        theme={theme} 
+        forceShow={showDemoDisclaimer}
+        onClose={() => setShowDemoDisclaimer(false)}
+      />
+      <div className="h-screen flex flex-col overflow-hidden">
       
       {/* Alpha Status Indicator - Non-dismissable */}
       <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-center h-8">
+          <div className="flex items-center justify-center h-8 gap-2">
             <span className={`text-xs font-medium tracking-wider uppercase ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-              TESTNET DEMO · NO PRODUCTION GUARANTEES · USE AT YOUR OWN RISK
+              FOR DEMONSTRATION PURPOSES ONLY
             </span>
+            <button
+              onClick={() => setShowDemoDisclaimer(true)}
+              className={`text-xs hover:underline ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}
+            >
+              [learn more]
+            </button>
           </div>
         </div>
       </div>
@@ -248,6 +263,6 @@ export default function PublicReleasesPage() {
           </div>
         </footer>
       </div>
-    </div>
+    </>
   );
 }
