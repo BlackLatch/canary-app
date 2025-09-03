@@ -7,6 +7,25 @@ import { AlertTriangle, FileText, Shield, X } from 'lucide-react';
 
 const POLICY_VERSION = '1.0.0';
 
+// Utility function to check if AUP is signed
+export const checkAUPSigned = (identifier: string | undefined): boolean => {
+  if (!identifier) return false;
+  
+  const storageKey = `canary_aup_signature_${identifier}`;
+  const existingSignature = localStorage.getItem(storageKey);
+  
+  if (existingSignature) {
+    try {
+      const parsed = JSON.parse(existingSignature);
+      return parsed.version === POLICY_VERSION;
+    } catch {
+      return false;
+    }
+  }
+  
+  return false;
+};
+
 // EIP-712 Domain
 const domain = {
   name: 'Canary',
@@ -26,11 +45,15 @@ const types = {
 interface AcceptableUsePolicyProps {
   onAccepted: () => void;
   theme: 'light' | 'dark';
+  shouldCheck?: boolean;
+  onSignatureCheck?: (isSigned: boolean) => void;
+  skipDemoStep?: boolean;
+  onDismissed?: () => void;
 }
 
-export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUsePolicyProps) {
+export default function AcceptableUsePolicy({ onAccepted, theme, shouldCheck = false, onSignatureCheck, skipDemoStep = false, onDismissed }: AcceptableUsePolicyProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'demo' | 'legal'>('demo');
+  const [currentStep, setCurrentStep] = useState<'demo' | 'legal'>(skipDemoStep ? 'legal' : 'demo');
   const [isSigning, setIsSigning] = useState(false);
   const { address, isConnected } = useAccount();
   const { user, authenticated } = usePrivy();
@@ -38,6 +61,11 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
 
   // Check if user has already signed
   useEffect(() => {
+    if (!shouldCheck) {
+      setIsOpen(false);
+      return;
+    }
+
     const checkSignature = () => {
       const identifier = address || user?.email?.address || user?.id;
       if (!identifier) return;
@@ -51,21 +79,27 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
         if (parsed.version === POLICY_VERSION) {
           console.log('✅ User has already accepted AUP version', POLICY_VERSION);
           setIsOpen(false);
+          if (onSignatureCheck) {
+            onSignatureCheck(true);
+          }
           return;
         }
       }
       
       // Show modal if not signed or outdated version
       setIsOpen(true);
-      setCurrentStep('demo'); // Start with demo disclaimer
+      setCurrentStep(skipDemoStep ? 'legal' : 'demo'); // Start with appropriate step
+      if (onSignatureCheck) {
+        onSignatureCheck(false);
+      }
     };
 
-    // Check when user authenticates
-    if (authenticated || isConnected) {
+    // Check when user authenticates and shouldCheck is true
+    if ((authenticated || isConnected) && shouldCheck) {
       // Small delay to ensure wallet is ready
       setTimeout(checkSignature, 500);
     }
-  }, [authenticated, isConnected, address, user]);
+  }, [authenticated, isConnected, address, user, shouldCheck, onSignatureCheck, skipDemoStep]);
 
   const handleContinueToLegal = () => {
     setCurrentStep('legal');
@@ -119,6 +153,9 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
       console.log('✅ AUP signature stored locally');
       
       setIsOpen(false);
+      if (onSignatureCheck) {
+        onSignatureCheck(true);
+      }
       onAccepted();
     } catch (error) {
       console.error('Failed to sign AUP:', error);
@@ -133,8 +170,14 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
   };
 
   const handleClose = () => {
-    if (currentStep === 'demo') {
+    if (currentStep === 'demo' && !skipDemoStep) {
       handleContinueToLegal();
+    } else {
+      // Close modal if skipDemoStep is true or we're not on demo step
+      setIsOpen(false);
+      if (onDismissed) {
+        onDismissed();
+      }
     }
   };
 
@@ -153,7 +196,7 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
             : 'bg-black border-gray-600'
         }`}>
           
-          {currentStep === 'demo' ? (
+          {currentStep === 'demo' && !skipDemoStep ? (
             <>
               {/* Demo Disclaimer Step */}
               <div className={`flex items-center justify-between p-6 border-b ${
@@ -225,13 +268,24 @@ export default function AcceptableUsePolicy({ onAccepted, theme }: AcceptableUse
                   </h2>
                 </div>
                 <button
-                  onClick={() => setCurrentStep('demo')}
+                  onClick={() => {
+                    if (skipDemoStep) {
+                      // If we skipped demo, close the modal entirely and notify parent
+                      setIsOpen(false);
+                      if (onDismissed) {
+                        onDismissed();
+                      }
+                    } else {
+                      // Otherwise go back to demo step
+                      setCurrentStep('demo');
+                    }
+                  }}
                   className={`p-1.5 rounded-full transition-colors ${
                     theme === 'light' 
                       ? 'hover:bg-gray-100 text-gray-600' 
                       : 'hover:bg-white/10 text-gray-400'
                   }`}
-                  aria-label="Back"
+                  aria-label={skipDemoStep ? "Close" : "Back"}
                 >
                   <X className="w-5 h-5" />
                 </button>

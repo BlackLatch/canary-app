@@ -12,6 +12,7 @@ import {
   Moon,
   Mic,
   Video,
+  Settings,
 } from "lucide-react";
 import {
   commitEncryptedFileToPinata,
@@ -22,7 +23,9 @@ import {
 import { useTheme } from "./lib/theme-context";
 import MediaRecorder from "./components/MediaRecorder";
 import NoDocumentsPlaceholder from "./components/NoDocumentsPlaceholder";
-import AcceptableUsePolicy from "./components/AcceptableUsePolicy";
+import AcceptableUsePolicy, { checkAUPSigned } from "./components/AcceptableUsePolicy";
+import SettingsView from "./components/SettingsView";
+import DemoDisclaimer from "./components/DemoDisclaimer";
 import { useSearchParams } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -53,7 +56,7 @@ interface DossierWithStatus extends Dossier {
 const HomeContent = ({
   onViewChange,
 }: {
-  onViewChange: (view: "checkin" | "documents") => void;
+  onViewChange: (view: "checkin" | "documents" | "settings") => void;
 }) => {
   const searchParams = useSearchParams();
 
@@ -63,6 +66,8 @@ const HomeContent = ({
       onViewChange("documents");
     } else if (view === "checkin") {
       onViewChange("checkin");
+    } else if (view === "settings") {
+      onViewChange("settings");
     }
   }, [searchParams, onViewChange]);
 
@@ -144,7 +149,7 @@ const Home = () => {
   const [releaseMode, setReleaseMode] = useState<"public" | "contacts">(
     "public",
   );
-  const [currentView, setCurrentView] = useState<"checkin" | "documents">(
+  const [currentView, setCurrentView] = useState<"checkin" | "documents" | "settings">(
     "checkin",
   );
   const [isCheckingIn, setIsCheckingIn] = useState(false);
@@ -166,9 +171,21 @@ const Home = () => {
   const [showAddFiles, setShowAddFiles] = useState(false);
   const [newCheckInInterval, setNewCheckInInterval] = useState("");
   const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
+  const [showAUPForEncrypt, setShowAUPForEncrypt] = useState(false);
+  const [hasAcceptedAUP, setHasAcceptedAUP] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const additionalFilesInputRef = useRef<HTMLInputElement>(null);
+
+  // Check AUP status when entering encryption step (but don't auto-show popup)
+  useEffect(() => {
+    if (currentStep === 4 && showCreateForm) {
+      const identifier = getCurrentAddress() || user?.email?.address || user?.id;
+      const isSigned = checkAUPSigned(identifier);
+      setHasAcceptedAUP(isSigned);
+      // Don't automatically show the popup - user must click the button
+    }
+  }, [currentStep, showCreateForm, address, user]);
 
   // Dossier detail navigation
   const openDocumentDetail = (document: DossierWithStatus) => {
@@ -1720,10 +1737,7 @@ const Home = () => {
   return (
     <div className={theme}>
       <Toaster position="top-right" />
-      <AcceptableUsePolicy 
-        theme={theme}
-        onAccepted={() => console.log('AUP and demo disclaimer accepted')}
-      />
+      <DemoDisclaimer theme={theme} />
       <Suspense fallback={null}>
         <HomeContent onViewChange={setCurrentView} />
       </Suspense>
@@ -1793,6 +1807,22 @@ const Home = () => {
                     <a href="/feed" className="nav-link">
                       PUBLIC RELEASES
                     </a>
+                    <button
+                      onClick={() => setCurrentView("settings")}
+                      className={`p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-white/10 ${
+                        currentView === "settings" 
+                          ? theme === "light" 
+                            ? "bg-gray-100 text-gray-900" 
+                            : "bg-white/10 text-white"
+                          : theme === "light"
+                            ? "text-gray-500 hover:text-gray-700"
+                            : "text-gray-400 hover:text-gray-200"
+                      }`}
+                      aria-label="Settings"
+                      title="Settings"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
                   </nav>
 
                   {/* Wallet Status and Theme Toggle */}
@@ -2428,6 +2458,9 @@ const Home = () => {
                   )}
                 </div>
               </div>
+            ) : currentView === "settings" ? (
+              // Settings View
+              <SettingsView onBack={() => setCurrentView("checkin")} />
             ) : (
               // Documents View - Matching Public Releases Layout
               <div
@@ -4780,6 +4813,41 @@ const Home = () => {
                                     Step 4 of 5
                                   </p>
                                 </div>
+                                
+                                {/* AUP Accept Terms Button */}
+                                {!hasAcceptedAUP && (
+                                  <div className={`editorial-card-bordered p-6 mb-6 ${
+                                    theme === "light" 
+                                      ? "bg-amber-50 border-amber-200" 
+                                      : "bg-amber-900/10 border-amber-800"
+                                  }`}>
+                                    <div className="flex items-start gap-4">
+                                      <AlertCircle className="w-5 h-5 text-amber-600 mt-1" />
+                                      <div className="flex-1">
+                                        <h4 className={`editorial-label mb-3 ${
+                                          theme === "light" ? "text-gray-900" : "text-gray-100"
+                                        }`}>
+                                          Terms & Policies Required
+                                        </h4>
+                                        <p className={`editorial-body mb-4 ${
+                                          theme === "light" ? "text-gray-700" : "text-gray-300"
+                                        }`}>
+                                          Before encrypting files, you must accept our Acceptable Use Policy and Terms of Service.
+                                        </p>
+                                        <button
+                                          onClick={() => setShowAUPForEncrypt(true)}
+                                          className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors w-fit ${
+                                            theme === "light"
+                                              ? "bg-black text-white border-black hover:bg-gray-800"
+                                              : "bg-white text-gray-900 border-white hover:bg-gray-100"
+                                          }`}
+                                        >
+                                          Accept Terms to Continue
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     {/* Left Column - Files List and Add Options */}
@@ -5379,9 +5447,15 @@ const Home = () => {
                                     toast.error("Please enter a document name");
                                     return;
                                   }
-                                  if (currentStep === 4 && uploadedFiles.length === 0 && !uploadedFile) {
-                                    toast.error("Please add at least one file");
-                                    return;
+                                  if (currentStep === 4) {
+                                    if (!hasAcceptedAUP) {
+                                      toast.error("Please accept the Terms & Policies first");
+                                      return;
+                                    }
+                                    if (uploadedFiles.length === 0 && !uploadedFile) {
+                                      toast.error("Please add at least one file");
+                                      return;
+                                    }
                                   }
                                   if (
                                     currentStep === 3 &&
@@ -6265,6 +6339,28 @@ const Home = () => {
           </div>
         </>
       )}
+      
+      {/* AUP Modal - Only shown when triggered from encryption step */}
+      <AcceptableUsePolicy 
+        theme={theme}
+        shouldCheck={showAUPForEncrypt}
+        skipDemoStep={true}
+        onAccepted={() => {
+          console.log('AUP accepted from encryption step');
+          setHasAcceptedAUP(true);
+          setShowAUPForEncrypt(false);
+        }}
+        onSignatureCheck={(isSigned) => {
+          setHasAcceptedAUP(isSigned);
+          if (isSigned) {
+            setShowAUPForEncrypt(false);
+          }
+        }}
+        onDismissed={() => {
+          // User dismissed the modal, reset the trigger state
+          setShowAUPForEncrypt(false);
+        }}
+      />
     </div>
   );
 };
