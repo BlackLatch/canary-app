@@ -8,10 +8,6 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  // Disable experimental features that may cause lightningcss issues
-  experimental: {
-    optimizeCss: false,
-  },
   // Make build more permissive for static export
   eslint: {
     ignoreDuringBuilds: true,
@@ -79,29 +75,6 @@ const nextConfig = {
       });
     }
 
-    // Handle lightningcss native module issues
-    if (!isServer) {
-      // Ignore native modules in client bundle
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'lightningcss': false,
-        'lightningcss-linux-x64-gnu': false,
-        'lightningcss-darwin-arm64': false,
-        'lightningcss-darwin-x64': false
-      };
-    }
-    
-    // For server-side, handle .node files
-    if (isServer) {
-      config.externals = config.externals || [];
-      // Don't bundle native modules
-      config.externals.push(/^lightningcss.*$/);
-    }
-    
-    // Ignore .node file warnings
-    config.ignoreWarnings = config.ignoreWarnings || [];
-    config.ignoreWarnings.push(/\.node$/);
-    config.ignoreWarnings.push(/lightningcss/);
 
     return config;
   },
