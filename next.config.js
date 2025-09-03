@@ -15,7 +15,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
+    // Disable webpack cache in production builds to avoid deployment issues
+    if (process.env.NODE_ENV === 'production') {
+      config.cache = false;
+    }
+    
     // Helper function to safely require modules
     const safeRequire = (moduleName) => {
       try {
