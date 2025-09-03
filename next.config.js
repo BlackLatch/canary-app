@@ -8,6 +8,10 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
+  // Disable experimental features that may cause lightningcss issues
+  experimental: {
+    optimizeCss: false,
+  },
   // Make build more permissive for static export
   eslint: {
     ignoreDuringBuilds: true,
@@ -73,6 +77,18 @@ const nextConfig = {
         test: /\.node$/,
         use: 'raw-loader',
       });
+    }
+
+    // Handle lightningcss native module issues in production builds
+    if (process.env.NODE_ENV === 'production') {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'lightningcss': 'lightningcss'
+      });
+      
+      // Suppress specific native module warnings
+      config.ignoreWarnings = config.ignoreWarnings || [];
+      config.ignoreWarnings.push(/lightningcss.*\.node/);
     }
 
     return config;
