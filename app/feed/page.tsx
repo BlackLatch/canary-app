@@ -6,7 +6,6 @@ import { useTheme } from '@/app/lib/theme-context';
 import { useAccount, useDisconnect } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import PublicReleasesView from '@/app/components/PublicReleasesView';
-import DemoDisclaimer from '@/app/components/DemoDisclaimer';
 import Link from 'next/link';
 
 export default function PublicReleasesPage() {
@@ -14,7 +13,6 @@ export default function PublicReleasesPage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { authenticated, user, logout } = usePrivy();
-  const [showDemoDisclaimer, setShowDemoDisclaimer] = useState(false);
   const [authMode, setAuthMode] = useState<'standard' | 'advanced'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('canary-auth-mode') as 'standard' | 'advanced') || 'standard';
@@ -37,7 +35,7 @@ export default function PublicReleasesPage() {
     // Clean theme setup - no mesh backgrounds
   }, [theme]);
 
-  return (
+  const pageContent = (
     <div className="h-screen flex flex-col overflow-hidden">
       
       {/* Alpha Status Indicator - Non-dismissable */}
@@ -47,12 +45,11 @@ export default function PublicReleasesPage() {
             <span className={`text-xs font-medium tracking-wider uppercase ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
               FOR DEMONSTRATION PURPOSES ONLY
             </span>
-            <button
-              onClick={() => setShowDemoDisclaimer(true)}
-              className={`text-xs hover:underline ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}
+            <span
+              className={`text-xs ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}
             >
               [learn more]
-            </button>
+            </span>
           </div>
         </div>
       </div>
@@ -256,5 +253,8 @@ export default function PublicReleasesPage() {
           </div>
         </footer>
       </div>
+    </div>
   );
+
+  return pageContent;
 }
