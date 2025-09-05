@@ -101,7 +101,7 @@ class TacoService {
         stateMutability: 'view'
       },
       method: 'shouldDossierStayEncrypted',
-      parameters: [userAddress, dossierId.toString()],
+      parameters: [userAddress, '0x' + dossierId.toString(16)],
       returnValueTest: {
         comparator: '==',
         value: false, // Decryption allowed when function returns false (check-in missed)

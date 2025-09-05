@@ -4710,7 +4710,7 @@ const Home = () => {
                                           : "text-gray-300"
                                       }`}
                                     >
-                                      How Check-in Schedule Works
+                                      Your Check-in Schedule
                                     </h4>
                                     <div
                                       className={`space-y-3 text-sm ${
@@ -4720,46 +4720,43 @@ const Home = () => {
                                       }`}
                                     >
                                       <p>
-                                        The check-in schedule acts as a{" "}
-                                        <strong>deadman switch</strong>. You
-                                        must regularly confirm you're okay to
-                                        prevent automatic release.
+                                        Set how often you need to check in.
+                                        If you don't check in on schedule, your designated
+                                        recipients will gain access to your dossier.
                                       </p>
 
                                       <div className="space-y-2">
                                         <p className="font-semibold">
-                                          Choose based on your situation:
+                                          Choose your check-in frequency:
                                         </p>
                                         <ul className="space-y-2 ml-4">
                                           <li className="flex items-start">
                                             <span className="mr-2">•</span>
                                             <span>
-                                              <strong>Daily:</strong> High-risk
-                                              situations requiring frequent
-                                              confirmation
+                                              <strong>Daily:</strong> For time-sensitive
+                                              situations where quick response is important
                                             </span>
                                           </li>
                                           <li className="flex items-start">
                                             <span className="mr-2">•</span>
                                             <span>
-                                              <strong>Weekly:</strong> Standard
-                                              protection for most use cases
+                                              <strong>Weekly:</strong> Balanced option
+                                              for regular monitoring
                                             </span>
                                           </li>
                                           <li className="flex items-start">
                                             <span className="mr-2">•</span>
                                             <span>
                                               <strong>Monthly:</strong>{" "}
-                                              Long-term protection with minimal
-                                              maintenance
+                                              For long-term storage with
+                                              occasional check-ins
                                             </span>
                                           </li>
                                           <li className="flex items-start">
                                             <span className="mr-2">•</span>
                                             <span>
-                                              <strong>Custom:</strong> Set your
-                                              own interval based on specific
-                                              needs
+                                              <strong>Custom:</strong> Define your
+                                              own schedule that fits your needs
                                             </span>
                                           </li>
                                         </ul>
@@ -4776,10 +4773,10 @@ const Home = () => {
                                           Grace Period:
                                         </p>
                                         <p>
-                                          After missing a check-in, you'll have
-                                          a 48-hour grace period to check in
-                                          before the dossier is permanently
-                                          released.
+                                          If you miss a scheduled check-in, you have
+                                          an additional 48 hours to check in
+                                          before your dossier becomes available to
+                                          designated recipients.
                                         </p>
                                       </div>
                                     </div>
@@ -5037,7 +5034,7 @@ const Home = () => {
                                             : "text-gray-300"
                                         }`}
                                       >
-                                        About Encryption
+                                        How It Works
                                       </h4>
                                       <div
                                         className={`space-y-3 text-sm ${
@@ -5047,26 +5044,21 @@ const Home = () => {
                                         }`}
                                       >
                                         <p>
-                                          Your files will be encrypted using{" "}
-                                          <strong>
-                                            TACo (Threshold Access Control)
-                                          </strong>
-                                          , a decentralized encryption protocol
-                                          that ensures only authorized parties
-                                          can decrypt your content.
+                                          Your files are encrypted directly in your browser
+                                          before being uploaded. Only you control who can
+                                          access your encrypted content and when.
                                         </p>
 
                                         <div className="space-y-2">
                                           <p className="font-semibold">
-                                            File Options:
+                                            What You Can Upload:
                                           </p>
                                           <ul className="space-y-2 ml-4">
                                             <li className="flex items-start">
                                               <span className="mr-2">•</span>
                                               <span>
-                                                <strong>Files:</strong> Any
-                                                document, image, or file up to
-                                                100MB
+                                                <strong>Files:</strong> Documents, 
+                                                images, or any file up to 100MB
                                               </span>
                                             </li>
                                             <li className="flex items-start">
@@ -5080,8 +5072,9 @@ const Home = () => {
                                             <li className="flex items-start">
                                               <span className="mr-2">•</span>
                                               <span>
-                                                <strong>Video:</strong> Capture
-                                                video testimony or evidence
+                                                <strong>Video:</strong> Record
+                                                video content directly in your
+                                                browser
                                               </span>
                                             </li>
                                           </ul>
@@ -5095,14 +5088,13 @@ const Home = () => {
                                           }`}
                                         >
                                           <p className="font-semibold mb-2">
-                                            Security Note:
+                                            Your Privacy:
                                           </p>
                                           <p>
-                                            Files are encrypted locally in your
-                                            browser. The encrypted data is then
-                                            stored on IPFS, while decryption
-                                            conditions are enforced
-                                            by smart contracts.
+                                            All encryption happens locally on your device.
+                                            Your files are never uploaded unencrypted, and
+                                            only authorized recipients can access them
+                                            according to the conditions you set.
                                           </p>
                                         </div>
                                       </div>

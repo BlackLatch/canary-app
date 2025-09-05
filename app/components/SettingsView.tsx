@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Bell, Database, Key, ChevronLeft, AlertTriangle } from 'lucide-react';
+import { Shield, Bell, Database, Key, ChevronLeft, AlertTriangle, Wallet, ExternalLink, LogOut } from 'lucide-react';
 import { useTheme } from '../lib/theme-context';
 import { clearDemoDisclaimerPreference } from './DemoDisclaimer';
+import { usePrivy } from '@privy-io/react-auth';
+import { useAccount, useDisconnect } from 'wagmi';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -11,7 +13,12 @@ interface SettingsViewProps {
 
 export default function SettingsView({ onBack }: SettingsViewProps) {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'storage' | 'privacy' | 'advanced'>('storage');
+  const [activeTab, setActiveTab] = useState<'wallet' | 'storage' | 'privacy' | 'advanced'>('wallet');
+  
+  // Wallet hooks
+  const { authenticated, user, wallets, logout } = usePrivy();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   
   // Settings state
   const [debugMode, setDebugMode] = useState(false);
@@ -79,8 +86,23 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
           <div className="lg:col-span-1">
             <nav className="space-y-1">
               <button
+                onClick={() => setActiveTab('wallet')}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-2 ${
+                  activeTab === 'wallet'
+                    ? theme === 'light' 
+                      ? 'bg-gray-100 text-gray-900 font-medium' 
+                      : 'bg-white/10 text-white font-medium'
+                    : theme === 'light'
+                      ? 'text-gray-600 hover:bg-gray-50'
+                      : 'text-gray-400 hover:bg-white/5'
+                }`}
+              >
+                <Wallet className="w-4 h-4" />
+                Wallet
+              </button>
+              <button
                 onClick={() => setActiveTab('storage')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-2 ${
                   activeTab === 'storage'
                     ? theme === 'light' 
                       ? 'bg-gray-100 text-gray-900 font-medium' 
@@ -90,11 +112,12 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       : 'text-gray-400 hover:bg-white/5'
                 }`}
               >
+                <Database className="w-4 h-4" />
                 Storage
               </button>
               <button
                 onClick={() => setActiveTab('privacy')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-2 ${
                   activeTab === 'privacy'
                     ? theme === 'light' 
                       ? 'bg-gray-100 text-gray-900 font-medium' 
@@ -104,11 +127,12 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       : 'text-gray-400 hover:bg-white/5'
                 }`}
               >
+                <Shield className="w-4 h-4" />
                 Privacy & Security
               </button>
               <button
                 onClick={() => setActiveTab('advanced')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-2 ${
                   activeTab === 'advanced'
                     ? theme === 'light' 
                       ? 'bg-gray-100 text-gray-900 font-medium' 
@@ -118,6 +142,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       : 'text-gray-400 hover:bg-white/5'
                 }`}
               >
+                <Key className="w-4 h-4" />
                 Advanced
               </button>
             </nav>
@@ -130,6 +155,217 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                 ? 'bg-white border-gray-200' 
                 : 'bg-black border-gray-700'
             }`}>
+              {activeTab === 'wallet' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className={`text-lg font-medium mb-6 flex items-center gap-2 ${
+                      theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                    }`}>
+                      <Wallet className="w-5 h-5" />
+                      Wallet Connection
+                    </h2>
+                    
+                    {/* Connection Status */}
+                    <div className={`p-4 rounded-lg border mb-6 ${
+                      (isConnected || authenticated)
+                        ? theme === 'light' 
+                          ? 'bg-white border-gray-300' 
+                          : 'bg-black/40 border-gray-600'
+                        : theme === 'light'
+                          ? 'bg-white border-gray-300'
+                          : 'bg-black/40 border-gray-600'
+                    }`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          (isConnected || authenticated) 
+                            ? 'bg-green-500 animate-pulse' 
+                            : 'bg-gray-400'
+                        }`} />
+                        <span className={`font-medium ${
+                          theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                        }`}>
+                          {(isConnected || authenticated) ? 'Connected' : 'Not Connected'}
+                        </span>
+                      </div>
+                      
+                      {/* Wallet Details */}
+                      {(isConnected || authenticated) && (
+                        <div className="space-y-3">
+                          {/* Address */}
+                          <div>
+                            <span className={`text-sm font-medium block mb-1 ${
+                              theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                            }`}>
+                              Wallet Address
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <code className={`text-sm font-mono px-2 py-1 rounded ${
+                                theme === 'light' 
+                                  ? 'bg-gray-50 text-gray-900' 
+                                  : 'bg-white/5 text-gray-100'
+                              }`}>
+                                {address || (wallets && wallets.length > 0 ? wallets[0]?.address : 'Unknown')}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  const addr = address || (wallets && wallets.length > 0 ? wallets[0]?.address : '');
+                                  if (addr) {
+                                    navigator.clipboard.writeText(addr);
+                                  }
+                                }}
+                                className={`p-1 rounded transition-colors ${
+                                  theme === 'light'
+                                    ? 'hover:bg-gray-100 text-gray-600'
+                                    : 'hover:bg-white/10 text-gray-400'
+                                }`}
+                                title="Copy address"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Wallet Type */}
+                          <div>
+                            <span className={`text-sm font-medium block mb-1 ${
+                              theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                            }`}>
+                              Wallet Type
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm ${
+                                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                              }`}>
+                                {isConnected && !authenticated ? (
+                                  'External Web3 Wallet'
+                                ) : authenticated && wallets && wallets.length > 0 ? (
+                                  wallets[0]?.walletClientType === 'privy' ? 
+                                    'Privy Embedded Wallet' : 
+                                    `${wallets[0]?.walletClientType || 'Unknown'} Wallet`
+                                ) : (
+                                  'Unknown'
+                                )}
+                              </span>
+                              {authenticated && wallets && wallets.length > 0 && wallets[0]?.walletClientType === 'privy' && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  theme === 'light'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-blue-900/20 text-blue-400'
+                                }`}>
+                                  Managed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* User Email (if Privy) */}
+                          {authenticated && user?.email?.address && (
+                            <div>
+                              <span className={`text-sm font-medium block mb-1 ${
+                                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                              }`}>
+                                Associated Email
+                              </span>
+                              <span className={`text-sm ${
+                                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                              }`}>
+                                {user.email.address}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Disconnect Button */}
+                    {(isConnected || authenticated) && (
+                      <div className={`p-4 rounded-lg border ${
+                        theme === 'light' 
+                          ? 'bg-white border-gray-300' 
+                          : 'bg-black/40 border-gray-600'
+                      }`}>
+                        <h3 className={`font-medium mb-2 ${
+                          theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                        }`}>
+                          Disconnect Wallet
+                        </h3>
+                        <p className={`text-sm mb-4 ${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          This will disconnect your wallet and you'll need to reconnect to access your dossiers.
+                        </p>
+                        <button
+                          onClick={() => {
+                            if (isConnected) {
+                              disconnect();
+                            }
+                            if (authenticated) {
+                              logout();
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            theme === 'light'
+                              ? 'bg-red-600 text-white hover:bg-red-700'
+                              : 'bg-red-600 text-white hover:bg-red-700'
+                          }`}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Disconnect Wallet
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Connection Instructions */}
+                    {!(isConnected || authenticated) && (
+                      <div className={`p-4 rounded-lg border ${
+                        theme === 'light' 
+                          ? 'bg-white border-gray-300' 
+                          : 'bg-black/40 border-gray-600'
+                      }`}>
+                        <p className={`text-sm ${
+                          theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                        }`}>
+                          Connect your wallet from the main page to access dossier features and manage your encrypted files.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Network Information */}
+                  <div>
+                    <h3 className={`text-lg font-medium mb-4 ${
+                      theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                    }`}>
+                      Network Information
+                    </h3>
+                    
+                    <div className={`p-4 rounded-lg border space-y-3 ${
+                      theme === 'light' 
+                        ? 'bg-gray-50 border-gray-200' 
+                        : 'bg-white/5 border-gray-700'
+                    }`}>
+                      <div className={`text-sm ${
+                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        <span className="font-medium">Network:</span> Polygon Amoy (Testnet)
+                      </div>
+                      <div className={`text-sm ${
+                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        <span className="font-medium">Chain ID:</span> 80002
+                      </div>
+                      <div className={`text-sm ${
+                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        <span className="font-medium">RPC:</span> Polygon Amoy Testnet
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'storage' && (
                 <div className="space-y-8">
                   <div>
