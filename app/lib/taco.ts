@@ -119,17 +119,31 @@ class TacoService {
     description: string,
     dossierId: bigint,
     userAddress: string,
-    walletProvider?: any
+    walletProvider?: any,
+    burnerWallet?: any
   ): Promise<EncryptionResult> {
     await this.initialize();
 
-    // Get the ethers provider from Privy (handles embedded wallets)
-    const provider = await getPrivyEthersProvider(walletProvider);
-    
-    // Get the signer - for embedded wallets, we should use the default signer
-    // not the smart wallet address
-    console.log('🔐 Getting signer from provider...');
-    const signer = provider.getSigner(); // Don't pass address, let provider use its default
+    let provider: ethers.providers.Provider;
+    let signer: ethers.Signer;
+
+    // Handle burner wallet differently - it's an ethers.Wallet instance
+    if (burnerWallet) {
+      console.log('🔥 Using burner wallet for encryption');
+      // Connect burner wallet to Polygon Amoy RPC
+      const rpcUrl = 'https://rpc-amoy.polygon.technology/';
+      provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+      signer = burnerWallet.connect(provider);
+      console.log('🔥 Burner wallet connected to Polygon Amoy RPC');
+    } else {
+      // Get the ethers provider from Privy (handles embedded wallets)
+      provider = await getPrivyEthersProvider(walletProvider);
+
+      // Get the signer - for embedded wallets, we should use the default signer
+      // not the smart wallet address
+      console.log('🔐 Getting signer from provider...');
+      signer = provider.getSigner(); // Don't pass address, let provider use its default
+    }
     
     // Log the actual signer address for debugging
     try {
@@ -401,9 +415,10 @@ export async function encryptFileWithDossier(
   description: string = '',
   dossierId: bigint,
   userAddress: string,
-  walletProvider?: any
+  walletProvider?: any,
+  burnerWallet?: any
 ): Promise<EncryptionResult> {
-  return await tacoService.encryptFile(file, condition, description, dossierId, userAddress, walletProvider);
+  return await tacoService.encryptFile(file, condition, description, dossierId, userAddress, walletProvider, burnerWallet);
 }
 
 // Storage functions remain unchanged
