@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useSignTypedData } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
+import { useBurnerWallet } from '../lib/burner-wallet-context';
 import { AlertTriangle, FileText, Shield, X } from 'lucide-react';
 
 const POLICY_VERSION = '1.0.0';
@@ -57,6 +58,7 @@ export default function AcceptableUsePolicy({ onAccepted, theme, shouldCheck = f
   const [isSigning, setIsSigning] = useState(false);
   const { address, isConnected } = useAccount();
   const { user, authenticated } = usePrivy();
+  const burnerWallet = useBurnerWallet();
   const { signTypedDataAsync } = useSignTypedData();
 
   // Check if user has already signed
@@ -67,7 +69,7 @@ export default function AcceptableUsePolicy({ onAccepted, theme, shouldCheck = f
     }
 
     const checkSignature = () => {
-      const identifier = address || user?.email?.address || user?.id;
+      const identifier = burnerWallet.address || address || user?.email?.address || user?.id;
       if (!identifier) return;
       
       const storageKey = `canary_aup_signature_${identifier}`;
@@ -95,11 +97,11 @@ export default function AcceptableUsePolicy({ onAccepted, theme, shouldCheck = f
     };
 
     // Check when user authenticates and shouldCheck is true
-    if ((authenticated || isConnected) && shouldCheck) {
+    if ((authenticated || isConnected || burnerWallet.isConnected) && shouldCheck) {
       // Small delay to ensure wallet is ready
       setTimeout(checkSignature, 500);
     }
-  }, [authenticated, isConnected, address, user, shouldCheck, onSignatureCheck, skipDemoStep]);
+  }, [authenticated, isConnected, burnerWallet.isConnected, burnerWallet.address, address, user, shouldCheck, onSignatureCheck, skipDemoStep]);
 
   const handleContinueToLegal = () => {
     setCurrentStep('legal');
@@ -108,8 +110,8 @@ export default function AcceptableUsePolicy({ onAccepted, theme, shouldCheck = f
   const handleSign = async () => {
     try {
       setIsSigning(true);
-      
-      const identifier = address || user?.email?.address || user?.id;
+
+      const identifier = burnerWallet.address || address || user?.email?.address || user?.id;
       if (!identifier) {
         throw new Error('No user identifier available');
       }
@@ -121,8 +123,11 @@ export default function AcceptableUsePolicy({ onAccepted, theme, shouldCheck = f
       };
 
       let signature: string;
-      
-      if (isConnected && address) {
+
+      if (burnerWallet.isConnected && burnerWallet.address) {
+        // For burner wallets, we'll just store acceptance (no signing capability)
+        signature = 'burner_wallet_acceptance_' + Date.now();
+      } else if (isConnected && address) {
         // Use wagmi for Web3 wallets
         signature = await signTypedDataAsync({
           domain,
