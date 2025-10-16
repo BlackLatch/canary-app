@@ -1825,9 +1825,9 @@ export class ContractService {
         console.log('🔥 Using burner wallet for dossier creation');
         const { ethers } = await import('ethers');
 
-        // Connect to ZeroDev RPC with paymaster (sponsors gas fees)
-        const rpcUrl = 'https://rpc.zerodev.app/api/v3/e5072255-b74e-41cd-9d3a-34d6b01268b8/chain/80002';
-        console.log('💰 Using ZeroDev paymaster RPC for gas sponsorship');
+        // Connect to Polygon Amoy RPC
+        const rpcUrl = 'https://rpc-amoy.polygon.technology/';
+        console.log('🔗 Connecting to Polygon Amoy RPC');
         const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
         const signer = burnerWallet.connect(provider);
 
