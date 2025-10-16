@@ -6,6 +6,9 @@ import { useTheme } from '../lib/theme-context';
 import { getHeartbeatService } from '../lib/heartbeat';
 import toast from 'react-hot-toast';
 import { Address } from 'viem';
+import { useAccount } from 'wagmi';
+import { usePrivy } from '@privy-io/react-auth';
+import { useBurnerWallet } from '../lib/burner-wallet-context';
 
 interface MonitorViewProps {
   onBack: () => void;
@@ -29,12 +32,36 @@ export default function MonitorView({ onBack }: MonitorViewProps) {
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [subscriptions, setSubscriptions] = useState<Map<string, () => void>>(new Map());
 
+  // Wallet hooks
+  const { address } = useAccount();
+  const { wallets } = usePrivy();
+  const burnerWallet = useBurnerWallet();
+
   const heartbeatService = getHeartbeatService();
 
-  // Load monitored contacts from localStorage
+  // Helper to get current address (prioritize burner wallet)
+  const getCurrentAddress = () => {
+    return burnerWallet.address || address || (wallets && wallets.length > 0 ? wallets[0]?.address : null);
+  };
+
+  // Get storage key for current account
+  const getStorageKey = () => {
+    const currentAddress = getCurrentAddress();
+    if (!currentAddress) return null;
+    return `canary-monitored-contacts-${currentAddress.toLowerCase()}`;
+  };
+
+  // Load monitored contacts from localStorage for current account
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('canary-monitored-contacts');
+      const storageKey = getStorageKey();
+      if (!storageKey) {
+        console.log('No wallet connected, cannot load monitored contacts');
+        setMonitoredContacts([]);
+        return;
+      }
+
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         try {
           const contacts = JSON.parse(saved);
@@ -47,6 +74,8 @@ export default function MonitorView({ onBack }: MonitorViewProps) {
         } catch (error) {
           console.error('Failed to load monitored contacts:', error);
         }
+      } else {
+        setMonitoredContacts([]);
       }
     }
 
@@ -54,12 +83,15 @@ export default function MonitorView({ onBack }: MonitorViewProps) {
     return () => {
       subscriptions.forEach(unsubscribe => unsubscribe());
     };
-  }, []);
+  }, [getCurrentAddress()]);
 
   // Save contacts to localStorage whenever they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('canary-monitored-contacts', JSON.stringify(monitoredContacts));
+      const storageKey = getStorageKey();
+      if (!storageKey) return;
+
+      localStorage.setItem(storageKey, JSON.stringify(monitoredContacts));
     }
   }, [monitoredContacts]);
 
@@ -453,7 +485,7 @@ export default function MonitorView({ onBack }: MonitorViewProps) {
                 <li>• Contacts must have heartbeat enabled and share their code phrase with you</li>
                 <li>• You'll receive real-time updates about their status via the Waku network</li>
                 <li>• If no heartbeat is received for 15 minutes, you'll be notified of a timeout</li>
-                <li>• Monitored contacts are saved locally and persist across sessions</li>
+                <li>• Monitored contacts are saved per wallet address - switch accounts to see different lists</li>
               </ul>
             </div>
           </div>
