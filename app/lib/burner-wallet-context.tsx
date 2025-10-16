@@ -26,6 +26,9 @@ interface BurnerWalletContextValue {
   exportPrivateKey: () => string | null;
   importPrivateKey: (privateKey: string) => Promise<void>;
   hasExistingWallet: () => boolean;
+
+  // Helper to get wallet for TACo encryption
+  getWalletForEncryption: () => Wallet | null;
 }
 
 const BurnerWalletContext = createContext<BurnerWalletContextValue | undefined>(undefined);
@@ -117,6 +120,10 @@ export function BurnerWalletProvider({ children, autoConnect = false }: BurnerWa
     return hasBurnerWallet();
   };
 
+  const getWalletForEncryption = (): Wallet | null => {
+    return wallet;
+  };
+
   const value: BurnerWalletContextValue = {
     wallet,
     address,
@@ -127,6 +134,7 @@ export function BurnerWalletProvider({ children, autoConnect = false }: BurnerWa
     exportPrivateKey,
     importPrivateKey,
     hasExistingWallet,
+    getWalletForEncryption,
   };
 
   return (
