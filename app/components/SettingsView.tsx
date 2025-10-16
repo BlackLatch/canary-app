@@ -6,6 +6,7 @@ import { useTheme } from '../lib/theme-context';
 import { clearDemoDisclaimerPreference } from './DemoDisclaimer';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAccount, useDisconnect } from 'wagmi';
+import { useBurnerWallet } from '../lib/burner-wallet-context';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -14,11 +15,17 @@ interface SettingsViewProps {
 export default function SettingsView({ onBack }: SettingsViewProps) {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'wallet' | 'storage' | 'privacy' | 'advanced'>('wallet');
-  
+
   // Wallet hooks
   const { authenticated, user, wallets, logout } = usePrivy();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const burnerWallet = useBurnerWallet();
+
+  // Helper to get current address (prioritize burner wallet)
+  const getCurrentAddress = () => {
+    return burnerWallet.address || address || (wallets && wallets.length > 0 ? wallets[0]?.address : null);
+  };
   
   // Settings state
   const [debugMode, setDebugMode] = useState(false);
@@ -167,9 +174,9 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                     
                     {/* Connection Status */}
                     <div className={`p-4 rounded-lg border mb-6 ${
-                      (isConnected || authenticated)
-                        ? theme === 'light' 
-                          ? 'bg-white border-gray-300' 
+                      (isConnected || authenticated || burnerWallet.isConnected)
+                        ? theme === 'light'
+                          ? 'bg-white border-gray-300'
                           : 'bg-black/40 border-gray-600'
                         : theme === 'light'
                           ? 'bg-white border-gray-300'
@@ -177,19 +184,19 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                     }`}>
                       <div className="flex items-center gap-3 mb-3">
                         <div className={`w-3 h-3 rounded-full ${
-                          (isConnected || authenticated) 
-                            ? 'bg-green-500 animate-pulse' 
+                          (isConnected || authenticated || burnerWallet.isConnected)
+                            ? 'bg-green-500 animate-pulse'
                             : 'bg-gray-400'
                         }`} />
                         <span className={`font-medium ${
                           theme === 'light' ? 'text-gray-900' : 'text-gray-100'
                         }`}>
-                          {(isConnected || authenticated) ? 'Connected' : 'Not Connected'}
+                          {(isConnected || authenticated || burnerWallet.isConnected) ? 'Connected' : 'Not Connected'}
                         </span>
                       </div>
-                      
+
                       {/* Wallet Details */}
-                      {(isConnected || authenticated) && (
+                      {(isConnected || authenticated || burnerWallet.isConnected) && (
                         <div className="space-y-3">
                           {/* Address */}
                           <div>
@@ -200,15 +207,15 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                             </span>
                             <div className="flex items-center gap-2">
                               <code className={`text-sm font-mono px-2 py-1 rounded ${
-                                theme === 'light' 
-                                  ? 'bg-gray-50 text-gray-900' 
+                                theme === 'light'
+                                  ? 'bg-gray-50 text-gray-900'
                                   : 'bg-white/5 text-gray-100'
                               }`}>
-                                {address || (wallets && wallets.length > 0 ? wallets[0]?.address : 'Unknown')}
+                                {getCurrentAddress() || 'Unknown'}
                               </code>
                               <button
                                 onClick={() => {
-                                  const addr = address || (wallets && wallets.length > 0 ? wallets[0]?.address : '');
+                                  const addr = getCurrentAddress();
                                   if (addr) {
                                     navigator.clipboard.writeText(addr);
                                   }
@@ -238,11 +245,13 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                               <span className={`text-sm ${
                                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                               }`}>
-                                {isConnected && !authenticated ? (
+                                {burnerWallet.isConnected ? (
+                                  'Anonymous Burner Wallet'
+                                ) : isConnected && !authenticated ? (
                                   'External Web3 Wallet'
                                 ) : authenticated && wallets && wallets.length > 0 ? (
-                                  wallets[0]?.walletClientType === 'privy' ? 
-                                    'Privy Embedded Wallet' : 
+                                  wallets[0]?.walletClientType === 'privy' ?
+                                    'Privy Embedded Wallet' :
                                     `${wallets[0]?.walletClientType || 'Unknown'} Wallet`
                                 ) : (
                                   'Unknown'
@@ -280,10 +289,10 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                     </div>
 
                     {/* Disconnect Button */}
-                    {(isConnected || authenticated) && (
+                    {(isConnected || authenticated || burnerWallet.isConnected) && (
                       <div className={`p-4 rounded-lg border ${
-                        theme === 'light' 
-                          ? 'bg-white border-gray-300' 
+                        theme === 'light'
+                          ? 'bg-white border-gray-300'
                           : 'bg-black/40 border-gray-600'
                       }`}>
                         <h3 className={`font-medium mb-2 ${
@@ -295,9 +304,17 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                           theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                         }`}>
                           This will disconnect your wallet and you'll need to reconnect to access your dossiers.
+                          {burnerWallet.isConnected && (
+                            <span className="block mt-2 text-orange-600 dark:text-orange-400 font-medium">
+                              ⚠️ This will clear your burner wallet from local storage.
+                            </span>
+                          )}
                         </p>
                         <button
                           onClick={() => {
+                            if (burnerWallet.isConnected) {
+                              burnerWallet.disconnect();
+                            }
                             if (isConnected) {
                               disconnect();
                             }

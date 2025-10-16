@@ -942,12 +942,12 @@ const Home = () => {
     setIsLoadingDossiers(true);
     let currentAddress: string | null = null;
 
-    // In advanced mode, use the connected Web3 wallet address
+    // In advanced mode, use the connected wallet address (Web3 wallet or burner wallet)
     // In standard mode, use smart wallet if available, otherwise embedded wallet
     if (authMode === "advanced") {
-      currentAddress = address; // Web3 wallet address from wagmi
+      currentAddress = getCurrentAddress(); // Gets burner wallet, wagmi, or Privy address
       console.log(
-        "🔧 Advanced mode - using Web3 wallet address:",
+        "🔧 Advanced mode - using wallet address:",
         currentAddress,
       );
     } else {
@@ -1459,19 +1459,18 @@ const Home = () => {
     }
   }, [ready, authenticated, wallets, isConnected, setActiveWallet]);
 
-  // Return to sign-in screen if BOTH wallet and Privy are disconnected
+  // Return to sign-in screen if ALL wallets (wagmi, Privy, and burner) are disconnected
   useEffect(() => {
-    if (!isConnected && !authenticated && signedIn) {
-      console.log("Both wagmi and Privy disconnected, signing out...");
+    if (!isConnected && !authenticated && !burnerWallet.isConnected && signedIn) {
+      console.log("All wallets disconnected, signing out...");
       setSignedIn(false);
     }
-  }, [isConnected, authenticated, signedIn]);
+  }, [isConnected, authenticated, burnerWallet.isConnected, signedIn]);
 
-  // Load contract data when wallet connects (wagmi or Privy embedded)
+  // Load contract data when wallet connects (wagmi, Privy, or burner)
   useEffect(() => {
-    const currentAddress =
-      address || (wallets.length > 0 ? wallets[0]?.address : null);
-    if ((isConnected && address) || (authenticated && currentAddress)) {
+    const currentAddress = getCurrentAddress();
+    if ((isConnected && address) || (authenticated && wallets.length > 0) || burnerWallet.isConnected) {
       console.log("Loading contract data for address:", currentAddress);
       fetchUserDossiers();
 
@@ -1489,7 +1488,7 @@ const Home = () => {
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address, authenticated, wallets, authMode]);
+  }, [isConnected, address, authenticated, wallets, authMode, burnerWallet.isConnected]);
 
   // Reload dossiers when smart wallet becomes available in standard mode
   useEffect(() => {
@@ -1919,8 +1918,8 @@ const Home = () => {
                     {/* Authentication Status */}
                     {hasWalletConnection() ? (
                       <div className="flex items-center gap-4">
-                        {authMode === "advanced" && address ? (
-                          // Advanced mode: Show wallet address
+                        {authMode === "advanced" && getCurrentAddress() ? (
+                          // Advanced mode: Show wallet address (Web3, Burner, or Privy)
                           <div
                             className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                           >
@@ -1928,7 +1927,7 @@ const Home = () => {
                             <span
                               className={`monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
                             >
-                              {`${address.slice(0, 6)}...${address.slice(-4)}`}
+                              {`${getCurrentAddress()!.slice(0, 6)}...${getCurrentAddress()!.slice(-4)}`}
                             </span>
                           </div>
                         ) : authMode === "standard" && authenticated ? (
@@ -1947,9 +1946,14 @@ const Home = () => {
 
                         <button
                           onClick={() => {
-                            // Disconnect based on mode
-                            if (authMode === "advanced" && isConnected) {
-                              disconnect();
+                            // Disconnect based on mode and wallet type
+                            if (authMode === "advanced") {
+                              if (burnerWallet.isConnected) {
+                                burnerWallet.disconnect();
+                              }
+                              if (isConnected) {
+                                disconnect();
+                              }
                             }
                             if (authMode === "standard" && authenticated) {
                               logout();
