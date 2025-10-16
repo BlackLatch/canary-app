@@ -352,7 +352,10 @@ const Home = () => {
     }
 
     // Require wallet connection for dossier-only mode
-    if (!isConnected || !address) {
+    const currentAddress = burnerWallet.address || address;
+    const isWalletConnected = burnerWallet.isConnected || isConnected;
+
+    if (!isWalletConnected || !currentAddress) {
       toast.error(
         authMode === "standard"
           ? "Please sign in to create documents"
@@ -362,7 +365,8 @@ const Home = () => {
     }
 
     // Check if we're on the right network - MUST be Polygon Amoy
-    if (!isOnPolygonAmoy(chainId)) {
+    // Skip network check for burner wallets (they don't report chainId)
+    if (!burnerWallet.isConnected && !isOnPolygonAmoy(chainId)) {
       const currentNetwork = getNetworkName(chainId);
       console.warn(
         `⚠️ Wrong network! Currently on ${currentNetwork}, need Polygon Amoy`,
@@ -406,7 +410,13 @@ const Home = () => {
       console.log("🔍 Step 1: Getting next dossier ID...");
       // Determine which address to use based on auth mode
       let queryAddress: string | null;
-      if (authMode === "advanced") {
+      if (burnerWallet.isConnected && burnerWallet.address) {
+        queryAddress = burnerWallet.address; // Use burner wallet address
+        console.log(
+          "🔥 Burner wallet mode - using burner wallet for query:",
+          queryAddress,
+        );
+      } else if (authMode === "advanced") {
         queryAddress = address; // Use Web3 wallet address
         console.log(
           "🔧 Advanced mode - using Web3 wallet for query:",
@@ -437,7 +447,13 @@ const Home = () => {
 
       // Get the wallet provider for encryption based on auth mode
       let walletProvider = null;
-      if (authMode === "standard") {
+      let burnerWalletInstance = null;
+
+      if (burnerWallet.isConnected) {
+        // Burner wallet mode: Get the wallet instance directly
+        burnerWalletInstance = burnerWallet.getWalletForEncryption();
+        console.log("✅ Using burner wallet for encryption");
+      } else if (authMode === "standard") {
         // Standard mode: Use Privy embedded wallet transparently
         if (wallets.length > 0) {
           const privyWallet =
@@ -503,6 +519,7 @@ const Home = () => {
           nextDossierId,
           queryAddress,
           walletProvider,
+          burnerWalletInstance,
         );
         
         console.log(`✅ File ${i + 1} encrypted`);
@@ -634,6 +651,7 @@ const Home = () => {
             checkInMinutes,
             recipients,
             fileHashes,
+            burnerWalletInstance,
           );
           toast.success("Dossier created successfully");
         }
