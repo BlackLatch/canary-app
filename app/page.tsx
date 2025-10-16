@@ -28,6 +28,7 @@ import AcceptableUsePolicy, { checkAUPSigned } from "./components/AcceptableUseP
 import SettingsView from "./components/SettingsView";
 import MonitorView from "./components/MonitorView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
+import BurnerWalletFundingHelper from "./components/BurnerWalletFundingHelper";
 import { useSearchParams } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -2041,17 +2042,26 @@ const Home = () => {
                     {hasWalletConnection() ? (
                       <div className="flex items-center gap-4">
                         {authMode === "advanced" && getCurrentAddress() ? (
-                          // Advanced mode: Show wallet address (Web3, Burner, or Privy)
-                          <div
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
-                          >
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span
-                              className={`monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
+                          <>
+                            {/* Advanced mode: Show wallet address (Web3, Burner, or Privy) */}
+                            <div
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                             >
-                              {`${getCurrentAddress()!.slice(0, 6)}...${getCurrentAddress()!.slice(-4)}`}
-                            </span>
-                          </div>
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              <span
+                                className={`monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
+                              >
+                                {`${getCurrentAddress()!.slice(0, 6)}...${getCurrentAddress()!.slice(-4)}`}
+                              </span>
+                            </div>
+                            {/* Show funding helper only for burner wallets */}
+                            {burnerWallet.isConnected && burnerWallet.address && (
+                              <BurnerWalletFundingHelper
+                                address={burnerWallet.address}
+                                theme={theme}
+                              />
+                            )}
+                          </>
                         ) : authMode === "standard" && authenticated ? (
                           // Standard mode: Show user email or authenticated status
                           <div
