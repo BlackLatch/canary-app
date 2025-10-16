@@ -1810,35 +1810,113 @@ export class ContractService {
     description: string,
     checkInIntervalMinutes: number,
     recipients: Address[],
-    encryptedFileHashes: string[]
+    encryptedFileHashes: string[],
+    burnerWallet?: any
   ): Promise<{ dossierId: bigint; txHash: string }> {
     try {
       console.log('📝 Creating V2 dossier on-chain...');
-      
+
       const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
-      
-      // Use V2 contract
-      const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_ADDRESS,
-        abi: CANARY_DOSSIER_ABI,
-        functionName: 'createDossier',
-        args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
-        gas: BigInt(500000),
-      });
-      
-      console.log('⏳ Waiting for transaction confirmation...');
-      await waitForTransactionReceipt(config, { hash });
+
+      let hash: string;
+
+      // Use burner wallet if provided
+      if (burnerWallet) {
+        console.log('🔥 Using burner wallet for dossier creation');
+        const { ethers } = await import('ethers');
+
+        // Connect to Polygon Amoy
+        const rpcUrl = 'https://rpc-amoy.polygon.technology/';
+        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        const signer = burnerWallet.connect(provider);
+
+        // Create contract instance
+        const contract = new ethers.Contract(
+          CANARY_DOSSIER_ADDRESS,
+          CANARY_DOSSIER_ABI,
+          signer
+        );
+
+        // Get current gas prices for Polygon Amoy
+        const feeData = await provider.getFeeData();
+        console.log('🔍 Current fee data:', {
+          gasPrice: feeData.gasPrice?.toString(),
+          maxFeePerGas: feeData.maxFeePerGas?.toString(),
+          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString()
+        });
+
+        // Polygon Amoy requires minimum 25 Gwei tip
+        const minPriorityFee = ethers.utils.parseUnits('30', 'gwei'); // Use 30 Gwei to be safe
+        const maxPriorityFee = feeData.maxPriorityFeePerGas && feeData.maxPriorityFeePerGas.gt(minPriorityFee)
+          ? feeData.maxPriorityFeePerGas
+          : minPriorityFee;
+
+        // maxFeePerGas must be >= maxPriorityFeePerGas
+        // Use the higher of: fetched maxFeePerGas, or maxPriorityFee + reasonable base fee
+        const baseMaxFee = ethers.utils.parseUnits('60', 'gwei'); // 30 Gwei tip + 30 Gwei base
+        const maxFeePerGas = feeData.maxFeePerGas && feeData.maxFeePerGas.gt(maxPriorityFee)
+          ? feeData.maxFeePerGas
+          : baseMaxFee;
+
+        console.log('💰 Using gas settings:', {
+          maxPriorityFeePerGas: maxPriorityFee.toString(),
+          maxFeePerGas: maxFeePerGas.toString()
+        });
+
+        // Send transaction with proper gas settings
+        const tx = await contract.createDossier(
+          name,
+          description,
+          checkInIntervalSeconds,
+          recipients,
+          encryptedFileHashes,
+          {
+            gasLimit: 500000,
+            maxPriorityFeePerGas: maxPriorityFee,
+            maxFeePerGas: maxFeePerGas
+          }
+        );
+
+        console.log('✅ Transaction sent with gas settings:', {
+          gasLimit: 500000,
+          maxPriorityFeePerGas: maxPriorityFee.toString(),
+          maxFeePerGas: (feeData.maxFeePerGas || ethers.utils.parseUnits('50', 'gwei')).toString()
+        });
+
+        console.log('⏳ Waiting for burner wallet transaction confirmation...');
+        const receipt = await tx.wait();
+        hash = receipt.transactionHash;
+      } else {
+        // Use V2 contract with wagmi
+        hash = await writeContract(config, {
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
+          functionName: 'createDossier',
+          args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
+          gas: BigInt(500000),
+        });
+
+        console.log('⏳ Waiting for transaction confirmation...');
+        await waitForTransactionReceipt(config, { hash });
+      }
       
       // Get the dossier ID by reading from the V2 contract
-      const account = await getAccount(config);
+      let userAddress: Address;
+      if (burnerWallet) {
+        userAddress = burnerWallet.address as Address;
+      } else {
+        const account = await getAccount(config);
+        userAddress = account.address!;
+      }
+
       let dossierId: bigint = BigInt(0);
-      
+
       try {
         const dossierIds = await readContract(config, {
           address: CANARY_DOSSIER_ADDRESS,
           abi: CANARY_DOSSIER_ABI,
           functionName: 'getUserDossierIds',
-          args: [account.address],
+          args: [userAddress],
         });
         
         const ids = dossierIds as bigint[];
