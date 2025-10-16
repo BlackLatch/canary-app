@@ -130,11 +130,12 @@ class TacoService {
     // Handle burner wallet differently - it's an ethers.Wallet instance
     if (burnerWallet) {
       console.log('🔥 Using burner wallet for encryption');
-      // Connect burner wallet to Polygon Amoy RPC
-      const rpcUrl = 'https://rpc-amoy.polygon.technology/';
+      // Connect burner wallet to ZeroDev RPC with paymaster (sponsors gas fees)
+      const rpcUrl = 'https://rpc.zerodev.app/api/v3/e5072255-b74e-41cd-9d3a-34d6b01268b8/chain/80002';
+      console.log('💰 Using ZeroDev paymaster RPC for gas sponsorship');
       provider = new ethers.providers.JsonRpcProvider(rpcUrl);
       signer = burnerWallet.connect(provider);
-      console.log('🔥 Burner wallet connected to Polygon Amoy RPC');
+      console.log('🔥 Burner wallet connected to ZeroDev RPC');
     } else {
       // Get the ethers provider from Privy (handles embedded wallets)
       provider = await getPrivyEthersProvider(walletProvider);
