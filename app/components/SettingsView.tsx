@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Bell, Database, Key, ChevronLeft, AlertTriangle, Wallet, ExternalLink, LogOut } from 'lucide-react';
+import { Shield, Bell, Database, Key, ChevronLeft, AlertTriangle, Wallet, ExternalLink, LogOut, Activity, Copy, Check } from 'lucide-react';
 import { useTheme } from '../lib/theme-context';
 import { clearDemoDisclaimerPreference } from './DemoDisclaimer';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useBurnerWallet } from '../lib/burner-wallet-context';
+import { useHeartbeat } from '../lib/heartbeat-context';
+import toast from 'react-hot-toast';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -14,13 +16,17 @@ interface SettingsViewProps {
 
 export default function SettingsView({ onBack }: SettingsViewProps) {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'wallet' | 'storage' | 'privacy' | 'advanced'>('wallet');
+  const [activeTab, setActiveTab] = useState<'wallet' | 'storage' | 'privacy' | 'heartbeat' | 'advanced'>('wallet');
 
   // Wallet hooks
   const { authenticated, user, wallets, logout } = usePrivy();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const burnerWallet = useBurnerWallet();
+  const heartbeat = useHeartbeat();
+
+  // Local state for code phrase copy
+  const [codePhrasecopied, setCodePhraseCopied] = useState(false);
 
   // Helper to get current address (prioritize burner wallet)
   const getCurrentAddress = () => {
@@ -126,8 +132,8 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                 onClick={() => setActiveTab('privacy')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-2 ${
                   activeTab === 'privacy'
-                    ? theme === 'light' 
-                      ? 'bg-gray-100 text-gray-900 font-medium' 
+                    ? theme === 'light'
+                      ? 'bg-gray-100 text-gray-900 font-medium'
                       : 'bg-white/10 text-white font-medium'
                     : theme === 'light'
                       ? 'text-gray-600 hover:bg-gray-50'
@@ -138,11 +144,29 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                 Privacy & Security
               </button>
               <button
+                onClick={() => setActiveTab('heartbeat')}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-2 ${
+                  activeTab === 'heartbeat'
+                    ? theme === 'light'
+                      ? 'bg-gray-100 text-gray-900 font-medium'
+                      : 'bg-white/10 text-white font-medium'
+                    : theme === 'light'
+                      ? 'text-gray-600 hover:bg-gray-50'
+                      : 'text-gray-400 hover:bg-white/5'
+                }`}
+              >
+                <Activity className="w-4 h-4" />
+                Heartbeat
+                {heartbeat.isEnabled && (
+                  <span className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab('advanced')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-2 ${
                   activeTab === 'advanced'
-                    ? theme === 'light' 
-                      ? 'bg-gray-100 text-gray-900 font-medium' 
+                    ? theme === 'light'
+                      ? 'bg-gray-100 text-gray-900 font-medium'
                       : 'bg-white/10 text-white font-medium'
                     : theme === 'light'
                       ? 'text-gray-600 hover:bg-gray-50'
@@ -478,6 +502,214 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                     </div>
                   </div>
 
+                </div>
+              )}
+
+              {activeTab === 'heartbeat' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className={`text-lg font-medium mb-6 flex items-center gap-2 ${
+                      theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                    }`}>
+                      <Activity className="w-5 h-5" />
+                      Heartbeat Monitor
+                    </h2>
+
+                    {!(isConnected || authenticated || burnerWallet.isConnected) ? (
+                      <div className={`p-4 rounded-lg border ${
+                        theme === 'light'
+                          ? 'bg-yellow-50 border-yellow-200'
+                          : 'bg-yellow-900/10 border-yellow-800'
+                      }`}>
+                        <p className={`text-sm ${
+                          theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                        }`}>
+                          Connect your wallet to enable heartbeat monitoring.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Heartbeat Status */}
+                        <div className={`p-4 rounded-lg border mb-6 ${
+                          heartbeat.isEnabled
+                            ? theme === 'light'
+                              ? 'bg-green-50 border-green-200'
+                              : 'bg-green-900/10 border-green-800'
+                            : theme === 'light'
+                              ? 'bg-white border-gray-300'
+                              : 'bg-black/40 border-gray-600'
+                        }`}>
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-3 h-3 rounded-full ${
+                              heartbeat.isEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                            }`} />
+                            <span className={`font-medium ${
+                              theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                            }`}>
+                              {heartbeat.isEnabled ? 'Heartbeat Active' : 'Heartbeat Inactive'}
+                            </span>
+                          </div>
+
+                          {heartbeat.isEnabled && (
+                            <p className={`text-sm ${
+                              theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                            }`}>
+                              Broadcasting heartbeat pings every 5 minutes. Others can monitor your status using your code phrase.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Toggle Heartbeat */}
+                        <div className={`p-4 rounded-lg border mb-6 ${
+                          theme === 'light'
+                            ? 'bg-white border-gray-300'
+                            : 'bg-black/40 border-gray-600'
+                        }`}>
+                          <h3 className={`font-medium mb-2 ${
+                            theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                          }`}>
+                            {heartbeat.isEnabled ? 'Stop Heartbeat' : 'Start Heartbeat'}
+                          </h3>
+                          <p className={`text-sm mb-4 ${
+                            theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                          }`}>
+                            {heartbeat.isEnabled
+                              ? 'Stop broadcasting heartbeat pings. Your subscribers will be notified if no signal is received.'
+                              : 'Start broadcasting periodic heartbeat pings. Share your code phrase with trusted contacts so they can monitor your status.'}
+                          </p>
+                          <button
+                            onClick={async () => {
+                              const currentAddr = getCurrentAddress();
+                              if (heartbeat.isEnabled) {
+                                heartbeat.stopHeartbeat();
+                                toast.success('Heartbeat stopped');
+                              } else if (currentAddr) {
+                                try {
+                                  await heartbeat.startHeartbeat(currentAddr);
+                                  toast.success('Heartbeat started! Share your code phrase with trusted contacts.');
+                                } catch (error) {
+                                  toast.error('Failed to start heartbeat');
+                                }
+                              }
+                            }}
+                            disabled={heartbeat.isInitializing}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                              heartbeat.isEnabled
+                                ? theme === 'light'
+                                  ? 'bg-red-600 text-white hover:bg-red-700'
+                                  : 'bg-red-600 text-white hover:bg-red-700'
+                                : theme === 'light'
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : 'bg-green-600 text-white hover:bg-green-700'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {heartbeat.isInitializing ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Initializing...
+                              </>
+                            ) : heartbeat.isEnabled ? (
+                              <>
+                                <Activity className="w-4 h-4" />
+                                Stop Heartbeat
+                              </>
+                            ) : (
+                              <>
+                                <Activity className="w-4 h-4" />
+                                Start Heartbeat
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Code Phrase Sharing */}
+                        {heartbeat.isEnabled && heartbeat.codePhrase && (
+                          <div className={`p-4 rounded-lg border ${
+                            theme === 'light'
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-blue-900/10 border-blue-800'
+                          }`}>
+                            <h3 className={`font-medium mb-2 ${
+                              theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                            }`}>
+                              Your Code Phrase
+                            </h3>
+                            <p className={`text-sm mb-4 ${
+                              theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                            }`}>
+                              Share this code phrase with trusted contacts so they can subscribe to your heartbeat. Keep it private!
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <code className={`flex-1 text-lg font-mono font-bold px-4 py-2 rounded ${
+                                theme === 'light'
+                                  ? 'bg-white text-gray-900 border border-gray-300'
+                                  : 'bg-black text-gray-100 border border-gray-600'
+                              }`}>
+                                {heartbeat.codePhrase}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  if (heartbeat.codePhrase) {
+                                    navigator.clipboard.writeText(heartbeat.codePhrase);
+                                    setCodePhraseCopied(true);
+                                    toast.success('Code phrase copied!');
+                                    setTimeout(() => setCodePhraseCopied(false), 2000);
+                                  }
+                                }}
+                                className={`p-2 rounded transition-colors ${
+                                  theme === 'light'
+                                    ? 'hover:bg-blue-100 text-blue-600'
+                                    : 'hover:bg-blue-900/20 text-blue-400'
+                                }`}
+                                title="Copy code phrase"
+                              >
+                                {codePhrasecopied ? (
+                                  <Check className="w-5 h-5" />
+                                ) : (
+                                  <Copy className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* How It Works */}
+                        {!heartbeat.isEnabled && (
+                          <div className={`p-4 rounded-lg border ${
+                            theme === 'light'
+                              ? 'bg-gray-50 border-gray-200'
+                              : 'bg-white/5 border-gray-700'
+                          }`}>
+                            <h3 className={`font-medium mb-2 ${
+                              theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                            }`}>
+                              How Heartbeat Works
+                            </h3>
+                            <ul className={`text-sm space-y-2 ${
+                              theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                            }`}>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-500 mt-0.5">•</span>
+                                <span>Your device broadcasts encrypted "heartbeat" pings every 5 minutes via Waku network</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-500 mt-0.5">•</span>
+                                <span>You get a unique code phrase generated from your wallet address</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-500 mt-0.5">•</span>
+                                <span>Trusted contacts can subscribe using your code phrase to monitor your status</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-500 mt-0.5">•</span>
+                                <span>If no heartbeat is received for 15 minutes, subscribers are alerted</span>
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 

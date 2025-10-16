@@ -5,6 +5,7 @@ import { Web3Provider } from './components/Web3Provider';
 import ThemeAwareToaster from './components/ThemeAwareToaster';
 import { ThemeProvider } from './lib/theme-context';
 import { BurnerWalletProvider } from './lib/burner-wallet-context';
+import { HeartbeatProvider } from './lib/heartbeat-context';
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -81,10 +82,12 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <BurnerWalletProvider>
-            <Web3Provider>
-              {children}
-            </Web3Provider>
-            <ThemeAwareToaster />
+            <HeartbeatProvider>
+              <Web3Provider>
+                {children}
+              </Web3Provider>
+              <ThemeAwareToaster />
+            </HeartbeatProvider>
           </BurnerWalletProvider>
         </ThemeProvider>
       </body>
