@@ -98,6 +98,10 @@ const Home = () => {
     }
     return "standard";
   });
+
+  // PWA Install prompt state
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -270,6 +274,35 @@ const Home = () => {
   // Apply background to body based on current view
   useEffect(() => {
     // Clean theme setup - no mesh backgrounds
+  }, []);
+
+  // PWA Install prompt handling
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      setDeferredPrompt(e);
+      // Show the install button
+      setShowInstallButton(true);
+      console.log('📱 PWA install prompt available');
+    };
+
+    const handleAppInstalled = () => {
+      // Hide the install button after successful install
+      setShowInstallButton(false);
+      setDeferredPrompt(null);
+      console.log('✅ PWA installed successfully');
+      toast.success('Canary installed! You can now use it as an app.');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1393,6 +1426,30 @@ const Home = () => {
     }
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      toast.error('Install prompt not available. Try visiting in Chrome or Edge.');
+      return;
+    }
+
+    // Show the install prompt
+    deferredPrompt.prompt();
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      console.log('📱 User accepted the install prompt');
+      toast.success('Installing Canary...');
+    } else {
+      console.log('📱 User dismissed the install prompt');
+    }
+
+    // Clear the deferred prompt
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
+  };
+
   // Clear wagmi wallet connection on page refresh/load only if Privy is authenticated
   useEffect(() => {
     // Only disconnect wagmi if user is authenticated with Privy (to avoid conflicts)
@@ -1672,6 +1729,42 @@ const Home = () => {
                     </a>
                   </div>
                 </div>
+
+                {/* PWA Install Button */}
+                {showInstallButton && (
+                  <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 mb-12">
+                    <div className="text-center">
+                      <p
+                        className={`text-sm mb-4 ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
+                      >
+                        Install Canary as a mobile app
+                      </p>
+                      <button
+                        onClick={handleInstallClick}
+                        className={`inline-flex items-center gap-2 px-6 py-3 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
+                          theme === "light"
+                            ? "text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.05)]"
+                            : "text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
+                        }`}
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          />
+                        </svg>
+                        INSTALL MOBILE APP
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
