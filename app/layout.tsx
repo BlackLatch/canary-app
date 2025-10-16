@@ -4,6 +4,7 @@ import "./globals.css";
 import { Web3Provider } from './components/Web3Provider';
 import ThemeAwareToaster from './components/ThemeAwareToaster';
 import { ThemeProvider } from './lib/theme-context';
+import { BurnerWalletProvider } from './lib/burner-wallet-context';
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -79,10 +80,12 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <ThemeProvider>
-          <Web3Provider>
-            {children}
-          </Web3Provider>
-          <ThemeAwareToaster />
+          <BurnerWalletProvider>
+            <Web3Provider>
+              {children}
+            </Web3Provider>
+            <ThemeAwareToaster />
+          </BurnerWalletProvider>
         </ThemeProvider>
       </body>
     </html>

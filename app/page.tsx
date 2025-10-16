@@ -13,6 +13,7 @@ import {
   Mic,
   Video,
   Settings,
+  FileText,
 } from "lucide-react";
 import {
   commitEncryptedFileToPinata,
@@ -32,6 +33,7 @@ import { useConnect, useAccount, useDisconnect } from "wagmi";
 import { usePrivy, useWallets, useConnectWallet } from "@privy-io/react-auth";
 import { useSetActiveWallet } from "@privy-io/wagmi";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
+import { useBurnerWallet } from "./lib/burner-wallet-context";
 import { polygonAmoy } from "wagmi/chains";
 import { Address, encodeFunctionData } from "viem";
 import {
@@ -83,6 +85,7 @@ const Home = () => {
   const { connectWallet } = useConnectWallet();
   const { client: smartWalletClient } = useSmartWallets();
   const { theme, toggleTheme } = useTheme();
+  const burnerWallet = useBurnerWallet();
 
   const [signedIn, setSignedIn] = useState(false);
   const [authMode, setAuthMode] = useState<"standard" | "advanced">(() => {
@@ -103,8 +106,16 @@ const Home = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>("");
+  const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
   const [encryptedCapsule, setEncryptedCapsule] = useState<any>(null);
+  const [allEncryptedFiles, setAllEncryptedFiles] = useState<Array<{
+    encryptionResult: any;
+    commitResult: any;
+    traceJson: TraceJson;
+    originalFile: File;
+  }>>([]);
   const [isCommitting, setIsCommitting] = useState(false);
 
   const [userDossiers, setUserDossiers] = useState<DossierWithStatus[]>([]);
@@ -206,14 +217,15 @@ const Home = () => {
     { value: "custom", label: "Custom" },
   ];
 
-  // Helper function to check if we have a valid wallet connection (wagmi or Privy)
+  // Helper function to check if we have a valid wallet connection (wagmi, Privy, or burner)
   const hasWalletConnection = () => {
-    return (isConnected && address) || (authenticated && wallets.length > 0);
+    return (isConnected && address) || (authenticated && wallets.length > 0) || burnerWallet.isConnected;
   };
 
-  // Helper function to get current wallet address (wagmi or Privy)
+  // Helper function to get current wallet address (wagmi, Privy, or burner)
   const getCurrentAddress = () => {
-    return address || (wallets.length > 0 ? wallets[0]?.address : null);
+    // Priority: burner wallet (if connected) > wagmi > Privy
+    return burnerWallet.address || address || (wallets.length > 0 ? wallets[0]?.address : null);
   };
 
   // Helper function to set auth mode and persist to localStorage
@@ -333,6 +345,8 @@ const Home = () => {
     }
 
     setIsProcessing(true);
+    setProcessingStatus("Initializing encryption...");
+    setProcessingProgress(0);
     const processingToast = toast.loading(
       authMode === "standard"
         ? "Securing your document..."
@@ -438,6 +452,12 @@ const Home = () => {
       
       for (let i = 0; i < filesToProcess.length; i++) {
         const file = filesToProcess[i];
+        const fileProgress = Math.round((i / filesToProcess.length) * 50); // 0-50% for encryption
+        
+        setProcessingStatus(`Encrypting file ${i + 1}/${filesToProcess.length}: ${file.name}`);
+        setProcessingProgress(fileProgress);
+        toast.loading(`Encrypting ${file.name}...`, { id: processingToast });
+        
         console.log(`📄 Encrypting file ${i + 1}/${filesToProcess.length}: ${file.name}`);
         
         const encryptionResult = await encryptFileWithDossier(
@@ -452,17 +472,25 @@ const Home = () => {
         console.log(`✅ File ${i + 1} encrypted`);
         
         // Step 3: Upload each encrypted file
+        const uploadProgress = Math.round(((i + 0.5) / filesToProcess.length) * 50); // 50% progress for upload
+        setProcessingStatus(`Uploading encrypted file ${i + 1}/${filesToProcess.length}...`);
+        setProcessingProgress(50 + uploadProgress);
+        toast.loading(`Uploading encrypted ${file.name}...`, { id: processingToast });
+        
         console.log(`📦 Uploading encrypted file ${i + 1}...`);
         const { commitResult, traceJson } = await commitEncryptedFileToPinata(encryptionResult);
         console.log(`📦 File ${i + 1} stored:`, commitResult.storageType);
         
-        encryptedFiles.push({ encryptionResult, commitResult, traceJson });
+        encryptedFiles.push({ encryptionResult, commitResult, traceJson, originalFile: file });
         fileHashes.push(traceJson.payload_uri);
       }
 
       console.log(`✅ All ${filesToProcess.length} files encrypted and uploaded`);
 
       // Step 4: Create dossier on-chain
+      setProcessingStatus("Creating dossier on blockchain...");
+      setProcessingProgress(90);
+      toast.loading("Creating dossier on blockchain...", { id: processingToast });
       console.log("📝 Step 4: Creating dossier on-chain...");
       const dossierName = name || `Encrypted dossier with ${filesToProcess.length} file(s)`;
       const checkInMinutes =
@@ -603,8 +631,12 @@ const Home = () => {
             setIsProcessing(false);
             return;
           } else if (error.message.includes("insufficient funds")) {
-            errorMessage =
-              "Insufficient funds for transaction. Please add MATIC to your wallet.";
+            // Check if using smart wallet (sponsored transactions)
+            if (smartWalletClient && authMode === "standard") {
+              errorMessage = "Transaction sponsorship temporarily unavailable. The paymaster may be out of funds. Please try again later or switch to an external wallet.";
+            } else {
+              errorMessage = "Insufficient funds for transaction. Please add MATIC to your wallet.";
+            }
           } else if (
             error.message.includes("Check-in interval must be between")
           ) {
@@ -628,6 +660,12 @@ const Home = () => {
       }
 
       // Step 5: Store results
+      setProcessingStatus("Finalizing...");
+      setProcessingProgress(95);
+      
+      // Store all encrypted files for download
+      setAllEncryptedFiles(encryptedFiles);
+      
       // Store the first encrypted file's data for backward compatibility
       if (encryptedFiles.length > 0) {
         setEncryptedCapsule(encryptedFiles[0].encryptionResult);
@@ -694,6 +732,9 @@ const Home = () => {
         ...prev,
       ]);
 
+      setProcessingStatus("Complete!");
+      setProcessingProgress(100);
+      
       const successMessage =
         authMode === "standard"
           ? `🎉 Dossier secured! Remember to check in every ${checkInInterval} days.`
@@ -704,12 +745,15 @@ const Home = () => {
       setShowCreateForm(false);
       setCurrentStep(1);
       setEncryptedCapsule(null);
+      setAllEncryptedFiles([]);
       setTraceJson(null);
       setUploadedFile(null);
       setUploadedFiles([]);
       setName("");
       setEmergencyContacts([""]);
       setReleaseMode("public");
+      setProcessingStatus("");
+      setProcessingProgress(0);
     } catch (error) {
       console.error("Error in dossier encryption flow:", error);
       const errorMessage =
@@ -731,6 +775,8 @@ const Home = () => {
       ]);
     } finally {
       setIsProcessing(false);
+      setProcessingStatus("");
+      setProcessingProgress(0);
     }
   };
 
@@ -1070,8 +1116,12 @@ const Home = () => {
             errorMessage = "Check-in cancelled";
             isUserRejection = true;
           } else if (error.message.includes("insufficient funds")) {
-            errorMessage =
-              "Insufficient funds for transaction fees. Please add MATIC to your wallet.";
+            // Check if using smart wallet (sponsored transactions)
+            if (smartWalletClient && authMode === "standard") {
+              errorMessage = "Transaction sponsorship temporarily unavailable. The paymaster may be out of funds. Please try again later or switch to an external wallet.";
+            } else {
+              errorMessage = "Insufficient funds for transaction fees. Please add MATIC to your wallet.";
+            }
           } else if (error.message.includes("Network mismatch")) {
             errorMessage =
               "Please switch to Polygon Amoy network in your wallet.";
@@ -1291,10 +1341,27 @@ const Home = () => {
     };
   };
 
-  const handleSignIn = (method: string) => {
+  const handleSignIn = async (method: string) => {
     console.log("Sign in method:", method);
 
-    if (method === "Web3 Wallet") {
+    if (method === "Burner Wallet") {
+      // Anonymous burner wallet login
+      console.log("Connecting burner wallet...");
+      setAuthModeWithPersistence("advanced"); // Set advanced mode for burner wallet
+      try {
+        const walletInfo = await burnerWallet.connect();
+        console.log("🔥 Burner wallet connected:", walletInfo.address);
+        setSignedIn(true);
+        toast.success(
+          walletInfo.isNew
+            ? "Anonymous wallet created! Your private key is saved locally."
+            : "Welcome back! Anonymous wallet restored."
+        );
+      } catch (error) {
+        console.error("Failed to connect burner wallet:", error);
+        toast.error("Failed to connect anonymous wallet. Please try again.");
+      }
+    } else if (method === "Web3 Wallet") {
       // Use Privy's connectWallet for external wallet connections
       console.log("Using Privy connectWallet for external wallet...");
       setAuthModeWithPersistence("advanced"); // Set advanced mode for Web3 wallet
@@ -1530,24 +1597,46 @@ const Home = () => {
                       ></div>
                     </div>
 
-                    <button
-                      className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
-                        theme === "light"
-                          ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
-                          : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
-                      }`}
-                      onClick={() => handleSignIn("Web3 Wallet")}
-                      disabled={isPending}
-                    >
-                      {isPending ? (
-                        <div className="flex items-center justify-center gap-3">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                          <span>Connecting...</span>
-                        </div>
-                      ) : (
-                        "Connect Web3 Wallet"
-                      )}
-                    </button>
+                    <div className="space-y-3">
+                      <button
+                        className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                          theme === "light"
+                            ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
+                            : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
+                        }`}
+                        onClick={() => handleSignIn("Burner Wallet")}
+                        disabled={burnerWallet.isLoading}
+                        title="Anonymous wallet stored locally in your browser"
+                      >
+                        {burnerWallet.isLoading ? (
+                          <div className="flex items-center justify-center gap-3">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                            <span>Connecting...</span>
+                          </div>
+                        ) : (
+                          "Anonymous Burner Wallet"
+                        )}
+                      </button>
+
+                      <button
+                        className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                          theme === "light"
+                            ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
+                            : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
+                        }`}
+                        onClick={() => handleSignIn("Web3 Wallet")}
+                        disabled={isPending}
+                      >
+                        {isPending ? (
+                          <div className="flex items-center justify-center gap-3">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                            <span>Connecting...</span>
+                          </div>
+                        ) : (
+                          "Connect Web3 Wallet"
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -3879,8 +3968,11 @@ const Home = () => {
                             // Reset form when going back
                             setCurrentStep(1);
                             setEncryptedCapsule(null);
+                            setAllEncryptedFiles([]);
                             setTraceJson(null);
                             setUploadedFile(null);
+                            setProcessingStatus("");
+                            setProcessingProgress(0);
                             setUploadedFiles([]);
                             setName("");
                             setDescription("");
@@ -4014,7 +4106,7 @@ const Home = () => {
                                         <label
                                           className={`block text-sm font-semibold mb-2 ${theme === "light" ? "text-gray-700" : "text-gray-300"}`}
                                         >
-                                          Dossier Title{" "}
+                                          Dossier Name{" "}
                                           <span className="text-red-500">
                                             *
                                           </span>
@@ -4022,7 +4114,7 @@ const Home = () => {
                                         <div className="relative">
                                           <input
                                             type="text"
-                                            placeholder="Enter a title for your dossier..."
+                                            placeholder="Name your dossier"
                                             className="w-full px-4 py-3 pr-20 border rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
                                             style={{
                                               borderColor:
@@ -4046,7 +4138,7 @@ const Home = () => {
                                           />
                                           <button
                                             onClick={() => {
-                                              // Generate a random title - neutral codeword-friendly names
+                                              // Generate a random name - neutral codeword-friendly names
                                               const adjectives = [
                                                 "Blue",
                                                 "Red",
@@ -4112,9 +4204,9 @@ const Home = () => {
                                                 : "border-gray-600 text-gray-400 hover:bg-white/5"
                                             }`}
                                             type="button"
-                                            title="Generate a random title"
+                                            title="Generate a random name"
                                           >
-                                            Generate
+                                            Random Name
                                           </button>
                                         </div>
                                         <p
@@ -5342,6 +5434,116 @@ const Home = () => {
                                   </div>
                                 </div>
 
+                                {/* Progress Bar */}
+                                {isProcessing && processingProgress > 0 && (
+                                  <div className={`mb-6 p-4 rounded-lg border ${
+                                    theme === "light"
+                                      ? "bg-gray-50 border-gray-200"
+                                      : "bg-white/5 border-gray-700"
+                                  }`}>
+                                    <div className="mb-2 flex justify-between items-center">
+                                      <span className={`text-sm font-medium ${
+                                        theme === "light" ? "text-gray-700" : "text-gray-300"
+                                      }`}>
+                                        {processingStatus}
+                                      </span>
+                                      <span className={`text-sm ${
+                                        theme === "light" ? "text-gray-500" : "text-gray-400"
+                                      }`}>
+                                        {processingProgress}%
+                                      </span>
+                                    </div>
+                                    <div className={`w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5`}>
+                                      <div 
+                                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                        style={{ width: `${processingProgress}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Download Ciphertext Section */}
+                                {allEncryptedFiles.length > 0 && traceJson && (
+                                  <div className={`mb-6 p-6 rounded-lg border ${
+                                    theme === "light"
+                                      ? "bg-green-50 border-green-200"
+                                      : "bg-green-900/10 border-green-800"
+                                  }`}>
+                                    <div className="flex items-center gap-2 mb-4">
+                                      <Shield className={`w-5 h-5 ${
+                                        theme === "light" ? "text-green-600" : "text-green-400"
+                                      }`} />
+                                      <h4 className={`font-semibold ${
+                                        theme === "light" ? "text-green-800" : "text-green-300"
+                                      }`}>
+                                        Encryption Complete!
+                                      </h4>
+                                    </div>
+                                    
+                                    <p className={`text-sm mb-4 ${
+                                      theme === "light" ? "text-gray-700" : "text-gray-300"
+                                    }`}>
+                                      Your files have been encrypted and stored. Download the encrypted files for backup:
+                                    </p>
+                                    
+                                    <div className="space-y-2">
+                                      {allEncryptedFiles.map((file, index) => (
+                                        <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
+                                          theme === "light"
+                                            ? "bg-white border border-gray-200"
+                                            : "bg-black/20 border border-gray-700"
+                                        }`}>
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="w-4 h-4 opacity-60" />
+                                            <span className={`text-sm ${
+                                              theme === "light" ? "text-gray-700" : "text-gray-300"
+                                            }`}>
+                                              {file.originalFile.name}.encrypted
+                                            </span>
+                                          </div>
+                                          <button
+                                            onClick={() => {
+                                              // Create a blob from the encrypted data
+                                              const blob = new Blob([file.encryptionResult.encryptedData], {
+                                                type: 'application/octet-stream'
+                                              });
+                                              const url = URL.createObjectURL(blob);
+                                              const a = document.createElement('a');
+                                              a.href = url;
+                                              a.download = `${file.originalFile.name}.encrypted`;
+                                              document.body.appendChild(a);
+                                              a.click();
+                                              document.body.removeChild(a);
+                                              URL.revokeObjectURL(url);
+                                              toast.success(`Downloaded ${file.originalFile.name}.encrypted`);
+                                            }}
+                                            className={`px-3 py-1 text-sm font-medium rounded-lg flex items-center gap-1 transition-colors ${
+                                              theme === "light"
+                                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                                : "bg-blue-600 text-white hover:bg-blue-700"
+                                            }`}
+                                          >
+                                            <Download size={14} />
+                                            Download
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    
+                                    <div className={`mt-4 p-3 rounded-lg ${
+                                      theme === "light"
+                                        ? "bg-amber-50 border border-amber-200"
+                                        : "bg-amber-900/10 border border-amber-800"
+                                    }`}>
+                                      <p className={`text-xs ${
+                                        theme === "light" ? "text-amber-800" : "text-amber-400"
+                                      }`}>
+                                        <strong>Note:</strong> These files are encrypted and can only be decrypted when the conditions are met.
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+
                                 {/* Encrypt Button Container */}
                                 <div className="flex justify-center">
                                   {!encryptedCapsule && (
@@ -5365,7 +5567,7 @@ const Home = () => {
                                       {isProcessing ? (
                                         <>
                                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                                          <span>Encrypting...</span>
+                                          <span>{processingStatus || "Processing..."}</span>
                                         </>
                                       ) : (
                                         <>
@@ -5382,12 +5584,15 @@ const Home = () => {
                                       onClick={() => {
                                         setCurrentStep(1);
                                         setEncryptedCapsule(null);
+                                        setAllEncryptedFiles([]);
                                         setTraceJson(null);
                                         setUploadedFile(null);
                                         setUploadedFiles([]);
                                         setName("");
                                         setEmergencyContacts([""]);
                                         setReleaseMode("public");
+                                        setProcessingStatus("");
+                                        setProcessingProgress(0);
                                       }}
                                       className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all min-w-[280px] ${
                                         theme === "light"
@@ -5689,6 +5894,7 @@ const Home = () => {
                 </button>
                 <button
                   onClick={async () => {
+                    let disableToast: any;
                     try {
                       // Find the dossier to disable
                       const dossierToDisable = userDossiers.find(
@@ -5700,7 +5906,7 @@ const Home = () => {
                         return;
                       }
 
-                      const disableToast = toast.loading(
+                      disableToast = toast.loading(
                         "Disabling dossier...",
                       );
 
@@ -5733,12 +5939,37 @@ const Home = () => {
                       ]);
 
                       setShowDisableConfirm(null);
-                    } catch (error) {
+                    } catch (error: any) {
                       console.error(
-                        "Failed to permanently disable document:",
+                        "❌ Failed to permanently disable dossier:",
                         error,
                       );
-                      toast.error("Failed to disable dossier");
+                      
+                      // Dismiss loading toast if it exists
+                      if (disableToast) {
+                        toast.dismiss(disableToast);
+                      }
+                      
+                      // Handle specific error cases
+                      let errorMessage = "Failed to disable dossier";
+                      
+                      if (error.message?.includes("insufficient funds") || 
+                          error.message?.includes("Wallet has insufficient funds")) {
+                        // Check if using smart wallet (sponsored transactions)
+                        if (smartWalletClient && authMode === "standard") {
+                          errorMessage = "Transaction sponsorship temporarily unavailable. The paymaster may be out of funds. Please try again later or switch to an external wallet.";
+                        } else {
+                          errorMessage = "Insufficient MATIC balance to pay for transaction fees. Please add MATIC to your wallet on Polygon Amoy.";
+                        }
+                      } else if (error.message?.includes("user rejected") || 
+                                 error.message?.includes("rejected by user")) {
+                        errorMessage = "Transaction cancelled";
+                      } else if (error.message?.includes("Network mismatch") ||
+                                 error.message?.includes("Wrong network")) {
+                        errorMessage = "Please switch to Polygon Amoy network in your wallet";
+                      }
+                      
+                      toast.error(errorMessage);
                     }
                   }}
                   className={`flex-1 py-3 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
