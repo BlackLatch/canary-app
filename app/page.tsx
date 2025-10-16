@@ -26,6 +26,7 @@ import MediaRecorder from "./components/MediaRecorder";
 import NoDocumentsPlaceholder from "./components/NoDocumentsPlaceholder";
 import AcceptableUsePolicy, { checkAUPSigned } from "./components/AcceptableUsePolicy";
 import SettingsView from "./components/SettingsView";
+import MonitorView from "./components/MonitorView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
 import { useSearchParams } from "next/navigation";
 
@@ -56,7 +57,7 @@ interface DossierWithStatus extends Dossier {
 const HomeContent = ({
   onViewChange,
 }: {
-  onViewChange: (view: "checkin" | "documents" | "settings") => void;
+  onViewChange: (view: "checkin" | "documents" | "monitor" | "settings") => void;
 }) => {
   const searchParams = useSearchParams();
 
@@ -66,6 +67,8 @@ const HomeContent = ({
       onViewChange("documents");
     } else if (view === "checkin") {
       onViewChange("checkin");
+    } else if (view === "monitor") {
+      onViewChange("monitor");
     } else if (view === "settings") {
       onViewChange("settings");
     }
@@ -162,7 +165,7 @@ const Home = () => {
   const [releaseMode, setReleaseMode] = useState<"public" | "contacts">(
     "public",
   );
-  const [currentView, setCurrentView] = useState<"checkin" | "documents" | "settings">(
+  const [currentView, setCurrentView] = useState<"checkin" | "documents" | "monitor" | "settings">(
     "checkin",
   );
   const [isCheckingIn, setIsCheckingIn] = useState(false);
@@ -1968,6 +1971,14 @@ const Home = () => {
                     >
                       DOSSIERS
                     </button>
+                    <button
+                      onClick={() => setCurrentView("monitor")}
+                      className={`nav-link ${
+                        currentView === "monitor" ? "nav-link-active" : ""
+                      }`}
+                    >
+                      MONITOR
+                    </button>
                     <a href="/feed" className="nav-link">
                       PUBLIC RELEASES
                     </a>
@@ -2630,6 +2641,9 @@ const Home = () => {
             ) : currentView === "settings" ? (
               // Settings View
               <SettingsView onBack={() => setCurrentView("checkin")} />
+            ) : currentView === "monitor" ? (
+              // Monitor View
+              <MonitorView onBack={() => setCurrentView("checkin")} />
             ) : (
               // Documents View - Matching Public Releases Layout
               <div
