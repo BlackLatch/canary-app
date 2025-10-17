@@ -6,9 +6,9 @@ import { uploadToCodex, CodexUploadResult } from './codex';
 import { uploadToPinata, PinataUploadResult } from './pinata';
 import { uploadToIPFS, IPFSUploadResult } from './ipfs';
 import { CANARY_DOSSIER_ADDRESS, CANARY_DOSSIER_ABI } from './contract';
-import { polygonAmoy } from 'wagmi/chains';
+import { statusSepolia } from './chains/status';
 import { getPrivyEthersProvider } from './ethers-adapter';
-import { switchToPolygonAmoy } from './network-switch';
+import { switchToStatusNetwork } from './network-switch';
 
 // TACo Configuration
 const TACO_DOMAIN = domains.DEVNET;
@@ -83,13 +83,13 @@ class TacoService {
    */
   private createDossierCondition(userAddress: string, dossierId: bigint) {
     console.log(`🔒 Creating Dossier condition: user=${userAddress}, dossier=${dossierId.toString()}`);
-    console.log(`📍 Contract: ${CANARY_DOSSIER_ADDRESS} on chain ${polygonAmoy.id}`);
-    
+    console.log(`📍 Contract: ${CANARY_DOSSIER_ADDRESS} on chain ${statusSepolia.id}`);
+
     // Create a contract condition that calls shouldDossierStayEncrypted
     // This will return true if encryption should remain, false if decryption is allowed
     return new conditions.base.contract.ContractCondition({
       contractAddress: CANARY_DOSSIER_ADDRESS,
-      chain: polygonAmoy.id, // Polygon Amoy where our contract is deployed
+      chain: statusSepolia.id, // Status Network Sepolia where our contract is deployed
       functionAbi: {
         name: 'shouldDossierStayEncrypted',
         type: 'function',
@@ -130,12 +130,12 @@ class TacoService {
     // Handle burner wallet differently - it's an ethers.Wallet instance
     if (burnerWallet) {
       console.log('🔥 Using burner wallet for encryption');
-      // Connect burner wallet to Polygon Amoy RPC
-      const rpcUrl = 'https://rpc-amoy.polygon.technology/';
-      console.log('🔗 Connecting to Polygon Amoy RPC');
+      // Connect burner wallet to Status Network Sepolia RPC
+      const rpcUrl = 'https://public.sepolia.rpc.status.network';
+      console.log('🔗 Connecting to Status Network Sepolia RPC');
       provider = new ethers.providers.JsonRpcProvider(rpcUrl);
       signer = burnerWallet.connect(provider);
-      console.log('🔥 Burner wallet connected to Polygon Amoy RPC');
+      console.log('🔥 Burner wallet connected to Status Network Sepolia RPC');
     } else {
       // Get the ethers provider from Privy (handles embedded wallets)
       provider = await getPrivyEthersProvider(walletProvider);
@@ -213,29 +213,29 @@ class TacoService {
     try {
       const network = await provider.getNetwork();
       console.log('🔗 Current network:', network.chainId, 'Type:', typeof network.chainId);
-      console.log('🔗 Expected network:', polygonAmoy.id, 'Type:', typeof polygonAmoy.id);
-      
+      console.log('🔗 Expected network:', statusSepolia.id, 'Type:', typeof statusSepolia.id);
+
       // Convert both to Numbers for comparison to handle both BigInt and number types
       const currentChainId = Number(network.chainId);
-      const expectedChainId = Number(polygonAmoy.id);
-      
+      const expectedChainId = Number(statusSepolia.id);
+
       if (currentChainId !== expectedChainId) {
-        console.error(`❌ Wrong network! Expected Polygon Amoy (${expectedChainId}), got ${currentChainId}`);
-        
+        console.error(`❌ Wrong network! Expected Status Network Sepolia (${expectedChainId}), got ${currentChainId}`);
+
         // Attempt to switch networks automatically
-        console.log('🔄 Attempting to switch to Polygon Amoy...');
+        console.log('🔄 Attempting to switch to Status Network Sepolia...');
         try {
-          await switchToPolygonAmoy();
-          
+          await switchToStatusNetwork();
+
           // Wait a moment for the switch to complete
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
+
           // Get updated provider after network switch
           const updatedProvider = await getPrivyEthersProvider();
           const updatedNetwork = await updatedProvider.getNetwork();
-          
-          if (Number(updatedNetwork.chainId) === Number(polygonAmoy.id)) {
-            console.log('✅ Successfully switched to Polygon Amoy');
+
+          if (Number(updatedNetwork.chainId) === Number(statusSepolia.id)) {
+            console.log('✅ Successfully switched to Status Network Sepolia');
             // Continue with the updated provider
             return this.decryptFile(messageKit); // Recursive call with correct network
           } else {
@@ -243,13 +243,13 @@ class TacoService {
           }
         } catch (switchError) {
           console.error('Failed to switch network:', switchError);
-          throw new Error(`Please switch to Polygon Amoy testnet (Chain ID: ${polygonAmoy.id}) to decrypt this content.`);
+          throw new Error(`Please switch to Status Network Sepolia testnet (Chain ID: ${statusSepolia.id}) to decrypt this content.`);
         }
       }
     } catch (networkError) {
       console.error('Failed to check network:', networkError);
       // If it's our custom error, re-throw it
-      if (networkError instanceof Error && networkError.message.includes('switch to Polygon Amoy')) {
+      if (networkError instanceof Error && networkError.message.includes('switch to Status Network')) {
         throw networkError;
       }
       // Otherwise continue and let TACo handle it

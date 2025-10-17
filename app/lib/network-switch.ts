@@ -29,6 +29,9 @@ export async function switchToStatusNetwork(): Promise<void> {
   }
 }
 
+// Backward compatibility alias
+export const switchToPolygonAmoy = switchToStatusNetwork;
+
 /**
  * Check if we're on the correct network and prompt to switch if not
  */

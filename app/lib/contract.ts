@@ -1831,9 +1831,9 @@ export class ContractService {
         console.log('🔥 Using burner wallet for dossier creation');
         const { ethers } = await import('ethers');
 
-        // Connect to Polygon Amoy RPC
-        const rpcUrl = 'https://rpc-amoy.polygon.technology/';
-        console.log('🔗 Connecting to Polygon Amoy RPC');
+        // Connect to Status Network Sepolia RPC
+        const rpcUrl = 'https://public.sepolia.rpc.status.network';
+        console.log('🔗 Connecting to Status Network Sepolia RPC');
         const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
         const signer = burnerWallet.connect(provider);
 
@@ -1844,7 +1844,7 @@ export class ContractService {
           signer
         );
 
-        // Get current gas prices for Polygon Amoy
+        // Get current gas prices for Status Network (should be 0)
         const feeData = await provider.getFeeData();
         console.log('🔍 Current fee data:', {
           gasPrice: feeData.gasPrice?.toString(),
@@ -1852,25 +1852,18 @@ export class ContractService {
           maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString()
         });
 
-        // Polygon Amoy requires minimum 25 Gwei tip
-        const minPriorityFee = ethers.utils.parseUnits('30', 'gwei'); // Use 30 Gwei to be safe
-        const maxPriorityFee = feeData.maxPriorityFeePerGas && feeData.maxPriorityFeePerGas.gt(minPriorityFee)
-          ? feeData.maxPriorityFeePerGas
-          : minPriorityFee;
+        // Status Network is gasless - use the network's gas price (should be 0)
+        const gasPrice = feeData.gasPrice || ethers.BigNumber.from(0);
+        const maxPriorityFee = feeData.maxPriorityFeePerGas || ethers.BigNumber.from(0);
+        const maxFeePerGas = feeData.maxFeePerGas || ethers.BigNumber.from(0);
 
-        // maxFeePerGas must be >= maxPriorityFeePerGas
-        // Use the higher of: fetched maxFeePerGas, or maxPriorityFee + reasonable base fee
-        const baseMaxFee = ethers.utils.parseUnits('60', 'gwei'); // 30 Gwei tip + 30 Gwei base
-        const maxFeePerGas = feeData.maxFeePerGas && feeData.maxFeePerGas.gt(maxPriorityFee)
-          ? feeData.maxFeePerGas
-          : baseMaxFee;
-
-        console.log('💰 Using gas settings:', {
+        console.log('💰 Using gas settings (gasless):', {
+          gasPrice: gasPrice.toString(),
           maxPriorityFeePerGas: maxPriorityFee.toString(),
           maxFeePerGas: maxFeePerGas.toString()
         });
 
-        // Send transaction with proper gas settings
+        // Send transaction with gasless settings
         const tx = await contract.createDossier(
           name,
           description,
@@ -1879,15 +1872,14 @@ export class ContractService {
           encryptedFileHashes,
           {
             gasLimit: 500000,
-            maxPriorityFeePerGas: maxPriorityFee,
-            maxFeePerGas: maxFeePerGas
+            gasPrice: gasPrice,
+            // Don't set EIP-1559 params if gas price is set
           }
         );
 
-        console.log('✅ Transaction sent with gas settings:', {
+        console.log('✅ Transaction sent with gasless settings:', {
           gasLimit: 500000,
-          maxPriorityFeePerGas: maxPriorityFee.toString(),
-          maxFeePerGas: (feeData.maxFeePerGas || ethers.utils.parseUnits('50', 'gwei')).toString()
+          gasPrice: gasPrice.toString()
         });
 
         console.log('⏳ Waiting for burner wallet transaction confirmation...');

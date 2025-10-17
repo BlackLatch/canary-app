@@ -15,6 +15,7 @@ export const SUPPORTED_CHAIN_ID = statusSepolia.id; // 1660990954
 
 // Contract deployment
 export const DOSSIER_CONTRACT_ADDRESS: Address = (process.env.NEXT_PUBLIC_CANARY_DOSSIER_STATUS_ADDRESS as Address) || '0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0';
+export const CANARY_DOSSIER_ADDRESS = DOSSIER_CONTRACT_ADDRESS; // Alias for backward compatibility
 export const DOSSIER_DEPLOYMENT_BLOCK = 11423379; // Status Network deployment block
 
 // Network metadata
