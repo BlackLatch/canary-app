@@ -35,7 +35,25 @@ async function main() {
   );
 
   console.log('\n📝 Deploying contract...');
-  const contract = await factory.deploy();
+
+  // Get current gas price and block gas limit
+  const block = await provider.getBlock('latest');
+  const gasPrice = await provider.getGasPrice();
+  console.log('Block gas limit:', block.gasLimit.toString());
+  console.log('Current gas price:', ethers.utils.formatUnits(gasPrice, 'gwei'), 'Gwei');
+
+  // Use a reasonable gas limit (7M is safe for most networks)
+  const gasLimit = 7000000;
+  console.log('Using gas limit:', gasLimit);
+
+  // Estimate deployment cost
+  const estimatedCost = gasLimit * gasPrice.toNumber();
+  console.log('Estimated cost:', ethers.utils.formatEther(estimatedCost), 'ETH');
+
+  const contract = await factory.deploy({
+    gasLimit: gasLimit,
+    gasPrice: gasPrice
+  });
 
   console.log('\n⏳ Waiting for deployment...');
   await contract.deployed();
