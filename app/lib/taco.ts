@@ -124,28 +124,29 @@ class TacoService {
   ): Promise<EncryptionResult> {
     await this.initialize();
 
-    let provider: ethers.providers.Provider;
     let signer: ethers.Signer;
+
+    // IMPORTANT: TACo needs a provider connected to Polygon Amoy (where TACo infrastructure exists)
+    // The contract condition will point to Status Network (where our Dossier contract lives)
+    console.log('🔗 Creating TACo provider connected to Polygon Amoy (for TACo infrastructure)');
+    const tacoProvider = new ethers.providers.JsonRpcProvider('https://rpc-amoy.polygon.technology/');
 
     // Handle burner wallet differently - it's an ethers.Wallet instance
     if (burnerWallet) {
       console.log('🔥 Using burner wallet for encryption');
-      // Connect burner wallet to Status Network Sepolia RPC
-      const rpcUrl = 'https://public.sepolia.rpc.status.network';
-      console.log('🔗 Connecting to Status Network Sepolia RPC');
-      provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-      signer = burnerWallet.connect(provider);
-      console.log('🔥 Burner wallet connected to Status Network Sepolia RPC');
+      // Connect burner wallet to Polygon Amoy for signing
+      signer = burnerWallet.connect(tacoProvider);
+      console.log('🔥 Burner wallet connected for TACo encryption');
     } else {
       // Get the ethers provider from Privy (handles embedded wallets)
-      provider = await getPrivyEthersProvider(walletProvider);
+      const privyProvider = await getPrivyEthersProvider(walletProvider);
 
       // Get the signer - for embedded wallets, we should use the default signer
       // not the smart wallet address
       console.log('🔐 Getting signer from provider...');
-      signer = provider.getSigner(); // Don't pass address, let provider use its default
+      signer = privyProvider.getSigner(); // Don't pass address, let provider use its default
     }
-    
+
     // Log the actual signer address for debugging
     try {
       const signerAddress = await signer.getAddress();
@@ -153,8 +154,9 @@ class TacoService {
     } catch (error) {
       console.warn('⚠️ Could not get signer address:', error);
     }
-    
+
     console.log('🔒 Using Dossier contract condition for maximum security');
+    console.log('📍 Contract on Status Network, TACo infrastructure on Polygon Amoy');
     const tacoCondition = this.createDossierCondition(userAddress, dossierId);
 
     const fileArrayBuffer = await file.arrayBuffer();
@@ -164,11 +166,13 @@ class TacoService {
       type: 'dossier_contract',
       dossierId: dossierId.toString(),
       userAddress: userAddress,
-      contractAddress: CANARY_DOSSIER_ADDRESS
+      contractAddress: CANARY_DOSSIER_ADDRESS,
+      contractChain: statusSepolia.id,
+      tacoInfraChain: 'Polygon Amoy (80002)'
     });
 
     const messageKit = await encrypt(
-      provider,
+      tacoProvider, // Use Polygon Amoy provider for TACo
       TACO_DOMAIN,
       message,
       tacoCondition,
