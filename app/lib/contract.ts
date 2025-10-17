@@ -1,13 +1,14 @@
 import { readContract, writeContract, waitForTransactionReceipt, getAccount } from 'wagmi/actions';
-import { polygonAmoy } from 'wagmi/chains';
+import { statusSepolia } from './chains/status';
 import type { Address } from 'viem';
 import { config } from './web3'; // Use the main wagmi config
 import { ensureCorrectNetwork } from './network-switch';
 
 // DossierV2 Contract - deployed with enhanced features
-// IMPORTANT: This contract is ONLY deployed on Polygon Amoy, not on mainnet
-// All transactions must be on chain ID 80002 (Polygon Amoy)
-export const CANARY_DOSSIER_ADDRESS: Address = process.env.NEXT_PUBLIC_CANARY_DOSSIER_V2_ADDRESS as Address || '0x7616ed018d9eF80487fa50A2736E1081BDB7cE8c';
+// IMPORTANT: This contract is primarily deployed on Status Network Sepolia (gasless)
+// Polygon Amoy is also supported for backward compatibility
+// Default: Status Network Sepolia (Chain ID 1660990954)
+export const CANARY_DOSSIER_ADDRESS: Address = (process.env.NEXT_PUBLIC_CANARY_DOSSIER_STATUS_ADDRESS as Address) || '0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0';
 
 // Import the DossierV2 ABI
 import dossierV2ABI from './dossierV2.abi.json';
@@ -225,12 +226,17 @@ export interface Dossier {
 }
 
 // Network validation helper
+export const isOnStatusNetwork = (chainId: number | undefined): boolean => {
+  return chainId === statusSepolia.id;
+};
+
 export const isOnPolygonAmoy = (chainId: number | undefined): boolean => {
-  return chainId === polygonAmoy.id;
+  return chainId === 80002; // Keep for backward compatibility
 };
 
 export const getNetworkName = (chainId: number | undefined): string => {
-  if (chainId === polygonAmoy.id) return 'Polygon Amoy';
+  if (chainId === statusSepolia.id) return 'Status Network Sepolia';
+  if (chainId === 80002) return 'Polygon Amoy';
   if (chainId === 1) return 'Ethereum Mainnet';
   if (chainId === 137) return 'Polygon Mainnet';
   return `Unknown Network (${chainId})`;
@@ -261,8 +267,8 @@ export class ContractService {
       const result = {
         usingWalletProvider: true, // Always true since we use wagmi config
         walletChainId: account.chainId,
-        configChainId: polygonAmoy.id,
-        networkMatch: account.chainId === polygonAmoy.id
+        configChainId: statusSepolia.id,
+        networkMatch: account.chainId === statusSepolia.id
       };
       
       console.log('🔍 Wallet Provider Verification:', result);
@@ -280,7 +286,7 @@ export class ContractService {
       return {
         usingWalletProvider: false,
         walletChainId: undefined,
-        configChainId: polygonAmoy.id,
+        configChainId: statusSepolia.id,
         networkMatch: false
       };
     }
@@ -342,19 +348,19 @@ export class ContractService {
       }
 
       // Check network and attempt to switch if needed
-      if (account.chainId !== polygonAmoy.id) {
+      if (account.chainId !== statusSepolia.id) {
         console.log(`🔗 Wrong network detected. Attempting to switch...`);
         const switched = await ensureCorrectNetwork();
-        
+
         if (!switched) {
-          result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${polygonAmoy.id}`);
+          result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${statusSepolia.id}`);
           result.isValid = false;
           return result;
         }
-        
+
         // Re-check account after switch
         const updatedAccount = getAccount(config);
-        if (updatedAccount.chainId !== polygonAmoy.id) {
+        if (updatedAccount.chainId !== statusSepolia.id) {
           result.errors.push(`Failed to switch network. Still on: ${updatedAccount.chainId}`);
           result.isValid = false;
           return result;
@@ -1585,8 +1591,8 @@ export class ContractService {
         return result;
       }
 
-      if (account.chainId !== polygonAmoy.id) {
-        result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${polygonAmoy.id}`);
+      if (account.chainId !== statusSepolia.id) {
+        result.errors.push(`Wrong network. Current: ${account.chainId}, Expected: ${statusSepolia.id}`);
         return result;
       }
 

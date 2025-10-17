@@ -1,47 +1,44 @@
 /**
  * Network Configuration for Canary
- * 
- * IMPORTANT: This application operates EXCLUSIVELY on Polygon Amoy testnet.
- * The Dossier.sol smart contract is deployed ONLY on Polygon Amoy.
- * Do NOT attempt to use mainnet or any other network.
+ *
+ * IMPORTANT: This application primarily operates on Status Network Sepolia testnet.
+ * The DossierV2 smart contract is deployed on Status Network (gasless).
+ * Polygon Amoy is also supported for backward compatibility.
  */
 
-import { polygonAmoy } from 'wagmi/chains';
+import { statusSepolia } from './chains/status';
 import type { Address } from 'viem';
 
-// The ONE and ONLY supported network
-export const SUPPORTED_CHAIN = polygonAmoy;
-export const SUPPORTED_CHAIN_ID = polygonAmoy.id; // 80002
+// The default supported network
+export const SUPPORTED_CHAIN = statusSepolia;
+export const SUPPORTED_CHAIN_ID = statusSepolia.id; // 1660990954
 
 // Contract deployment
-export const DOSSIER_CONTRACT_ADDRESS: Address = '0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0';
-export const DOSSIER_DEPLOYMENT_BLOCK = 0; // Update if known
+export const DOSSIER_CONTRACT_ADDRESS: Address = (process.env.NEXT_PUBLIC_CANARY_DOSSIER_STATUS_ADDRESS as Address) || '0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0';
+export const DOSSIER_DEPLOYMENT_BLOCK = 11423379; // Status Network deployment block
 
 // Network metadata
 export const NETWORK_CONFIG = {
-  name: 'Polygon Amoy',
-  chainId: 80002,
+  name: 'Status Network Sepolia',
+  chainId: 1660990954,
   isTestnet: true,
   nativeCurrency: {
-    name: 'MATIC',
-    symbol: 'MATIC',
+    name: 'Ether',
+    symbol: 'ETH',
     decimals: 18,
   },
   rpcUrls: {
-    default: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY 
-      ? `https://polygon-amoy.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`
-      : 'https://rpc-amoy.polygon.technology/',
-    public: 'https://rpc-amoy.polygon.technology/',
+    default: 'https://public.sepolia.rpc.status.network',
+    public: 'https://public.sepolia.rpc.status.network',
   },
   blockExplorers: {
     default: {
-      name: 'PolygonScan',
-      url: 'https://amoy.polygonscan.com',
+      name: 'Status Explorer',
+      url: 'https://sepoliascan.status.network',
     },
   },
   faucets: [
-    'https://faucet.polygon.technology/',
-    'https://mumbaifaucet.com/', // Also works for Amoy
+    'https://faucet.status.network/',
   ],
 };
 
@@ -62,26 +59,17 @@ export const isCorrectNetwork = (chainId: number | undefined): boolean => {
 
 export const getNetworkError = (chainId: number | undefined): string => {
   if (!chainId) return 'No network detected. Please connect your wallet.';
-  if (chainId === 1) return 'Please switch from Ethereum Mainnet to Polygon Amoy testnet.';
-  if (chainId === 137) return 'Please switch from Polygon Mainnet to Polygon Amoy testnet.';
-  return `Please switch to Polygon Amoy testnet (Chain ID: ${SUPPORTED_CHAIN_ID}). Currently on chain ${chainId}.`;
+  if (chainId === 1) return 'Please switch from Ethereum Mainnet to Status Network Sepolia testnet.';
+  if (chainId === 137) return 'Please switch from Polygon Mainnet to Status Network Sepolia testnet.';
+  if (chainId === 80002) return 'Please switch from Polygon Amoy to Status Network Sepolia testnet.';
+  return `Please switch to Status Network Sepolia testnet (Chain ID: ${SUPPORTED_CHAIN_ID}). Currently on chain ${chainId}.`;
 };
 
 // Testnet information
 export const TESTNET_FAUCETS = [
   {
-    name: 'Polygon Faucet',
-    url: 'https://faucet.polygon.technology/',
-    amount: '0.5 MATIC'
-  },
-  {
-    name: 'Chainlink Faucet', 
-    url: 'https://faucets.chain.link/polygon-amoy',
-    amount: '0.1 MATIC'
-  },
-  {
-    name: 'QuickNode Faucet',
-    url: 'https://faucet.quicknode.com/polygon/amoy',
-    amount: '0.1 MATIC'
+    name: 'Status Network Faucet',
+    url: 'https://faucet.status.network/',
+    amount: 'Test ETH'
   }
 ];

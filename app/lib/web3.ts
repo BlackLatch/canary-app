@@ -36,11 +36,11 @@ const polygonAmoyRpcUrl = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 const statusSepoliaRpcUrl = 'https://public.sepolia.rpc.status.network';
 
 export const config = createConfig({
-  chains: [polygonAmoy, statusSepolia], // Polygon Amoy and Status Network
+  chains: [statusSepolia, polygonAmoy], // Status Network (default) and Polygon Amoy
   connectors,
   transports: {
+    [statusSepolia.id]: http(statusSepoliaRpcUrl), // Status Network RPC (default)
     [polygonAmoy.id]: http(polygonAmoyRpcUrl), // Polygon Amoy RPC
-    [statusSepolia.id]: http(statusSepoliaRpcUrl), // Status Network RPC
   },
 })
 
