@@ -28,7 +28,6 @@ import AcceptableUsePolicy, { checkAUPSigned } from "./components/AcceptableUseP
 import SettingsView from "./components/SettingsView";
 import MonitorView from "./components/MonitorView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
-import BurnerWalletFundingHelper from "./components/BurnerWalletFundingHelper";
 import { useSearchParams } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -2054,13 +2053,6 @@ const Home = () => {
                                 {`${getCurrentAddress()!.slice(0, 6)}...${getCurrentAddress()!.slice(-4)}`}
                               </span>
                             </div>
-                            {/* Show funding helper only for burner wallets */}
-                            {burnerWallet.isConnected && burnerWallet.address && (
-                              <BurnerWalletFundingHelper
-                                address={burnerWallet.address}
-                                theme={theme}
-                              />
-                            )}
                           </>
                         ) : authMode === "standard" && authenticated ? (
                           // Standard mode: Show user email or authenticated status
