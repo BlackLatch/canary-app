@@ -8,6 +8,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useBurnerWallet } from '../lib/burner-wallet-context';
 import { useHeartbeat } from '../lib/heartbeat-context';
+import { NETWORK_CONFIG, CANARY_DOSSIER_ADDRESS } from '../lib/network-config';
 import toast from 'react-hot-toast';
 
 interface SettingsViewProps {
@@ -390,17 +391,17 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       <div className={`text-sm ${
                         theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                       }`}>
-                        <span className="font-medium">Network:</span> Polygon Amoy (Testnet)
+                        <span className="font-medium">Network:</span> {NETWORK_CONFIG.name}
                       </div>
                       <div className={`text-sm ${
                         theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                       }`}>
-                        <span className="font-medium">Chain ID:</span> 80002
+                        <span className="font-medium">Chain ID:</span> {NETWORK_CONFIG.chainId}
                       </div>
                       <div className={`text-sm ${
                         theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                       }`}>
-                        <span className="font-medium">RPC:</span> Polygon Amoy Testnet
+                        <span className="font-medium">RPC:</span> {NETWORK_CONFIG.rpcUrls.default}
                       </div>
                     </div>
                   </div>
@@ -765,12 +766,12 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       <div className={`text-sm ${
                         theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                       }`}>
-                        <span className="font-medium">Network:</span> Polygon Amoy (Testnet)
+                        <span className="font-medium">Network:</span> {NETWORK_CONFIG.name}
                       </div>
                       <div className={`text-sm ${
                         theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                       }`}>
-                        <span className="font-medium">Chain ID:</span> 80002
+                        <span className="font-medium">Chain ID:</span> {NETWORK_CONFIG.chainId}
                       </div>
                       <div className={`text-sm ${
                         theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -780,8 +781,8 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       <div className={`text-sm ${
                         theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                       }`}>
-                        <span className="font-medium">Contract Address:</span> 
-                        <span className="font-mono text-xs ml-2">0x3F5e...8a7B</span>
+                        <span className="font-medium">Contract Address:</span>
+                        <span className="font-mono text-xs ml-2">{CANARY_DOSSIER_ADDRESS.slice(0, 6)}...{CANARY_DOSSIER_ADDRESS.slice(-4)}</span>
                       </div>
                     </div>
                   </div>
