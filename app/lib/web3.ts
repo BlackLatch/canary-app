@@ -1,6 +1,7 @@
 import { http } from 'wagmi'
 import { createConfig } from '@privy-io/wagmi'
 import { polygonAmoy } from 'wagmi/chains'
+import { statusSepolia } from './chains/status'
 import { coinbaseWallet, metaMask, walletConnect } from 'wagmi/connectors'
 import type { CreateConnectorFn } from 'wagmi'
 
@@ -28,15 +29,18 @@ if (projectId && projectId !== 'demo-project-id') {
 }
 
 // Use public RPC endpoints as fallback when wallet doesn't have proper RPC configured
-const polygonAmoyRpcUrl = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY 
+const polygonAmoyRpcUrl = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
   ? `https://polygon-amoy.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`
   : 'https://rpc-amoy.polygon.technology/';
 
+const statusSepoliaRpcUrl = 'https://public.sepolia.rpc.status.network';
+
 export const config = createConfig({
-  chains: [polygonAmoy], // Only Polygon Amoy - Dossier.sol is deployed here
+  chains: [polygonAmoy, statusSepolia], // Polygon Amoy and Status Network
   connectors,
   transports: {
-    [polygonAmoy.id]: http(polygonAmoyRpcUrl), // Use dedicated Polygon Amoy RPC
+    [polygonAmoy.id]: http(polygonAmoyRpcUrl), // Polygon Amoy RPC
+    [statusSepolia.id]: http(statusSepoliaRpcUrl), // Status Network RPC
   },
 })
 
