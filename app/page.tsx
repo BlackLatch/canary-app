@@ -1691,7 +1691,7 @@ const Home = () => {
                             <span>Connecting...</span>
                           </div>
                         ) : (
-                          "Anonymous Burner Wallet"
+                          "Anonymous Account"
                         )}
                       </button>
 

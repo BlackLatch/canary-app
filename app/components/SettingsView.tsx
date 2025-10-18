@@ -271,7 +271,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                               }`}>
                                 {burnerWallet.isConnected ? (
-                                  'Anonymous Burner Wallet'
+                                  'Anonymous Account'
                                 ) : isConnected && !authenticated ? (
                                   'External Web3 Wallet'
                                 ) : authenticated && wallets && wallets.length > 0 ? (
