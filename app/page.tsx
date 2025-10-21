@@ -35,6 +35,7 @@ import { usePrivy, useWallets, useConnectWallet } from "@privy-io/react-auth";
 import { useSetActiveWallet } from "@privy-io/wagmi";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { useBurnerWallet } from "./lib/burner-wallet-context";
+import { hasBurnerWallet } from "./lib/burner-wallet";
 import { polygonAmoy } from "wagmi/chains";
 import { Address, encodeFunctionData } from "viem";
 import {
@@ -91,6 +92,7 @@ const Home = () => {
   const burnerWallet = useBurnerWallet();
 
   const [signedIn, setSignedIn] = useState(false);
+  const [hasExistingAnonymousAccount, setHasExistingAnonymousAccount] = useState(false);
   const [authMode, setAuthMode] = useState<"standard" | "advanced">(() => {
     // Load auth mode from localStorage, default to standard
     if (typeof window !== "undefined") {
@@ -277,6 +279,11 @@ const Home = () => {
   // Apply background to body based on current view
   useEffect(() => {
     // Clean theme setup - no mesh backgrounds
+  }, []);
+
+  // Check for existing anonymous account on mount
+  useEffect(() => {
+    setHasExistingAnonymousAccount(hasBurnerWallet());
   }, []);
 
   // PWA Install prompt handling
@@ -1690,6 +1697,13 @@ const Home = () => {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                             <span>Connecting...</span>
                           </div>
+                        ) : hasExistingAnonymousAccount ? (
+                          <>
+                            <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Restore Anonymous Account
+                          </>
                         ) : (
                           "Anonymous Account"
                         )}
