@@ -35,7 +35,8 @@ import { usePrivy, useWallets, useConnectWallet } from "@privy-io/react-auth";
 import { useSetActiveWallet } from "@privy-io/wagmi";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { useBurnerWallet } from "./lib/burner-wallet-context";
-import { hasBurnerWallet } from "./lib/burner-wallet";
+import { hasBurnerWallet, getBurnerWalletAddress } from "./lib/burner-wallet";
+import Jazzicon from 'react-jazzicon';
 import { polygonAmoy } from "wagmi/chains";
 import { Address, encodeFunctionData } from "viem";
 import {
@@ -93,6 +94,7 @@ const Home = () => {
 
   const [signedIn, setSignedIn] = useState(false);
   const [hasExistingAnonymousAccount, setHasExistingAnonymousAccount] = useState(false);
+  const [existingAnonymousAddress, setExistingAnonymousAddress] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<"standard" | "advanced">(() => {
     // Load auth mode from localStorage, default to standard
     if (typeof window !== "undefined") {
@@ -299,9 +301,17 @@ const Home = () => {
         }
 
         setHasExistingAnonymousAccount(hasAccount);
+
+        // Get the address if account exists
+        if (hasAccount) {
+          const address = getBurnerWalletAddress();
+          setExistingAnonymousAddress(address);
+          console.log('📍 Existing account address:', address);
+        }
       } catch (error) {
         console.error('❌ Error checking for existing account:', error);
         setHasExistingAnonymousAccount(false);
+        setExistingAnonymousAddress(null);
       }
     };
 
@@ -1428,10 +1438,30 @@ const Home = () => {
     };
   };
 
+  const handleCreateNewAnonymousAccount = async () => {
+    console.log("Creating new anonymous account, clearing existing...");
+    setAuthModeWithPersistence("advanced");
+    try {
+      // Clear the existing wallet
+      burnerWallet.clearWallet();
+      // Create a new one
+      const walletInfo = await burnerWallet.connect();
+      console.log("🔥 New burner wallet created:", walletInfo.address);
+      setSignedIn(true);
+      toast.success("New anonymous wallet created! Your private key is saved locally.");
+      // Update state
+      setHasExistingAnonymousAccount(true);
+      setExistingAnonymousAddress(walletInfo.address);
+    } catch (error) {
+      console.error("Failed to create new burner wallet:", error);
+      toast.error("Failed to create new anonymous wallet. Please try again.");
+    }
+  };
+
   const handleSignIn = async (method: string) => {
     console.log("Sign in method:", method);
 
-    if (method === "Burner Wallet") {
+    if (method === "Burner Wallet" || method === "Restore Burner") {
       // Anonymous burner wallet login
       console.log("Connecting burner wallet...");
       setAuthModeWithPersistence("advanced"); // Set advanced mode for burner wallet
@@ -1444,6 +1474,9 @@ const Home = () => {
             ? "Anonymous wallet created! Your private key is saved locally."
             : "Welcome back! Anonymous wallet restored."
         );
+        // Update state after connecting
+        setHasExistingAnonymousAccount(true);
+        setExistingAnonymousAddress(walletInfo.address);
       } catch (error) {
         console.error("Failed to connect burner wallet:", error);
         toast.error("Failed to connect anonymous wallet. Please try again.");
@@ -1708,35 +1741,83 @@ const Home = () => {
                     </div>
 
                     <div className="space-y-3">
-                      <button
-                        className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
-                          theme === "light"
-                            ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
-                            : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
-                        }`}
-                        onClick={() => handleSignIn("Burner Wallet")}
-                        disabled={burnerWallet.isLoading}
-                        title="Anonymous wallet stored locally in your browser"
-                      >
-                        {burnerWallet.isLoading ? (
-                          <div className="flex items-center justify-center gap-3">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                            <span>Connecting...</span>
-                          </div>
-                        ) : hasExistingAnonymousAccount ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <span>Restore Anonymous Account</span>
-                            <span className="ml-1 px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">
-                              Saved
-                            </span>
-                          </div>
-                        ) : (
-                          "Anonymous Account"
-                        )}
-                      </button>
+                      {hasExistingAnonymousAccount && existingAnonymousAddress ? (
+                        <div className="space-y-3">
+                          {/* Restore existing account button */}
+                          <button
+                            className={`w-full py-3 px-4 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                              theme === "light"
+                                ? "bg-green-50 text-gray-900 border-green-300 hover:border-green-400 hover:bg-green-100"
+                                : "bg-green-900/20 text-gray-100 border-green-700 hover:border-green-600 hover:bg-green-900/30"
+                            }`}
+                            onClick={() => handleSignIn("Restore Burner")}
+                            disabled={burnerWallet.isLoading}
+                            title="Restore your existing anonymous account"
+                          >
+                            {burnerWallet.isLoading ? (
+                              <div className="flex items-center justify-center gap-3">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                                <span>Connecting...</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-3">
+                                <Jazzicon diameter={24} seed={parseInt(existingAnonymousAddress.slice(2, 10), 16)} />
+                                <div className="flex items-center gap-2">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  <span>Restore Account</span>
+                                  <code className="text-sm font-mono opacity-70">
+                                    {existingAnonymousAddress.slice(0, 6)}...{existingAnonymousAddress.slice(-4)}
+                                  </code>
+                                </div>
+                                <span className="ml-1 px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">
+                                  Saved
+                                </span>
+                              </div>
+                            )}
+                          </button>
+
+                          {/* Create new account button (smaller) */}
+                          <button
+                            className={`w-full py-2 px-4 text-sm font-medium rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                              theme === "light"
+                                ? "bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                                : "bg-black/40 text-gray-300 border-gray-600 hover:border-gray-500 hover:bg-black/60"
+                            }`}
+                            onClick={handleCreateNewAnonymousAccount}
+                            disabled={burnerWallet.isLoading}
+                            title="Create a new anonymous account (will replace the existing one)"
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              <span>Create New Anonymous Account</span>
+                            </div>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                            theme === "light"
+                              ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
+                              : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
+                          }`}
+                          onClick={() => handleSignIn("Burner Wallet")}
+                          disabled={burnerWallet.isLoading}
+                          title="Anonymous wallet stored locally in your browser"
+                        >
+                          {burnerWallet.isLoading ? (
+                            <div className="flex items-center justify-center gap-3">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                              <span>Connecting...</span>
+                            </div>
+                          ) : (
+                            "Anonymous Account"
+                          )}
+                        </button>
+                      )}
 
                       <button
                         className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
