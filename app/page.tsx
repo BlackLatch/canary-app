@@ -1745,10 +1745,10 @@ const Home = () => {
                         <div className="space-y-3">
                           {/* Restore existing account button */}
                           <button
-                            className={`w-full py-3 px-4 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                            className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
                               theme === "light"
-                                ? "bg-green-50 text-gray-900 border-green-300 hover:border-green-400 hover:bg-green-100"
-                                : "bg-green-900/20 text-gray-100 border-green-700 hover:border-green-600 hover:bg-green-900/30"
+                                ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
+                                : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
                             }`}
                             onClick={() => handleSignIn("Restore Burner")}
                             disabled={burnerWallet.isLoading}
@@ -1761,29 +1761,27 @@ const Home = () => {
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-3">
-                                <Jazzicon diameter={24} seed={parseInt(existingAnonymousAddress.slice(2, 10), 16)} />
-                                <div className="flex items-center gap-2">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                  <span>Restore Account</span>
-                                  <code className="text-sm font-mono opacity-70">
-                                    {existingAnonymousAddress.slice(0, 6)}...{existingAnonymousAddress.slice(-4)}
-                                  </code>
-                                </div>
-                                <span className="ml-1 px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">
+                                <Jazzicon diameter={20} seed={parseInt(existingAnonymousAddress.slice(2, 10), 16)} />
+                                <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span>Restore Account</span>
+                                <code className="text-sm font-mono opacity-60">
+                                  {existingAnonymousAddress.slice(0, 6)}...{existingAnonymousAddress.slice(-4)}
+                                </code>
+                                <span className="ml-auto px-2 py-0.5 text-xs text-green-500 rounded-full border border-green-500/30">
                                   Saved
                                 </span>
                               </div>
                             )}
                           </button>
 
-                          {/* Create new account button (smaller) */}
+                          {/* Create new account button */}
                           <button
-                            className={`w-full py-2 px-4 text-sm font-medium rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                            className={`w-full py-4 px-6 text-base font-medium rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
                               theme === "light"
-                                ? "bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                                : "bg-black/40 text-gray-300 border-gray-600 hover:border-gray-500 hover:bg-black/60"
+                                ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
+                                : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
                             }`}
                             onClick={handleCreateNewAnonymousAccount}
                             disabled={burnerWallet.isLoading}
