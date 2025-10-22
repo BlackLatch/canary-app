@@ -283,7 +283,33 @@ const Home = () => {
 
   // Check for existing anonymous account on mount
   useEffect(() => {
-    setHasExistingAnonymousAccount(hasBurnerWallet());
+    // Check after a small delay to ensure localStorage is ready
+    const checkExistingAccount = () => {
+      try {
+        const hasAccount = hasBurnerWallet();
+        console.log('🔍 Checking for existing anonymous account:', hasAccount);
+
+        // Also log what's actually in localStorage for debugging
+        if (typeof window !== 'undefined') {
+          const storedKey = localStorage.getItem('canary-burner-wallet-private-key');
+          console.log('🔑 localStorage key exists:', storedKey !== null);
+          if (storedKey) {
+            console.log('🔑 Key preview:', storedKey.substring(0, 10) + '...');
+          }
+        }
+
+        setHasExistingAnonymousAccount(hasAccount);
+      } catch (error) {
+        console.error('❌ Error checking for existing account:', error);
+        setHasExistingAnonymousAccount(false);
+      }
+    };
+
+    // Check immediately
+    checkExistingAccount();
+
+    // Also check after a small delay in case of timing issues
+    setTimeout(checkExistingAccount, 100);
   }, []);
 
   // PWA Install prompt handling
@@ -1698,12 +1724,15 @@ const Home = () => {
                             <span>Connecting...</span>
                           </div>
                         ) : hasExistingAnonymousAccount ? (
-                          <>
-                            <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex items-center justify-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            Restore Anonymous Account
-                          </>
+                            <span>Restore Anonymous Account</span>
+                            <span className="ml-1 px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">
+                              Saved
+                            </span>
+                          </div>
                         ) : (
                           "Anonymous Account"
                         )}
