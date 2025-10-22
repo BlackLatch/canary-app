@@ -1752,7 +1752,7 @@ const Home = () => {
                             }`}
                             onClick={() => handleSignIn("Restore Burner")}
                             disabled={burnerWallet.isLoading}
-                            title="Restore your existing anonymous account"
+                            title={`Restore saved account: ${existingAnonymousAddress}`}
                           >
                             {burnerWallet.isLoading ? (
                               <div className="flex items-center justify-center gap-3">
@@ -1762,16 +1762,10 @@ const Home = () => {
                             ) : (
                               <div className="flex items-center justify-center gap-3">
                                 <Jazzicon diameter={20} seed={parseInt(existingAnonymousAddress.slice(2, 10), 16)} />
-                                <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
                                 <span>Restore Account</span>
-                                <code className="text-sm font-mono opacity-60">
+                                <code className="text-xs font-mono opacity-50">
                                   {existingAnonymousAddress.slice(0, 6)}...{existingAnonymousAddress.slice(-4)}
                                 </code>
-                                <span className="ml-auto px-2 py-0.5 text-xs text-green-500 rounded-full border border-green-500/30">
-                                  Saved
-                                </span>
                               </div>
                             )}
                           </button>
