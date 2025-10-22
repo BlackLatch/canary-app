@@ -23,6 +23,7 @@ interface BurnerWalletContextValue {
   // Actions
   connect: () => Promise<BurnerWalletInfo>;
   disconnect: () => void;
+  clearWallet: () => void; // Permanently delete the wallet from localStorage
   exportPrivateKey: () => string | null;
   importPrivateKey: (privateKey: string) => Promise<void>;
   hasExistingWallet: () => boolean;
@@ -93,8 +94,15 @@ export function BurnerWalletProvider({ children, autoConnect = false }: BurnerWa
   const disconnect = () => {
     setWallet(null);
     setAddress(null);
-    clearBurnerWallet();
-    console.log('🔥 Burner wallet disconnected and cleared');
+    // Don't clear from localStorage - just disconnect the session
+    console.log('🔥 Burner wallet disconnected (but preserved in localStorage)');
+  };
+
+  const clearWallet = () => {
+    setWallet(null);
+    setAddress(null);
+    clearBurnerWallet(); // This permanently removes from localStorage
+    console.log('🔥 Burner wallet permanently cleared from localStorage');
   };
 
   const exportPrivateKey = (): string | null => {
@@ -131,6 +139,7 @@ export function BurnerWalletProvider({ children, autoConnect = false }: BurnerWa
     isLoading,
     connect,
     disconnect,
+    clearWallet,
     exportPrivateKey,
     importPrivateKey,
     hasExistingWallet,

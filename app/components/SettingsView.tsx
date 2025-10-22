@@ -330,8 +330,8 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                         }`}>
                           This will disconnect your wallet and you'll need to reconnect to access your dossiers.
                           {burnerWallet.isConnected && (
-                            <span className="block mt-2 text-orange-600 dark:text-orange-400 font-medium">
-                              ⚠️ This will clear your burner wallet from local storage.
+                            <span className="block mt-2 text-green-600 dark:text-green-400 font-medium">
+                              ✓ Your anonymous account will remain saved and can be restored later.
                             </span>
                           )}
                         </p>
