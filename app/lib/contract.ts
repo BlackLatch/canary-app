@@ -1454,22 +1454,47 @@ export class ContractService {
   /**
    * Pause a dossier
    */
-  static async pauseDossier(dossierId: bigint): Promise<string> {
+  static async pauseDossier(dossierId: bigint, burnerWallet?: any): Promise<string> {
     try {
       console.log('⏸️ Pausing dossier:', dossierId.toString());
-      
-      const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_ADDRESS,
-        abi: CANARY_DOSSIER_ABI,
-        functionName: 'pauseDossier',
-        args: [dossierId],
-      });
-      
-      await waitForTransactionReceipt(config, { hash });
-      
+
+      let hash: string;
+
+      // Handle burner wallet differently
+      if (burnerWallet) {
+        console.log('🔥 Using burner wallet for pause transaction');
+        const { ethers } = await import('ethers');
+
+        // Connect to Status Network Sepolia RPC
+        const provider = new ethers.providers.JsonRpcProvider('https://public.sepolia.rpc.status.network');
+        const signer = burnerWallet.connect(provider);
+
+        // Create contract instance
+        const contract = new ethers.Contract(
+          CANARY_DOSSIER_ADDRESS,
+          CANARY_DOSSIER_ABI,
+          signer
+        );
+
+        // Status Network is gasless - set gas to 0
+        const tx = await contract.pauseDossier(dossierId, { gasPrice: 0 });
+        const receipt = await tx.wait();
+        hash = receipt.transactionHash;
+      } else {
+        // Use wagmi for connected wallets
+        hash = await writeContract(config, {
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
+          functionName: 'pauseDossier',
+          args: [dossierId],
+        });
+
+        await waitForTransactionReceipt(config, { hash });
+      }
+
       console.log('✅ Dossier paused successfully!');
       return hash;
-      
+
     } catch (error) {
       console.error('❌ Failed to pause dossier:', error);
       throw error;
@@ -1479,22 +1504,47 @@ export class ContractService {
   /**
    * Resume a paused dossier
    */
-  static async resumeDossier(dossierId: bigint): Promise<string> {
+  static async resumeDossier(dossierId: bigint, burnerWallet?: any): Promise<string> {
     try {
       console.log('▶️ Resuming dossier:', dossierId.toString());
-      
-      const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_ADDRESS,
-        abi: CANARY_DOSSIER_ABI,
-        functionName: 'resumeDossier',
-        args: [dossierId],
-      });
-      
-      await waitForTransactionReceipt(config, { hash });
-      
+
+      let hash: string;
+
+      // Handle burner wallet differently
+      if (burnerWallet) {
+        console.log('🔥 Using burner wallet for resume transaction');
+        const { ethers } = await import('ethers');
+
+        // Connect to Status Network Sepolia RPC
+        const provider = new ethers.providers.JsonRpcProvider('https://public.sepolia.rpc.status.network');
+        const signer = burnerWallet.connect(provider);
+
+        // Create contract instance
+        const contract = new ethers.Contract(
+          CANARY_DOSSIER_ADDRESS,
+          CANARY_DOSSIER_ABI,
+          signer
+        );
+
+        // Status Network is gasless - set gas to 0
+        const tx = await contract.resumeDossier(dossierId, { gasPrice: 0 });
+        const receipt = await tx.wait();
+        hash = receipt.transactionHash;
+      } else {
+        // Use wagmi for connected wallets
+        hash = await writeContract(config, {
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
+          functionName: 'resumeDossier',
+          args: [dossierId],
+        });
+
+        await waitForTransactionReceipt(config, { hash });
+      }
+
       console.log('✅ Dossier resumed successfully!');
       return hash;
-      
+
     } catch (error) {
       console.error('❌ Failed to resume dossier:', error);
       throw error;
@@ -1504,23 +1554,48 @@ export class ContractService {
   /**
    * Release dossier data immediately (irreversible action)
    */
-  static async releaseNow(dossierId: bigint): Promise<string> {
+  static async releaseNow(dossierId: bigint, burnerWallet?: any): Promise<string> {
     try {
       console.log('🔓 Releasing dossier data immediately:', dossierId.toString());
       console.warn('⚠️ This action is PERMANENT and releases data immediately!');
-      
-      const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_ADDRESS,
-        abi: CANARY_DOSSIER_ABI,
-        functionName: 'releaseNow',
-        args: [dossierId],
-      });
-      
-      await waitForTransactionReceipt(config, { hash });
-      
+
+      let hash: string;
+
+      // Handle burner wallet differently
+      if (burnerWallet) {
+        console.log('🔥 Using burner wallet for release transaction');
+        const { ethers } = await import('ethers');
+
+        // Connect to Status Network Sepolia RPC
+        const provider = new ethers.providers.JsonRpcProvider('https://public.sepolia.rpc.status.network');
+        const signer = burnerWallet.connect(provider);
+
+        // Create contract instance
+        const contract = new ethers.Contract(
+          CANARY_DOSSIER_ADDRESS,
+          CANARY_DOSSIER_ABI,
+          signer
+        );
+
+        // Status Network is gasless - set gas to 0
+        const tx = await contract.releaseNow(dossierId, { gasPrice: 0 });
+        const receipt = await tx.wait();
+        hash = receipt.transactionHash;
+      } else {
+        // Use wagmi for connected wallets
+        hash = await writeContract(config, {
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
+          functionName: 'releaseNow',
+          args: [dossierId],
+        });
+
+        await waitForTransactionReceipt(config, { hash });
+      }
+
       console.log('✅ Dossier data released successfully!');
       return hash;
-      
+
     } catch (error) {
       console.error('❌ Failed to release dossier data:', error);
       throw error;
@@ -1530,23 +1605,48 @@ export class ContractService {
   /**
    * Permanently disable a dossier (irreversible action)
    */
-  static async permanentlyDisableDossier(dossierId: bigint): Promise<string> {
+  static async permanentlyDisableDossier(dossierId: bigint, burnerWallet?: any): Promise<string> {
     try {
       console.log('⛔ Permanently disabling dossier:', dossierId.toString());
       console.warn('⚠️ This action is PERMANENT and cannot be undone!');
-      
-      const hash = await writeContract(config, {
-        address: CANARY_DOSSIER_ADDRESS,
-        abi: CANARY_DOSSIER_ABI,
-        functionName: 'permanentlyDisableDossier',
-        args: [dossierId],
-      });
-      
-      await waitForTransactionReceipt(config, { hash });
-      
+
+      let hash: string;
+
+      // Handle burner wallet differently
+      if (burnerWallet) {
+        console.log('🔥 Using burner wallet for disable transaction');
+        const { ethers } = await import('ethers');
+
+        // Connect to Status Network Sepolia RPC
+        const provider = new ethers.providers.JsonRpcProvider('https://public.sepolia.rpc.status.network');
+        const signer = burnerWallet.connect(provider);
+
+        // Create contract instance
+        const contract = new ethers.Contract(
+          CANARY_DOSSIER_ADDRESS,
+          CANARY_DOSSIER_ABI,
+          signer
+        );
+
+        // Status Network is gasless - set gas to 0
+        const tx = await contract.permanentlyDisableDossier(dossierId, { gasPrice: 0 });
+        const receipt = await tx.wait();
+        hash = receipt.transactionHash;
+      } else {
+        // Use wagmi for connected wallets
+        hash = await writeContract(config, {
+          address: CANARY_DOSSIER_ADDRESS,
+          abi: CANARY_DOSSIER_ABI,
+          functionName: 'permanentlyDisableDossier',
+          args: [dossierId],
+        });
+
+        await waitForTransactionReceipt(config, { hash });
+      }
+
       console.log('✅ Dossier permanently disabled successfully!');
       return hash;
-      
+
     } catch (error) {
       console.error('❌ Failed to permanently disable dossier:', error);
       throw error;

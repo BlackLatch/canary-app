@@ -3744,11 +3744,13 @@ const Home = () => {
                                           txHash =
                                             await ContractService.pauseDossier(
                                               selectedDocument.id,
+                                              burnerWallet.isConnected ? burnerWallet.wallet : undefined
                                             );
                                         } else {
                                           txHash =
                                             await ContractService.resumeDossier(
                                               selectedDocument.id,
+                                              burnerWallet.isConnected ? burnerWallet.wallet : undefined
                                             );
                                         }
 
@@ -6480,6 +6482,7 @@ const Home = () => {
                       const txHash =
                         await ContractService.permanentlyDisableDossier(
                           showDisableConfirm,
+                          burnerWallet.isConnected ? burnerWallet.wallet : undefined
                         );
 
                       toast.success("Dossier permanently disabled", {
@@ -6661,7 +6664,10 @@ const Home = () => {
 
                       // Call the contract to release the dossier data
                       const txHash =
-                        await ContractService.releaseNow(showReleaseConfirm);
+                        await ContractService.releaseNow(
+                          showReleaseConfirm,
+                          burnerWallet.isConnected ? burnerWallet.wallet : undefined
+                        );
 
                       toast.success("Dossier released", { id: releaseToast });
 
