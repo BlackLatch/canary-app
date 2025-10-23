@@ -199,7 +199,7 @@ class TacoService {
     };
   }
 
-  async decryptFile(messageKit: any): Promise<Uint8Array> {
+  async decryptFile(messageKit: any, burnerWallet?: any): Promise<Uint8Array> {
     // Clear any cached auth data
     try {
       localStorage.removeItem('siwe');
@@ -209,9 +209,19 @@ class TacoService {
       // Ignore storage errors
     }
 
-    // Get the ethers provider from Privy (handles embedded wallets)
-    const provider = await getPrivyEthersProvider();
-    const signer = provider.getSigner();
+    let provider: ethers.providers.Provider;
+    let signer: ethers.Signer;
+
+    if (burnerWallet) {
+      // For burner wallet, create a provider connected to Status Network Sepolia
+      console.log('🔥 Using burner wallet for decryption');
+      provider = new ethers.providers.JsonRpcProvider('https://public.sepolia.rpc.status.network');
+      signer = burnerWallet.connect(provider);
+    } else {
+      // Get the ethers provider from Privy (handles embedded wallets)
+      provider = await getPrivyEthersProvider();
+      signer = provider.getSigner();
+    }
     
     // Check if we're on the correct chain
     try {
@@ -226,28 +236,33 @@ class TacoService {
       if (currentChainId !== expectedChainId) {
         console.error(`❌ Wrong network! Expected Status Network Sepolia (${expectedChainId}), got ${currentChainId}`);
 
-        // Attempt to switch networks automatically
-        console.log('🔄 Attempting to switch to Status Network Sepolia...');
-        try {
-          await switchToStatusNetwork();
+        // Attempt to switch networks automatically (only for non-burner wallets)
+        if (!burnerWallet) {
+          console.log('🔄 Attempting to switch to Status Network Sepolia...');
+          try {
+            await switchToStatusNetwork();
 
-          // Wait a moment for the switch to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait a moment for the switch to complete
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-          // Get updated provider after network switch
-          const updatedProvider = await getPrivyEthersProvider();
-          const updatedNetwork = await updatedProvider.getNetwork();
+            // Get updated provider after network switch
+            const updatedProvider = await getPrivyEthersProvider();
+            const updatedNetwork = await updatedProvider.getNetwork();
 
-          if (Number(updatedNetwork.chainId) === Number(statusSepolia.id)) {
-            console.log('✅ Successfully switched to Status Network Sepolia');
-            // Continue with the updated provider
-            return this.decryptFile(messageKit); // Recursive call with correct network
-          } else {
-            throw new Error(`Network switch failed. Still on chain ${updatedNetwork.chainId}`);
+            if (Number(updatedNetwork.chainId) === Number(statusSepolia.id)) {
+              console.log('✅ Successfully switched to Status Network Sepolia');
+              // Continue with the updated provider
+              return this.decryptFile(messageKit, burnerWallet); // Recursive call with correct network
+            } else {
+              throw new Error(`Network switch failed. Still on chain ${updatedNetwork.chainId}`);
+            }
+          } catch (switchError) {
+            console.error('Failed to switch network:', switchError);
+            throw new Error(`Please switch to Status Network Sepolia testnet (Chain ID: ${statusSepolia.id}) to decrypt this content.`);
           }
-        } catch (switchError) {
-          console.error('Failed to switch network:', switchError);
-          throw new Error(`Please switch to Status Network Sepolia testnet (Chain ID: ${statusSepolia.id}) to decrypt this content.`);
+        } else {
+          // For burner wallets, we can't switch networks, so just log a warning
+          console.warn('⚠️ Burner wallet on wrong network, but continuing anyway as network switching is not supported');
         }
       }
     } catch (networkError) {
