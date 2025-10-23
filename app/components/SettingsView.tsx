@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Bell, Database, Key, ChevronLeft, AlertTriangle, Wallet, ExternalLink, LogOut, Activity, Copy, Check } from 'lucide-react';
+import { Shield, Bell, Database, Key, ChevronLeft, AlertTriangle, Wallet, ExternalLink, LogOut, Activity, Copy, Check, Eye, EyeOff } from 'lucide-react';
 import { useTheme } from '../lib/theme-context';
 import { clearDemoDisclaimerPreference } from './DemoDisclaimer';
 import { usePrivy } from '@privy-io/react-auth';
@@ -10,6 +10,102 @@ import { useBurnerWallet } from '../lib/burner-wallet-context';
 import { useHeartbeat } from '../lib/heartbeat-context';
 import { NETWORK_CONFIG, CANARY_DOSSIER_ADDRESS } from '../lib/network-config';
 import toast from 'react-hot-toast';
+
+interface PrivateKeyExportProps {
+  burnerWallet: any;
+  theme: string;
+}
+
+function PrivateKeyExport({ burnerWallet, theme }: PrivateKeyExportProps) {
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleRevealKey = () => {
+    if (!showPrivateKey) {
+      const key = burnerWallet.exportPrivateKey();
+      if (key) {
+        setPrivateKey(key);
+        setShowPrivateKey(true);
+      } else {
+        toast.error('Failed to export private key');
+      }
+    } else {
+      setShowPrivateKey(false);
+      setPrivateKey(null);
+    }
+  };
+
+  const handleCopyKey = () => {
+    if (privateKey) {
+      navigator.clipboard.writeText(privateKey);
+      setCopied(true);
+      toast.success('Private key copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {!showPrivateKey ? (
+        <button
+          onClick={handleRevealKey}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            theme === 'light'
+              ? 'bg-gray-900 text-white hover:bg-black'
+              : 'bg-white text-black hover:bg-gray-100'
+          }`}
+        >
+          <Eye className="w-4 h-4" />
+          Reveal Private Key
+        </button>
+      ) : (
+        <>
+          <div className={`p-3 rounded-lg font-mono text-xs break-all ${
+            theme === 'light'
+              ? 'bg-gray-100 border border-gray-300'
+              : 'bg-gray-900 border border-gray-700'
+          }`}>
+            {privateKey}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopyKey}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                theme === 'light'
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy Key
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleRevealKey}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                theme === 'light'
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+              }`}
+            >
+              <EyeOff className="w-3.5 h-3.5" />
+              Hide Key
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -312,6 +408,54 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                         </div>
                       )}
                     </div>
+
+                    {/* Anonymous Account Private Key Export */}
+                    {burnerWallet.isConnected && (
+                      <div className={`p-4 rounded-lg border mb-6 ${
+                        theme === 'light'
+                          ? 'bg-white border-gray-300'
+                          : 'bg-black/40 border-gray-600'
+                      }`}>
+                        <h3 className={`font-medium mb-3 flex items-center gap-2 ${
+                          theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                        }`}>
+                          <Key className="w-4 h-4" />
+                          Backup Private Key
+                        </h3>
+                        <p className={`text-sm mb-4 ${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          Your anonymous account is stored locally in this browser. Export your private key to:
+                        </p>
+                        <ul className={`text-sm mb-4 space-y-1 ${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          <li>• Back it up securely</li>
+                          <li>• Restore it on another device</li>
+                          <li>• Import it into a wallet app</li>
+                        </ul>
+
+                        <div className={`p-3 rounded-lg border mb-4 ${
+                          theme === 'light'
+                            ? 'bg-white border-[#e53e3e]'
+                            : 'bg-black/40 border-[#e53e3e]'
+                        }`}>
+                          <p className={`text-sm flex items-start gap-2 ${
+                            theme === 'light' ? 'text-[#e53e3e]' : 'text-[#e53e3e]'
+                          }`}>
+                            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <span>
+                              <strong>Warning:</strong> Never share your private key. Anyone with access to it can control your account and funds.
+                            </span>
+                          </p>
+                        </div>
+
+                        <PrivateKeyExport
+                          burnerWallet={burnerWallet}
+                          theme={theme}
+                        />
+                      </div>
+                    )}
 
                     {/* Disconnect Button */}
                     {(isConnected || authenticated || burnerWallet.isConnected) && (
