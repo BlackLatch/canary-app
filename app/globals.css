@@ -8,6 +8,17 @@ html, body {
   min-height: 100vh;
 }
 
+/* Support for iPhone safe areas */
+@supports (padding: env(safe-area-inset-top)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
 #__next {
   height: 100%;
   min-height: 100vh;
@@ -27,9 +38,9 @@ html, body {
   --color-paper: #fafaf9;
   --color-paper-warm: #f3f3f0;
   --color-paper-neutral: #e8e8e3;
-  --color-ink: #1f1f1f;
-  --color-ink-light: #374151;
-  --color-ink-lighter: #6b7280;
+  --color-ink: #000000;
+  --color-ink-light: #1f1f1f;
+  --color-ink-lighter: #4b5563;
   --color-accent-mauve: #8b7d9b;
   --color-accent-blue: #6b7c95;
   --color-accent-green: #7a8471;
@@ -119,7 +130,7 @@ html, body {
   font-family: var(--font-system);
   font-size: 1rem;
   line-height: 1.6;
-  color: var(--color-ink);
+  color: var(--color-ink) !important;
   margin-bottom: var(--space-4);
 }
 
