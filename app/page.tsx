@@ -109,10 +109,12 @@ const Home = () => {
   // PWA Install prompt state
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isInStandaloneMode, setIsInStandaloneMode] = useState(false);
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [checkInInterval, setCheckInInterval] = useState("60"); // Default to 1 hour in minutes
+  const [checkInInterval, setCheckInInterval] = useState(""); // No default - user must select
   const [customInterval, setCustomInterval] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -166,8 +168,8 @@ const Home = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>([""]);
-  const [releaseMode, setReleaseMode] = useState<"public" | "contacts">(
-    "public",
+  const [releaseMode, setReleaseMode] = useState<"public" | "contacts" | "">(
+    "",
   );
   const [currentView, setCurrentView] = useState<"checkin" | "documents" | "monitor" | "settings">(
     "checkin",
@@ -194,6 +196,8 @@ const Home = () => {
   const [showAUPForEncrypt, setShowAUPForEncrypt] = useState(false);
   const [hasAcceptedAUP, setHasAcceptedAUP] = useState(false);
   const [showDemoDisclaimer, setShowDemoDisclaimer] = useState(false);
+  const [showImportKeyModal, setShowImportKeyModal] = useState(false);
+  const [importKeyValue, setImportKeyValue] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const additionalFilesInputRef = useRef<HTMLInputElement>(null);
@@ -244,6 +248,24 @@ const Home = () => {
     setAuthMode(mode);
     if (typeof window !== "undefined") {
       localStorage.setItem("canary-auth-mode", mode);
+    }
+  };
+
+  // Helper function to check if a form step is completed
+  const isStepCompleted = (step: number): boolean => {
+    switch (step) {
+      case 1: // NAME - requires name and description
+        return name.trim().length > 0 && description.trim().length > 0;
+      case 2: // VISIBILITY - requires release mode selection (no default)
+        return releaseMode !== "" && (releaseMode === "public" || (releaseMode === "contacts" && emergencyContacts.some(c => c.trim().length > 0)));
+      case 3: // SCHEDULE - requires check-in interval selection (no default)
+        return checkInInterval !== "" && (checkInInterval !== "custom" || customInterval.trim().length > 0);
+      case 4: // ENCRYPT - requires at least one file
+        return uploadedFiles.length > 0 || uploadedFile !== null;
+      case 5: // FINALIZE - this step is never "completed" until submission
+        return false;
+      default:
+        return false;
     }
   };
 
@@ -324,6 +346,28 @@ const Home = () => {
 
   // PWA Install prompt handling
   useEffect(() => {
+    // Check if iOS
+    const checkIOS = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+      const isIOSSafari = isIOSDevice && /safari/.test(userAgent) && !/crios/.test(userAgent) && !/fxios/.test(userAgent);
+      const isIOSChrome = isIOSDevice && /crios/.test(userAgent);
+      setIsIOS(isIOSDevice);
+
+      // Check if already installed as PWA
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                          (window.navigator as any).standalone === true;
+      setIsInStandaloneMode(isStandalone);
+
+      // Show install button for iOS if not in standalone mode
+      if ((isIOSSafari || isIOSChrome) && !isStandalone) {
+        setShowInstallButton(true);
+        console.log('📱 iOS device detected - showing install instructions');
+      }
+    };
+
+    checkIOS();
+
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
@@ -972,9 +1016,13 @@ const Home = () => {
       // Import the decryption function
       const { tacoService } = await import("./lib/taco");
 
+      // Get burner wallet if in anonymous mode
+      const burnerWalletInstance = burnerWallet.wallet;
+
       // Attempt to decrypt the messageKit
       const decryptedData = await tacoService.decryptFile(
         encryptedCapsule.messageKit,
+        burnerWalletInstance
       );
 
       console.log("🎉 Decryption test successful!");
@@ -1128,9 +1176,10 @@ const Home = () => {
     if (isCheckingIn) return; // Prevent double-clicks
 
     const now = new Date();
+    const currentAddress = getCurrentAddress();
 
     // Check in on-chain if wallet connected and active dossiers exist
-    if (isConnected && address && userDossiers.length > 0) {
+    if (hasWalletConnection() && currentAddress && userDossiers.length > 0) {
       const activeDossiers = userDossiers.filter((d) => d.isActive);
 
       if (activeDossiers.length === 0) {
@@ -1168,9 +1217,41 @@ const Home = () => {
             to: CANARY_DOSSIER_ADDRESS,
             data: txData,
           });
+        } else if (burnerWallet.isConnected && burnerWallet.wallet) {
+          console.log("🔥 Using burner wallet for check-in...");
+
+          try {
+            // For burner wallets on Status Network (gasless)
+            const { ethers } = await import("ethers");
+            const provider = new ethers.providers.JsonRpcProvider('https://public.sepolia.rpc.status.network');
+            const signer = burnerWallet.wallet.connect(provider);
+
+            // Create contract instance on Status Network Sepolia
+            const contract = new ethers.Contract(CANARY_DOSSIER_ADDRESS, CANARY_DOSSIER_ABI, signer);
+
+            // Status Network is gasless - set gas to 0
+            const tx = await contract.checkInAll({
+              gasPrice: 0
+            });
+            const receipt = await tx.wait();
+            txHash = receipt.transactionHash;
+
+            console.log("✅ Burner wallet check-in transaction:", txHash);
+          } catch (burnerError: any) {
+            // Status Network is gasless, so these shouldn't be gas errors
+            // Log the actual error for debugging
+            console.error('❌ Burner wallet transaction failed:', burnerError);
+
+            // Re-throw with more helpful error message
+            throw new Error(
+              `Transaction failed on Status Network (gasless).\n\n` +
+              `Error: ${burnerError.message || 'Unknown error'}\n\n` +
+              `Please try again or check your network connection.`
+            );
+          }
         } else {
           console.log(
-            "⚠️ Smart wallet not available, using regular transaction",
+            "⚠️ Using regular wallet transaction",
           );
           txHash = await ContractService.checkInAll();
         }
@@ -1256,13 +1337,13 @@ const Home = () => {
       } finally {
         setIsCheckingIn(false);
       }
-    } else if (!isConnected) {
+    } else if (!hasWalletConnection()) {
       toast.error(
         authMode === "standard"
           ? "Please sign in to update your documents"
           : "Please connect your wallet to check in",
       );
-    } else if (!address) {
+    } else if (!currentAddress) {
       toast.error("Wallet address not available");
     } else if (userDossiers.length === 0) {
       toast.error("No dossiers created yet. Create a dossier first.");
@@ -1438,7 +1519,68 @@ const Home = () => {
     };
   };
 
+  const handleImportPrivateKey = () => {
+    setShowImportKeyModal(true);
+    setImportKeyValue("");
+  };
+
+  const handleConfirmImportKey = async () => {
+    const privateKey = importKeyValue;
+
+    if (!privateKey || privateKey.trim() === "") {
+      toast.error("Please enter a private key");
+      return;
+    }
+
+    // Basic validation - check if it looks like a private key
+    const cleanKey = privateKey.trim();
+    const isValid = /^(0x)?[a-fA-F0-9]{64}$/.test(cleanKey);
+
+    if (!isValid) {
+      toast.error("Invalid private key format. Please enter a valid Ethereum private key.");
+      return;
+    }
+
+    try {
+      setAuthModeWithPersistence("advanced");
+
+      // Add 0x prefix if not present
+      const formattedKey = cleanKey.startsWith("0x") ? cleanKey : `0x${cleanKey}`;
+
+      // Import the wallet
+      await burnerWallet.importPrivateKey(formattedKey);
+
+      // Close modal on success
+      setShowImportKeyModal(false);
+      setImportKeyValue("");
+
+      // Update UI state
+      setSignedIn(true);
+      setHasExistingAnonymousAccount(true);
+      setExistingAnonymousAddress(burnerWallet.address);
+
+      toast.success("Private key imported successfully!");
+    } catch (error) {
+      console.error("Failed to import private key:", error);
+      toast.error("Failed to import private key. Please check the key and try again.");
+    }
+  };
+
   const handleCreateNewAnonymousAccount = async () => {
+    // Show warning dialog
+    const userConfirmed = window.confirm(
+      "⚠️ WARNING: Creating a new anonymous account will PERMANENTLY DELETE your existing account!\n\n" +
+      "• Your current account will be lost forever\n" +
+      "• Any funds or dossiers associated with it will be inaccessible\n" +
+      "• This action cannot be undone\n\n" +
+      "Make sure you have backed up your private key if you need to restore this account later.\n\n" +
+      "Are you sure you want to create a new account?"
+    );
+
+    if (!userConfirmed) {
+      return;
+    }
+
     console.log("Creating new anonymous account, clearing existing...");
     setAuthModeWithPersistence("advanced");
     try {
@@ -1514,6 +1656,46 @@ const Home = () => {
   };
 
   const handleInstallClick = async () => {
+    // iOS-specific instructions
+    if (isIOS) {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const isChrome = /crios/.test(userAgent);
+
+      if (isChrome) {
+        // iOS Chrome instructions
+        toast(
+          <div>
+            <p className="font-semibold mb-2">Install Canary as PWA:</p>
+            <ol className="text-sm space-y-1 list-decimal list-inside">
+              <li>Open this page in Safari</li>
+              <li>Tap the Share button (square with arrow)</li>
+              <li>Select "Add to Home Screen"</li>
+              <li>Tap "Add"</li>
+            </ol>
+            <p className="text-xs mt-2 opacity-75">✓ Full PWA with offline support & app-like experience</p>
+            <p className="text-xs mt-1 opacity-75">Note: iOS requires Safari for PWA installation</p>
+          </div>,
+          { duration: 10000 }
+        );
+      } else {
+        // iOS Safari instructions
+        toast(
+          <div>
+            <p className="font-semibold mb-2">Install Canary as PWA:</p>
+            <ol className="text-sm space-y-1 list-decimal list-inside">
+              <li>Tap the Share button (square with arrow)</li>
+              <li>Scroll down and tap "Add to Home Screen"</li>
+              <li>Name it and tap "Add"</li>
+            </ol>
+            <p className="text-xs mt-2 opacity-75">✓ This installs a real PWA with offline capabilities</p>
+          </div>,
+          { duration: 8000 }
+        );
+      }
+      return;
+    }
+
+    // Standard install for other browsers
     if (!deferredPrompt) {
       toast.error('Install prompt not available. Try visiting in Chrome or Edge.');
       return;
@@ -1622,9 +1804,7 @@ const Home = () => {
       ContractService.getConstants()
         .then((constants) => {
           setContractConstants(constants);
-          // Set default check-in interval to minimum allowed
-          const minIntervalMinutes = Number(constants.minInterval / BigInt(60));
-          setCheckInInterval(minIntervalMinutes.toString());
+          // Don't set any default - user must explicitly choose
           console.log("📊 Contract constants loaded:", constants);
         })
         .catch((error) => {
@@ -1651,10 +1831,10 @@ const Home = () => {
       <div className={theme}>
         <Toaster position="top-right" />
         <div
-          className={`h-screen flex flex-col ${theme === "light" ? "bg-gray-50" : "bg-black"}`}
+          className={`min-h-screen flex flex-col ${theme === "light" ? "bg-gray-50" : "bg-black"}`}
         >
           <div
-            className={`flex-1 flex items-center justify-center relative ${theme === "light" ? "bg-gray-50" : "bg-black"}`}
+            className={`flex-1 flex items-center justify-center relative overflow-y-auto ${theme === "light" ? "bg-gray-50" : "bg-black"}`}
           >
             {/* Theme Toggle Button - Top Right */}
             <button
@@ -1677,7 +1857,7 @@ const Home = () => {
             <div className="crypto-dot-matrix absolute inset-0 pointer-events-none"></div>
 
             {/* Main Sign-in Area */}
-            <div className="max-w-xl w-full mx-auto px-8">
+            <div className="max-w-xl w-full mx-auto px-6 sm:px-8 py-12 sm:py-8">
               <div className="text-center">
                 {/* Logo and Text - Centered Above Title */}
                 <div className="mb-8 flex flex-col items-center gap-4">
@@ -1790,26 +1970,46 @@ const Home = () => {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
-                            theme === "light"
-                              ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
-                              : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
-                          }`}
-                          onClick={() => handleSignIn("Burner Wallet")}
-                          disabled={burnerWallet.isLoading}
-                          title="Anonymous wallet stored locally in your browser"
-                        >
-                          {burnerWallet.isLoading ? (
-                            <div className="flex items-center justify-center gap-3">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                              <span>Connecting...</span>
-                            </div>
-                          ) : (
-                            "Anonymous Account"
-                          )}
-                        </button>
+                        <>
+                          <button
+                            className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                              theme === "light"
+                                ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
+                                : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
+                            }`}
+                            onClick={() => handleSignIn("Burner Wallet")}
+                            disabled={burnerWallet.isLoading}
+                            title="Anonymous wallet stored locally in your browser"
+                          >
+                            {burnerWallet.isLoading ? (
+                              <div className="flex items-center justify-center gap-3">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                                <span>Connecting...</span>
+                              </div>
+                            ) : (
+                              "Anonymous Account"
+                            )}
+                          </button>
+                        </>
                       )}
+
+                      {/* Import from Private Key - Always Available */}
+                      <button
+                        className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
+                          theme === "light"
+                            ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
+                            : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
+                        }`}
+                        onClick={handleImportPrivateKey}
+                        title="Import an anonymous account using your private key"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7h3a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h3m6 0V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v2m6 0h-6" />
+                          </svg>
+                          <span>Import from Private Key</span>
+                        </div>
+                      </button>
 
                       <button
                         className={`w-full py-4 px-6 font-medium text-base rounded-lg transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed border ${
@@ -1869,7 +2069,7 @@ const Home = () => {
 
                 {/* PWA Install Button */}
                 {showInstallButton && (
-                  <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 mb-12">
+                  <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 pb-safe">
                     <div className="text-center">
                       <p
                         className={`text-sm mb-4 ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
@@ -1897,7 +2097,7 @@ const Home = () => {
                             d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
                           />
                         </svg>
-                        INSTALL MOBILE APP
+                        {isIOS ? 'HOW TO INSTALL' : 'INSTALL MOBILE APP'}
                       </button>
                     </div>
                   </div>
@@ -1905,6 +2105,101 @@ const Home = () => {
               </div>
             </div>
           </div>
+
+          {/* Import Private Key Modal */}
+          {showImportKeyModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={() => {
+                  setShowImportKeyModal(false);
+                  setImportKeyValue("");
+                }}
+              />
+
+              {/* Modal Content */}
+              <div className={`relative z-10 w-full max-w-md mx-6 p-6 rounded-2xl ${
+                theme === 'light'
+                  ? 'bg-white border border-gray-300'
+                  : 'bg-gray-900 border border-gray-700'
+              }`}>
+                <h2 className={`text-lg font-semibold mb-4 ${
+                  theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                }`}>
+                  Enter your private key to import:
+                </h2>
+
+                {/* Warning Message */}
+                <div className={`mb-4 p-3 rounded-lg border ${
+                  theme === 'light'
+                    ? 'bg-yellow-50 border-yellow-300 text-yellow-800'
+                    : 'bg-yellow-900/20 border-yellow-700 text-yellow-300'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div className="text-sm">
+                      <p className="font-semibold mb-1">SECURITY WARNING:</p>
+                      <ul className="space-y-1">
+                        <li>• Never share your private key with anyone</li>
+                        <li>• Make sure no one is watching your screen</li>
+                        <li>• This will replace any existing anonymous account</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Input Field */}
+                <input
+                  type="password"
+                  value={importKeyValue}
+                  onChange={(e) => setImportKeyValue(e.target.value)}
+                  placeholder="Enter your private key (0x...)"
+                  className={`w-full px-4 py-3 rounded-lg border font-mono text-sm ${
+                    theme === 'light'
+                      ? 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-[#e53e3e] focus:ring-1 focus:ring-[#e53e3e]'
+                      : 'bg-black/50 border-gray-700 text-gray-100 placeholder-gray-500 focus:border-[#e53e3e] focus:ring-1 focus:ring-[#e53e3e]'
+                  } focus:outline-none transition-colors`}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleConfirmImportKey();
+                    }
+                  }}
+                />
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowImportKeyModal(false);
+                      setImportKeyValue("");
+                    }}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                      theme === 'light'
+                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmImportKey}
+                    disabled={!importKeyValue.trim()}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      theme === 'light'
+                        ? 'bg-gray-900 text-white hover:bg-black disabled:hover:bg-gray-900'
+                        : 'bg-white text-black hover:bg-gray-100 disabled:hover:bg-white'
+                    }`}
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <footer
@@ -2239,10 +2534,10 @@ const Home = () => {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
+                        <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
                           CHECK-IN HISTORY
                         </h1>
-                        <p className="editorial-body text-gray-600 dark:text-gray-400">
+                        <p className="editorial-body dark:text-gray-400">
                           View all system activity and check-in events
                         </p>
                       </div>
@@ -2399,10 +2694,10 @@ const Home = () => {
                   <div
                     className={`mb-12 border-b pb-8 ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
                   >
-                    <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
+                    <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
                       CHECK IN
                     </h1>
-                    <p className="editorial-body text-gray-600 dark:text-gray-400">
+                    <p className="editorial-body dark:text-gray-400">
                       Maintain your system status and manage your encrypted
                       documents
                     </p>
@@ -2564,6 +2859,7 @@ const Home = () => {
                           </button>
                         </div>
                       </div>
+
 
                       {/* Status Information - Horizontal Grid on Desktop */}
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -2767,7 +3063,11 @@ const Home = () => {
                     // No Documents State
                     <NoDocumentsPlaceholder
                       theme={theme}
-                      onCreateClick={() => setCurrentView("documents")}
+                      onCreateClick={() => {
+                        setCurrentView("documents");
+                        setShowCreateForm(true);
+                        setCurrentStep(1);
+                      }}
                       title="NO ACTIVE DOSSIERS"
                       description="Create your first encrypted document to get started"
                     />
@@ -2829,7 +3129,7 @@ const Home = () => {
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 pr-4">
-                                  <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-2">
+                                  <h1 className="editorial-header-large text-black dark:text-gray-100 mb-2">
                                     {selectedDocument.name.replace(
                                       "Encrypted file: ",
                                       "",
@@ -3340,9 +3640,11 @@ const Home = () => {
                                           );
 
                                           // Step 3: Decrypt using TACo
+                                          const burnerWalletInstance = burnerWallet.wallet;
                                           const decryptedData =
                                             await tacoService.decryptFile(
                                               messageKit,
+                                              burnerWalletInstance
                                             );
 
                                           // Step 4: Download the decrypted file
@@ -3643,10 +3945,10 @@ const Home = () => {
                       <div
                         className={`mb-12 border-b pb-8 ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
                       >
-                        <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
+                        <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
                           DOSSIERS
                         </h1>
-                        <p className="editorial-body text-gray-600 dark:text-gray-400">
+                        <p className="editorial-body dark:text-gray-400">
                           Create and manage encrypted dossiers with conditional
                           release triggers
                         </p>
@@ -4223,10 +4525,10 @@ const Home = () => {
                             setUploadedFiles([]);
                             setName("");
                             setDescription("");
-                            setCheckInInterval("60");
+                            setCheckInInterval("");
                             setCustomInterval("");
                             setEmergencyContacts([""]);
-                            setReleaseMode("public");
+                            setReleaseMode("");
                           }}
                           className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-sm font-semibold"
                           style={{
@@ -4268,17 +4570,17 @@ const Home = () => {
                                         step === currentStep
                                           ? theme === "light"
                                             ? "bg-black text-white"
-                                            : "bg-white text-black"
-                                          : step < currentStep
+                                            : "bg-white text-black border-2 border-white"
+                                          : isStepCompleted(step)
                                             ? theme === "light"
-                                              ? "bg-gray-600 text-white hover:bg-gray-800"
-                                              : "bg-gray-300 text-black hover:bg-gray-200"
+                                              ? "bg-[#e53e3e] text-white hover:bg-[#d32e2e]"
+                                              : "bg-[#e53e3e] text-white hover:bg-[#d32e2e]"
                                             : theme === "light"
                                               ? "bg-gray-200 text-gray-600 hover:bg-gray-300"
                                               : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                       }`}
                                     >
-                                      {step < currentStep ? "✓" : step}
+                                      {isStepCompleted(step) ? "✓" : step}
                                     </div>
                                     <span
                                       className={`text-xs font-medium uppercase tracking-wider hidden sm:block select-none ${
@@ -4618,20 +4920,20 @@ const Home = () => {
                                           Public Release
                                         </h4>
                                         <div
-                                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                                             releaseMode === "public"
                                               ? theme === "light"
-                                                ? "border-black bg-black"
-                                                : "border-white bg-white"
+                                                ? "border-[#e53e3e] bg-[#e53e3e]"
+                                                : "border-[#e53e3e] bg-[#e53e3e]"
                                               : theme === "light"
-                                                ? "border-gray-400"
-                                                : "border-gray-500"
+                                                ? "border-gray-400 bg-white"
+                                                : "border-gray-500 bg-black/40"
                                           }`}
                                         >
                                           {releaseMode === "public" && (
-                                            <div
-                                              className={`w-2.5 h-2.5 rounded-full ${theme === "light" ? "bg-white" : "bg-black"}`}
-                                            ></div>
+                                            <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
                                           )}
                                         </div>
                                       </div>
@@ -4689,20 +4991,20 @@ const Home = () => {
                                           Emergency Contacts
                                         </h4>
                                         <div
-                                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                                             releaseMode === "contacts"
                                               ? theme === "light"
-                                                ? "border-black bg-black"
-                                                : "border-white bg-white"
+                                                ? "border-[#e53e3e] bg-[#e53e3e]"
+                                                : "border-[#e53e3e] bg-[#e53e3e]"
                                               : theme === "light"
-                                                ? "border-gray-400"
-                                                : "border-gray-500"
+                                                ? "border-gray-400 bg-white"
+                                                : "border-gray-500 bg-black/40"
                                           }`}
                                         >
                                           {releaseMode === "contacts" && (
-                                            <div
-                                              className={`w-2.5 h-2.5 rounded-full ${theme === "light" ? "bg-white" : "bg-black"}`}
-                                            ></div>
+                                            <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
                                           )}
                                         </div>
                                       </div>
@@ -4882,7 +5184,7 @@ const Home = () => {
                                     <h4
                                       className={`editorial-label-small uppercase tracking-wider mb-4 ${
                                         theme === "light"
-                                          ? "text-gray-700"
+                                          ? "text-black"
                                           : "text-gray-300"
                                       }`}
                                     >
@@ -4906,8 +5208,8 @@ const Home = () => {
                                           className={`py-3 px-2 rounded border font-semibold monospace-accent transition-all ${
                                             checkInInterval === option.value
                                               ? theme === "light"
-                                                ? "bg-gray-900 text-white border-gray-900"
-                                                : "bg-white text-gray-900 border-white"
+                                                ? "bg-black text-white border-black"
+                                                : "bg-white text-black border-white"
                                               : theme === "light"
                                                 ? "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
                                                 : "bg-black/40 text-gray-300 border-gray-600 hover:border-gray-400"
@@ -5443,15 +5745,17 @@ const Home = () => {
                                 {/* Media Recorder Modal */}
                                 {showMediaRecorder && (
                                   <div className="fixed inset-0 z-50 flex items-center justify-center">
-                                    {/* Overlay */}
-                                    <div 
-                                      className="absolute inset-0 bg-black/60" 
+                                    {/* Backdrop */}
+                                    <div
+                                      className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                                       onClick={() => setShowMediaRecorder(false)}
                                     />
-                                    
+
                                     {/* Modal Content */}
-                                    <div className={`relative z-10 w-full max-w-2xl mx-4 p-6 rounded-lg ${
-                                      theme === "light" ? "bg-white" : "bg-gray-900"
+                                    <div className={`relative z-10 w-full max-w-2xl mx-6 p-6 rounded-2xl ${
+                                      theme === 'light'
+                                        ? 'bg-white border border-gray-300'
+                                        : 'bg-gray-900 border border-gray-700'
                                     }`}>
                                       <MediaRecorder
                                         initialMode={mediaRecorderType === 'voice' ? 'audio' : 'video'}
@@ -5465,6 +5769,7 @@ const Home = () => {
                                         onCancel={() =>
                                           setShowMediaRecorder(false)
                                         }
+                                        theme={theme}
                                       />
                                     </div>
                                   </div>
@@ -5510,7 +5815,7 @@ const Home = () => {
 
                                     <div className="space-y-4">
                                       <div className="flex justify-between items-center">
-                                        <span className="editorial-label-small text-gray-700 dark:text-gray-300">
+                                        <span className="editorial-label-small text-black dark:text-gray-300">
                                           Dossier Name
                                         </span>
                                         <span className="editorial-header text-sm monospace-accent text-primary">
@@ -5518,7 +5823,7 @@ const Home = () => {
                                         </span>
                                       </div>
                                       <div className="flex justify-between items-center">
-                                        <span className="editorial-label-small text-gray-700 dark:text-gray-300">
+                                        <span className="editorial-label-small text-black dark:text-gray-300">
                                           Release Visibility
                                         </span>
                                         <span className="editorial-body text-sm text-primary font-semibold">
@@ -5528,7 +5833,7 @@ const Home = () => {
                                         </span>
                                       </div>
                                       <div className="flex justify-between items-center">
-                                        <span className="editorial-label-small text-gray-700 dark:text-gray-300">
+                                        <span className="editorial-label-small text-black dark:text-gray-300">
                                           Check-in Frequency
                                         </span>
                                         <span className="monospace-accent text-sm text-primary font-semibold">
@@ -5541,7 +5846,7 @@ const Home = () => {
                                         </span>
                                       </div>
                                       <div className="flex justify-between items-center">
-                                        <span className="editorial-label-small text-gray-700 dark:text-gray-300">
+                                        <span className="editorial-label-small text-black dark:text-gray-300">
                                           Files
                                         </span>
                                         <span className="editorial-body text-sm text-primary font-semibold">
@@ -5553,7 +5858,7 @@ const Home = () => {
                                       </div>
                                       {releaseMode === "contacts" && (
                                         <div className="pt-3 border-t border-gray-300 dark:border-gray-600">
-                                          <div className="editorial-label-small spacing-tiny text-gray-700 dark:text-gray-300 mb-2">
+                                          <div className="editorial-label-small spacing-tiny text-black dark:text-gray-300 mb-2">
                                             Emergency Contacts
                                           </div>
                                           {emergencyContacts
@@ -5891,13 +6196,10 @@ const Home = () => {
                                       return;
                                     }
                                   }
-                                  if (
-                                    currentStep === 3 &&
-                                    checkInInterval === "custom" &&
-                                    !customInterval
-                                  ) {
+                                  // Validate step 2 - must select a visibility mode
+                                  if (currentStep === 2 && !releaseMode) {
                                     toast.error(
-                                      "Please enter a custom interval in hours",
+                                      "Please select a release visibility option",
                                     );
                                     return;
                                   }
@@ -5908,6 +6210,23 @@ const Home = () => {
                                   ) {
                                     toast.error(
                                       "Please add at least one emergency contact",
+                                    );
+                                    return;
+                                  }
+                                  // Validate step 3 - must select a check-in interval
+                                  if (currentStep === 3 && !checkInInterval) {
+                                    toast.error(
+                                      "Please select a check-in schedule",
+                                    );
+                                    return;
+                                  }
+                                  if (
+                                    currentStep === 3 &&
+                                    checkInInterval === "custom" &&
+                                    !customInterval
+                                  ) {
+                                    toast.error(
+                                      "Please enter a custom interval in hours",
                                     );
                                     return;
                                   }
