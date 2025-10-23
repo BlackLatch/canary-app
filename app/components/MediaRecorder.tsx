@@ -7,12 +7,13 @@ interface MediaRecorderProps {
   onFileReady: (file: File) => void;
   onCancel?: () => void;
   initialMode?: 'audio' | 'video';
+  theme?: string;
 }
 
 type RecordingMode = 'audio' | 'video' | null;
 type RecordingState = 'idle' | 'recording' | 'paused' | 'stopped';
 
-export default function MediaRecorder({ onFileReady, onCancel, initialMode }: MediaRecorderProps) {
+export default function MediaRecorder({ onFileReady, onCancel, initialMode, theme = 'light' }: MediaRecorderProps) {
   const [mode, setMode] = useState<RecordingMode>(initialMode || null);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -228,25 +229,41 @@ export default function MediaRecorder({ onFileReady, onCancel, initialMode }: Me
   }, [recordedBlob, mode]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto editorial-card">
+    <div className="w-full">
       {/* Mode Selection */}
       {!mode && (
-        <div className="spacing-medium">
-          <h3 className="editorial-header text-gray-900 dark:text-gray-100 text-center spacing-small">Choose Recording Type</h3>
+        <div>
+          <h2 className={`text-lg font-semibold mb-4 ${
+            theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+          }`}>
+            Choose Recording Type
+          </h2>
           <div className="grid grid-cols-2 gap-4">
             <button
               onClick={() => startRecording('audio')}
-              className="editorial-card-bordered hover:border-gray-900 dark:hover:border-gray-400 transition-all flex flex-col items-center gap-3 p-8"
+              className={`border rounded-lg p-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex flex-col items-center gap-3 ${
+                theme === 'light'
+                  ? 'border-gray-300 hover:border-gray-400'
+                  : 'border-gray-700 hover:border-gray-600'
+              }`}
             >
-              <Mic className="w-8 h-8 text-blue-600" />
-              <span className="editorial-body font-semibold text-gray-900 dark:text-gray-100">Voice Recording</span>
+              <Mic className="w-8 h-8 text-[#e53e3e]" />
+              <span className={`font-medium ${
+                theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+              }`}>Voice Recording</span>
             </button>
             <button
               onClick={() => startRecording('video')}
-              className="editorial-card-bordered hover:border-gray-900 dark:hover:border-gray-400 transition-all flex flex-col items-center gap-3 p-8"
+              className={`border rounded-lg p-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex flex-col items-center gap-3 ${
+                theme === 'light'
+                  ? 'border-gray-300 hover:border-gray-400'
+                  : 'border-gray-700 hover:border-gray-600'
+              }`}
             >
-              <Video className="w-8 h-8 text-red-600" />
-              <span className="editorial-body font-semibold text-gray-900 dark:text-gray-100">Video Recording</span>
+              <Video className="w-8 h-8 text-[#e53e3e]" />
+              <span className={`font-medium ${
+                theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+              }`}>Video Recording</span>
             </button>
           </div>
         </div>
@@ -254,22 +271,30 @@ export default function MediaRecorder({ onFileReady, onCancel, initialMode }: Me
 
       {/* Recording Interface */}
       {mode && (
-        <div className="spacing-medium">
-          <div className="flex items-center justify-between spacing-small">
-            <h3 className="editorial-header text-gray-900 dark:text-gray-100">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={`text-lg font-semibold ${
+              theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+            }`}>
               {mode === 'audio' ? 'Voice' : 'Video'} Recording
-            </h3>
+            </h2>
             <button
               onClick={reset}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                theme === 'light'
+                  ? 'hover:bg-gray-100 text-gray-600'
+                  : 'hover:bg-gray-800 text-gray-400'
+              }`}
               title="Cancel recording"
             >
-              <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Preview Area */}
-          <div className="bg-gray-100 dark:bg-gray-700 overflow-hidden spacing-medium">
+          <div className={`rounded-lg overflow-hidden mb-6 ${
+            theme === 'light' ? 'bg-gray-100' : 'bg-gray-800'
+          }`}>
             {mode === 'video' && (
               <video
                 ref={videoPreviewRef}
@@ -287,10 +312,16 @@ export default function MediaRecorder({ onFileReady, onCancel, initialMode }: Me
                     className="w-full"
                   />
                 ) : (
-                  <div className="spacing-medium">
-                    <Mic className={`w-20 h-20 mx-auto spacing-small ${recordingState === 'recording' ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
-                    <p className="editorial-header-large monospace-accent text-gray-700 dark:text-gray-300 spacing-tiny">{formatDuration(recordingDuration)}</p>
-                    <p className="editorial-body text-gray-500 dark:text-gray-400">
+                  <div>
+                    <Mic className={`w-20 h-20 mx-auto mb-4 ${
+                      recordingState === 'recording' ? 'text-[#e53e3e] animate-pulse' : 'text-gray-400'
+                    }`} />
+                    <p className={`text-3xl font-mono font-bold mb-2 ${
+                      theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                    }`}>{formatDuration(recordingDuration)}</p>
+                    <p className={`text-sm ${
+                      theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
                       {recordingState === 'recording' ? 'Recording...' : recordingState === 'paused' ? 'Paused' : 'Ready'}
                     </p>
                   </div>
@@ -300,34 +331,36 @@ export default function MediaRecorder({ onFileReady, onCancel, initialMode }: Me
           </div>
 
           {/* Controls */}
-          <div className="flex justify-center gap-4 spacing-medium">
+          <div className="flex justify-center gap-3">
             {recordingState !== 'stopped' && (
               <>
                 {recordingState === 'idle' && (
                   <button
                     onClick={() => startRecording(mode)}
-                    className="editorial-button-primary flex items-center gap-2"
-                    style={{ backgroundColor: '#DC2626', color: 'white' }}
+                    className="px-4 py-2.5 bg-[#e53e3e] text-white rounded-lg font-medium hover:bg-[#d32e2e] transition-colors flex items-center gap-2"
                   >
                     <div className="w-3 h-3 bg-white rounded-full" />
                     Start Recording
                   </button>
                 )}
-                
+
                 {(recordingState === 'recording' || recordingState === 'paused') && (
                   <>
                     <button
                       onClick={togglePauseResume}
-                      className="editorial-button flex items-center gap-2"
+                      className={`px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                        theme === 'light'
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
                     >
                       {recordingState === 'recording' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                       {recordingState === 'recording' ? 'Pause' : 'Resume'}
                     </button>
-                    
+
                     <button
                       onClick={stopRecording}
-                      className="editorial-button flex items-center gap-2"
-                      style={{ backgroundColor: '#DC2626', color: 'white' }}
+                      className="px-4 py-2.5 bg-[#e53e3e] text-white rounded-lg font-medium hover:bg-[#d32e2e] transition-colors flex items-center gap-2"
                     >
                       <Square className="w-4 h-4" />
                       Stop
@@ -336,19 +369,27 @@ export default function MediaRecorder({ onFileReady, onCancel, initialMode }: Me
                 )}
               </>
             )}
-            
+
             {recordingState === 'stopped' && recordedBlob && (
               <>
                 <button
                   onClick={reset}
-                  className="editorial-button"
+                  className={`px-4 py-2.5 rounded-lg font-medium transition-colors border ${
+                    theme === 'light'
+                      ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                  }`}
                 >
                   Record Again
                 </button>
-                
+
                 <button
                   onClick={saveRecording}
-                  className="editorial-button-primary flex items-center gap-2"
+                  className={`px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                    theme === 'light'
+                      ? 'bg-gray-900 text-white hover:bg-black'
+                      : 'bg-white text-black hover:bg-gray-100'
+                  }`}
                 >
                   <Upload className="w-4 h-4" />
                   Use This Recording
@@ -359,8 +400,10 @@ export default function MediaRecorder({ onFileReady, onCancel, initialMode }: Me
 
           {/* Duration Display for Video */}
           {mode === 'video' && recordingState !== 'stopped' && (
-            <div className="text-center spacing-small">
-              <p className="editorial-header monospace-accent text-gray-700 dark:text-gray-300">{formatDuration(recordingDuration)}</p>
+            <div className="text-center mt-4">
+              <p className={`text-lg font-mono font-bold ${
+                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+              }`}>{formatDuration(recordingDuration)}</p>
             </div>
           )}
         </div>
