@@ -1863,18 +1863,14 @@ export class ContractService {
           maxFeePerGas: maxFeePerGas.toString()
         });
 
-        // Send transaction with gasless settings
+        // Send transaction - Status Network is gasless, set gas to 0
         const tx = await contract.createDossier(
           name,
           description,
           checkInIntervalSeconds,
           recipients,
           encryptedFileHashes,
-          {
-            gasLimit: 500000,
-            gasPrice: gasPrice,
-            // Don't set EIP-1559 params if gas price is set
-          }
+          { gasPrice: 0 }
         );
 
         console.log('✅ Transaction sent with gasless settings:', {
