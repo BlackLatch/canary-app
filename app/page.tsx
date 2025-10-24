@@ -3547,12 +3547,12 @@ const Home = () => {
 
                                           console.log(
                                             isReleased
-                                              ? "📥 Downloading released document..."
+                                              ? "🔓 Decrypting released document (deadman switch triggered)..."
                                               : "🔓 Attempting to decrypt document...",
                                           );
                                           decryptToast = toast.loading(
                                             isReleased
-                                              ? "Downloading released document..."
+                                              ? "Decrypting released document..."
                                               : "Decrypting document...",
                                           );
 
@@ -3621,49 +3621,47 @@ const Home = () => {
                                             `   - Data length: ${retrievedData.length} bytes`,
                                           );
 
-                                          let finalData: Uint8Array;
+                                          // Data on IPFS is always encrypted, even for released documents
+                                          // Released just means the TACo condition now allows decryption
 
-                                          if (isReleased) {
-                                            // Document is released - data is already decrypted/public
-                                            console.log(
-                                              `📥 Document is released - downloading directly without decryption`,
-                                            );
-                                            finalData = retrievedData;
-                                          } else {
-                                            // Document needs decryption
-                                            // Step 2a: Initialize TACo before reconstruction
-                                            console.log(
-                                              `🔧 Initializing TACo...`,
-                                            );
-                                            const { tacoService } = await import(
-                                              "./lib/taco"
-                                            );
-                                            await tacoService.initialize();
-                                            console.log(`✅ TACo initialized`);
+                                          // Step 2a: Initialize TACo
+                                          console.log(
+                                            `🔧 Initializing TACo...`,
+                                          );
+                                          const { tacoService } = await import(
+                                            "./lib/taco"
+                                          );
+                                          await tacoService.initialize();
+                                          console.log(`✅ TACo initialized`);
 
-                                            // Step 2b: Import and reconstruct MessageKit
-                                            const { ThresholdMessageKit } =
-                                              await import("@nucypher/taco");
-                                            console.log(
-                                              `🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`,
-                                            );
+                                          // Step 2b: Import and reconstruct MessageKit
+                                          const { ThresholdMessageKit } =
+                                            await import("@nucypher/taco");
+                                          console.log(
+                                            `🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`,
+                                          );
 
-                                            const messageKit =
-                                              ThresholdMessageKit.fromBytes(
-                                                retrievedData,
-                                              );
-                                            console.log(
-                                              `✅ MessageKit reconstructed successfully`,
+                                          const messageKit =
+                                            ThresholdMessageKit.fromBytes(
+                                              retrievedData,
                                             );
+                                          console.log(
+                                            `✅ MessageKit reconstructed successfully`,
+                                          );
 
-                                            // Step 3: Decrypt using TACo
-                                            const burnerWalletInstance = burnerWallet.wallet;
-                                            finalData =
-                                              await tacoService.decryptFile(
-                                                messageKit,
-                                                burnerWalletInstance
-                                              );
-                                          }
+                                          // Step 3: Decrypt using TACo
+                                          // For released documents, the contract condition should allow decryption
+                                          console.log(
+                                            isReleased
+                                              ? `🔓 Decrypting released document (deadman switch triggered)...`
+                                              : `🔓 Decrypting document...`,
+                                          );
+                                          const burnerWalletInstance = burnerWallet.wallet;
+                                          const finalData =
+                                            await tacoService.decryptFile(
+                                              messageKit,
+                                              burnerWalletInstance
+                                            );
 
                                           // Step 4: Download the file
                                           const originalFileName =
@@ -3690,15 +3688,15 @@ const Home = () => {
 
                                           toast.success(
                                             isReleased
-                                              ? "Released document downloaded successfully"
-                                              : "Dossier decrypted successfully",
+                                              ? "Released document decrypted and downloaded successfully"
+                                              : "Document decrypted and downloaded successfully",
                                             { id: decryptToast },
                                           );
 
                                           setActivityLog((prev) => [
                                             {
                                               type: isReleased
-                                                ? `📥 Released dossier #${selectedDocument.id.toString()} downloaded`
+                                                ? `🔓 Released dossier #${selectedDocument.id.toString()} decrypted and downloaded (deadman switch triggered)`
                                                 : `🔓 Dossier #${selectedDocument.id.toString()} decrypted and downloaded`,
                                               date: new Date().toLocaleString(),
                                             },
