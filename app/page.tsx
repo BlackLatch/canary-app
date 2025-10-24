@@ -3542,14 +3542,21 @@ const Home = () => {
                                             );
                                           }
 
+                                          // Check if document is released - if so, download directly without decryption
+                                          const isReleased = selectedDocument.isReleased === true;
+
                                           console.log(
-                                            "🔓 Attempting to decrypt expired document...",
+                                            isReleased
+                                              ? "📥 Downloading released document..."
+                                              : "🔓 Attempting to decrypt document...",
                                           );
                                           decryptToast = toast.loading(
-                                            "Decrypting expired document...",
+                                            isReleased
+                                              ? "Downloading released document..."
+                                              : "Decrypting document...",
                                           );
 
-                                          // Step 1: Fetch encrypted data from IPFS
+                                          // Step 1: Fetch data from IPFS (encrypted or plaintext)
                                           const ipfsHash = fileHash.replace(
                                             "ipfs://",
                                             "",
@@ -3614,40 +3621,51 @@ const Home = () => {
                                             `   - Data length: ${retrievedData.length} bytes`,
                                           );
 
-                                          // Step 2a: Initialize TACo before reconstruction
-                                          console.log(
-                                            `🔧 Initializing TACo...`,
-                                          );
-                                          const { tacoService } = await import(
-                                            "./lib/taco"
-                                          );
-                                          await tacoService.initialize();
-                                          console.log(`✅ TACo initialized`);
+                                          let finalData: Uint8Array;
 
-                                          // Step 2b: Import and reconstruct MessageKit
-                                          const { ThresholdMessageKit } =
-                                            await import("@nucypher/taco");
-                                          console.log(
-                                            `🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`,
-                                          );
-
-                                          const messageKit =
-                                            ThresholdMessageKit.fromBytes(
-                                              retrievedData,
+                                          if (isReleased) {
+                                            // Document is released - data is already decrypted/public
+                                            console.log(
+                                              `📥 Document is released - downloading directly without decryption`,
                                             );
-                                          console.log(
-                                            `✅ MessageKit reconstructed successfully`,
-                                          );
+                                            finalData = retrievedData;
+                                          } else {
+                                            // Document needs decryption
+                                            // Step 2a: Initialize TACo before reconstruction
+                                            console.log(
+                                              `🔧 Initializing TACo...`,
+                                            );
+                                            const { tacoService } = await import(
+                                              "./lib/taco"
+                                            );
+                                            await tacoService.initialize();
+                                            console.log(`✅ TACo initialized`);
 
-                                          // Step 3: Decrypt using TACo
-                                          const burnerWalletInstance = burnerWallet.wallet;
-                                          const decryptedData =
-                                            await tacoService.decryptFile(
-                                              messageKit,
-                                              burnerWalletInstance
+                                            // Step 2b: Import and reconstruct MessageKit
+                                            const { ThresholdMessageKit } =
+                                              await import("@nucypher/taco");
+                                            console.log(
+                                              `🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`,
                                             );
 
-                                          // Step 4: Download the decrypted file
+                                            const messageKit =
+                                              ThresholdMessageKit.fromBytes(
+                                                retrievedData,
+                                              );
+                                            console.log(
+                                              `✅ MessageKit reconstructed successfully`,
+                                            );
+
+                                            // Step 3: Decrypt using TACo
+                                            const burnerWalletInstance = burnerWallet.wallet;
+                                            finalData =
+                                              await tacoService.decryptFile(
+                                                messageKit,
+                                                burnerWalletInstance
+                                              );
+                                          }
+
+                                          // Step 4: Download the file
                                           const originalFileName =
                                             selectedDocument.name.replace(
                                               "Encrypted file: ",
@@ -3656,7 +3674,7 @@ const Home = () => {
                                           const mimeType =
                                             getMimeType(originalFileName);
                                           const blob = new Blob(
-                                            [decryptedData],
+                                            [finalData],
                                             { type: mimeType },
                                           );
                                           const url = URL.createObjectURL(blob);
@@ -3671,13 +3689,17 @@ const Home = () => {
                                           URL.revokeObjectURL(url);
 
                                           toast.success(
-                                            "Dossier decrypted successfully",
+                                            isReleased
+                                              ? "Released document downloaded successfully"
+                                              : "Dossier decrypted successfully",
                                             { id: decryptToast },
                                           );
 
                                           setActivityLog((prev) => [
                                             {
-                                              type: `🔓 Dossier #${selectedDocument.id.toString()} decrypted and downloaded`,
+                                              type: isReleased
+                                                ? `📥 Released dossier #${selectedDocument.id.toString()} downloaded`
+                                                : `🔓 Dossier #${selectedDocument.id.toString()} decrypted and downloaded`,
                                               date: new Date().toLocaleString(),
                                             },
                                             ...prev,
@@ -3698,17 +3720,11 @@ const Home = () => {
                                         );
                                       }
                                     }}
-                                    disabled={
-                                      selectedDocument.isReleased === true
-                                    }
+                                    disabled={false}
                                     className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                      selectedDocument.isReleased === true
-                                        ? theme === "light"
-                                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                                          : "bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed"
-                                        : theme === "light"
-                                          ? "bg-white text-gray-900 hover:bg-gray-50 border-gray-300"
-                                          : "bg-transparent text-gray-100 hover:bg-white/10 border-gray-600"
+                                      theme === "light"
+                                        ? "bg-white text-gray-900 hover:bg-gray-50 border-gray-300"
+                                        : "bg-transparent text-gray-100 hover:bg-white/10 border-gray-600"
                                     }`}
                                   >
                                     <div className="flex items-center justify-center gap-2">
