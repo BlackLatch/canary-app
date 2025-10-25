@@ -78,35 +78,60 @@ class TacoService {
   }
 
   /**
-   * Create a Dossier contract condition that checks shouldDossierStayEncrypted
-   * This is the primary and only method for creating secure conditions
+   * Create a Dossier contract condition using JSON-RPC
+   * This allows TACo nodes to query the Status Network endpoint
    */
   private createDossierCondition(userAddress: string, dossierId: bigint) {
-    console.log(`🔒 Creating Dossier condition: user=${userAddress}, dossier=${dossierId.toString()}`);
-    console.log(`📍 Contract: ${CANARY_DOSSIER_ADDRESS} on chain ${statusSepolia.id}`);
+    console.log(`🔒 Creating JSON-RPC Dossier condition: user=${userAddress}, dossier=${dossierId.toString()}`);
+    console.log(`📍 Contract: ${CANARY_DOSSIER_ADDRESS} on Status Network Sepolia`);
+    console.log(`🌐 Using Status Network RPC endpoint for condition verification`);
 
-    // Create a contract condition that calls shouldDossierStayEncrypted
-    // This will return true if encryption should remain, false if decryption is allowed
-    return new conditions.base.contract.ContractCondition({
-      contractAddress: CANARY_DOSSIER_ADDRESS,
-      chain: statusSepolia.id, // Status Network Sepolia where our contract is deployed
-      functionAbi: {
-        name: 'shouldDossierStayEncrypted',
-        type: 'function',
-        inputs: [
-          { name: '_user', type: 'address', internalType: 'address' },
-          { name: '_dossierId', type: 'uint256', internalType: 'uint256' }
-        ],
-        outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
-        stateMutability: 'view'
-      },
-      method: 'shouldDossierStayEncrypted',
-      parameters: [userAddress, '0x' + dossierId.toString(16)],
+    // Use RpcCondition to allow TACo nodes to query Status Network
+    // This is necessary because TACo nodes need to be able to check the condition
+    // against the Status Network where our contract is deployed
+    return new conditions.base.rpc.RpcCondition({
+      chain: statusSepolia.id,
+      method: 'eth_call',
+      parameters: [
+        {
+          to: CANARY_DOSSIER_ADDRESS,
+          // Encode the function call for shouldDossierStayEncrypted(address,uint256)
+          // Function selector: keccak256("shouldDossierStayEncrypted(address,uint256)") = 0x8a0e5d8a
+          data: this.encodeFunctionCall(
+            'shouldDossierStayEncrypted(address,uint256)',
+            ['address', 'uint256'],
+            [userAddress, dossierId.toString()]
+          )
+        },
+        'latest'  // Block parameter
+      ],
       returnValueTest: {
         comparator: '==',
-        value: false, // Decryption allowed when function returns false (check-in missed)
+        // The function returns false (0x0...0 padded to 32 bytes) when decryption is allowed
+        value: '0x0000000000000000000000000000000000000000000000000000000000000000',
       },
+      // Specify the RPC endpoint for Status Network Sepolia
+      // This ensures TACo nodes know where to query the contract
+      conditionVariables: {
+        ':rpcEndpoint': 'https://public.sepolia.rpc.status.network'
+      }
     });
+  }
+
+  /**
+   * Helper function to encode function calls for JSON-RPC
+   */
+  private encodeFunctionCall(signature: string, types: string[], values: any[]): string {
+    const { ethers } = require('ethers');
+
+    // Calculate function selector (first 4 bytes of keccak256 hash)
+    const functionSelector = ethers.utils.id(signature).slice(0, 10);
+
+    // Encode parameters
+    const encodedParams = ethers.utils.defaultAbiCoder.encode(types, values).slice(2);
+
+    // Combine selector and encoded parameters
+    return functionSelector + encodedParams;
   }
 
   /**
@@ -155,19 +180,20 @@ class TacoService {
       console.warn('⚠️ Could not get signer address:', error);
     }
 
-    console.log('🔒 Using Dossier contract condition for maximum security');
+    console.log('🔒 Using JSON-RPC Dossier condition for maximum security');
     console.log('📍 Contract on Status Network, TACo infrastructure on Polygon Amoy');
     const tacoCondition = this.createDossierCondition(userAddress, dossierId);
 
     const fileArrayBuffer = await file.arrayBuffer();
     const message = new Uint8Array(fileArrayBuffer);
 
-    console.log('🔐 Encrypting with Dossier condition:', {
-      type: 'dossier_contract',
+    console.log('🔐 Encrypting with JSON-RPC Dossier condition:', {
+      type: 'json_rpc_condition',
       dossierId: dossierId.toString(),
       userAddress: userAddress,
       contractAddress: CANARY_DOSSIER_ADDRESS,
       contractChain: statusSepolia.id,
+      rpcEndpoint: 'https://public.sepolia.rpc.status.network',
       tacoInfraChain: 'Polygon Amoy (80002)'
     });
 
@@ -180,7 +206,7 @@ class TacoService {
       signer
     );
 
-    console.log('✅ Encryption successful with Dossier contract integration');
+    console.log('✅ Encryption successful with JSON-RPC Dossier condition');
 
     // Add dossier information to condition
     const enhancedCondition = {
