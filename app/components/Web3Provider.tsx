@@ -56,6 +56,23 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
           accentColor: '#676FFF',
           logo: '/canary.png',
         },
+        // Explicitly specify supported external wallets
+        // Only MetaMask and WalletConnect are supported
+        // Coinbase Wallet and Rainbow have been removed
+        externalWallets: {
+          metamask: {
+            connectionOptions: 'all'
+          },
+          walletConnect: {
+            enabled: true
+          },
+          coinbaseWallet: {
+            enabled: false
+          },
+          rainbow: {
+            enabled: false
+          }
+        },
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',
           requireUserPasswordOnCreate: false,

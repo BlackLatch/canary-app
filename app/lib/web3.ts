@@ -2,7 +2,7 @@ import { http } from 'wagmi'
 import { createConfig } from '@privy-io/wagmi'
 import { polygonAmoy } from 'wagmi/chains'
 import { statusSepolia } from './chains/status'
-import { coinbaseWallet, metaMask, walletConnect } from 'wagmi/connectors'
+import { metaMask, walletConnect } from 'wagmi/connectors'
 import type { CreateConnectorFn } from 'wagmi'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
@@ -10,13 +10,10 @@ const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 // Note: We use a dedicated RPC endpoint for Polygon Amoy to ensure reliable contract access
 // The wallet handles signing, but RPC calls go through a reliable endpoint
 
-// Create connectors array conditionally
+// Create connectors array with only MetaMask and WalletConnect
+// Coinbase Wallet and Rainbow have been removed per requirements
 const connectors: CreateConnectorFn[] = [
-  metaMask(),
-  coinbaseWallet({
-    appName: 'Canary',
-    appLogoUrl: 'https://canary.app/logo.png',
-  })
+  metaMask()
 ];
 
 // Only add WalletConnect if we have a valid project ID
