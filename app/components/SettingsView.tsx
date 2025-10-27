@@ -9,6 +9,8 @@ import { useAccount, useDisconnect } from 'wagmi';
 import { useBurnerWallet } from '../lib/burner-wallet-context';
 import { useHeartbeat } from '../lib/heartbeat-context';
 import { NETWORK_CONFIG, CANARY_DOSSIER_ADDRESS } from '../lib/network-config';
+import { ContractService } from '../lib/contract';
+import BurnConfirmationModal from './BurnConfirmationModal';
 import toast from 'react-hot-toast';
 
 interface PrivateKeyExportProps {
@@ -124,6 +126,10 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
 
   // Local state for code phrase copy
   const [codePhrasecopied, setCodePhraseCopied] = useState(false);
+
+  // State for burn confirmation modal
+  const [showBurnConfirmModal, setShowBurnConfirmModal] = useState(false);
+  const [hasActiveDossiers, setHasActiveDossiers] = useState(false);
 
   // Helper to get current address (prioritize burner wallet)
   const getCurrentAddress = () => {
@@ -454,6 +460,93 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                           burnerWallet={burnerWallet}
                           theme={theme}
                         />
+                      </div>
+                    )}
+
+                    {/* Burn Anonymous Account */}
+                    {burnerWallet.isConnected && (
+                      <div className={`p-4 rounded-lg border mb-6 ${
+                        theme === 'light'
+                          ? 'bg-red-50 border-red-300'
+                          : 'bg-red-900/10 border-red-800'
+                      }`}>
+                        <h3 className={`font-medium mb-3 flex items-center gap-2 ${
+                          theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                        }`}>
+                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                          Burn Anonymous Account
+                        </h3>
+                        <p className={`text-sm mb-4 ${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          Remove your anonymous account from this browser. This action:
+                        </p>
+                        <ul className={`text-sm mb-4 space-y-1 ${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          <li>• <strong>Cannot be undone</strong></li>
+                          <li>• Deletes the private key from browser storage</li>
+                          <li>• Without the private key backup, you lose access forever</li>
+                          <li>• Any funds or assets become inaccessible without the key</li>
+                        </ul>
+
+                        <div className={`p-3 rounded-lg border mb-4 ${
+                          theme === 'light'
+                            ? 'bg-white border-red-400'
+                            : 'bg-black/40 border-red-400'
+                        }`}>
+                          <p className={`text-sm flex items-start gap-2 text-red-500`}>
+                            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <span>
+                              <strong>Final Warning:</strong> Use "Backup Private Key" above to save your key before burning. This is your only way to recover the account!
+                            </span>
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            // Check for active dossiers before showing the modal
+                            try {
+                              if (burnerWallet.address) {
+                                const dossierIds = await ContractService.getUserDossierIds(burnerWallet.address);
+                                let activeCount = 0;
+
+                                // Check each dossier to see if it's active
+                                for (const dossierId of dossierIds) {
+                                  try {
+                                    const dossier = await ContractService.getDossier(burnerWallet.address, dossierId);
+                                    if (dossier.isActive && !dossier.isPermanentlyDisabled && !dossier.isReleased) {
+                                      activeCount++;
+                                    }
+                                  } catch (err) {
+                                    console.error(`Failed to check dossier ${dossierId}:`, err);
+                                  }
+                                }
+
+                                setHasActiveDossiers(activeCount > 0);
+
+                                if (activeCount > 0) {
+                                  toast.error(`⚠️ Warning: You have ${activeCount} active dossier${activeCount > 1 ? 's' : ''} that will be released!`, {
+                                    duration: 5000
+                                  });
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Failed to check dossiers:', error);
+                              // Still show the modal even if check fails
+                            }
+
+                            setShowBurnConfirmModal(true);
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            theme === 'light'
+                              ? 'bg-red-600 text-white hover:bg-red-700'
+                              : 'bg-red-600 text-white hover:bg-red-700'
+                          }`}
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                          Burn Anonymous Account
+                        </button>
                       </div>
                     )}
 
@@ -964,6 +1057,29 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Burn Confirmation Modal */}
+      {showBurnConfirmModal && (
+        <BurnConfirmationModal
+          hasActiveDossiers={hasActiveDossiers}
+          onConfirm={() => {
+            setShowBurnConfirmModal(false);
+            try {
+              // Call the burnWallet method to permanently delete the burner wallet
+              burnerWallet.burnWallet();
+              toast.success('Anonymous account has been permanently deleted');
+              // The burner wallet context will handle the cleanup and state update
+            } catch (error) {
+              console.error('Failed to burn wallet:', error);
+              toast.error('Failed to burn anonymous account');
+            }
+          }}
+          onCancel={() => {
+            setShowBurnConfirmModal(false);
+            toast.error('Burn cancelled');
+          }}
+        />
+      )}
     </div>
   );
 }

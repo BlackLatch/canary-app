@@ -24,6 +24,7 @@ interface BurnerWalletContextValue {
   connect: () => Promise<BurnerWalletInfo>;
   disconnect: () => void;
   clearWallet: () => void; // Permanently delete the wallet from localStorage
+  burnWallet: () => void; // Alias for clearWallet - permanently deletes the wallet
   exportPrivateKey: () => string | null;
   importPrivateKey: (privateKey: string) => Promise<void>;
   hasExistingWallet: () => boolean;
@@ -132,6 +133,11 @@ export function BurnerWalletProvider({ children, autoConnect = false }: BurnerWa
     return wallet;
   };
 
+  const burnWallet = () => {
+    // Alias for clearWallet - used for better semantic clarity
+    clearWallet();
+  };
+
   const value: BurnerWalletContextValue = {
     wallet,
     address,
@@ -140,6 +146,7 @@ export function BurnerWalletProvider({ children, autoConnect = false }: BurnerWa
     connect,
     disconnect,
     clearWallet,
+    burnWallet,
     exportPrivateKey,
     importPrivateKey,
     hasExistingWallet,

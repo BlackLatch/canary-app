@@ -28,6 +28,7 @@ import AcceptableUsePolicy, { checkAUPSigned } from "./components/AcceptableUseP
 import SettingsView from "./components/SettingsView";
 import MonitorView from "./components/MonitorView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
+import BurnAccountWarningModal from "./components/BurnAccountWarningModal";
 import { useSearchParams } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -111,6 +112,9 @@ const Home = () => {
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isInStandaloneMode, setIsInStandaloneMode] = useState(false);
+
+  // Burn account warning modal state
+  const [showBurnWarningModal, setShowBurnWarningModal] = useState(false);
   // Removed userProfile - using dossier-only storage model
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -1567,19 +1571,13 @@ const Home = () => {
   };
 
   const handleCreateNewAnonymousAccount = async () => {
-    // Show warning dialog
-    const userConfirmed = window.confirm(
-      "⚠️ WARNING: Creating a new anonymous account will PERMANENTLY DELETE your existing account!\n\n" +
-      "• Your current account will be lost forever\n" +
-      "• Any funds or dossiers associated with it will be inaccessible\n" +
-      "• This action cannot be undone\n\n" +
-      "Make sure you have backed up your private key if you need to restore this account later.\n\n" +
-      "Are you sure you want to create a new account?"
-    );
+    // Show the custom warning modal
+    setShowBurnWarningModal(true);
+  };
 
-    if (!userConfirmed) {
-      return;
-    }
+  const handleConfirmCreateNewAccount = async () => {
+    // Close the modal
+    setShowBurnWarningModal(false);
 
     console.log("Creating new anonymous account, clearing existing...");
     setAuthModeWithPersistence("advanced");
@@ -1628,7 +1626,11 @@ const Home = () => {
       console.log("Using Privy connectWallet for external wallet...");
       setAuthModeWithPersistence("advanced"); // Set advanced mode for Web3 wallet
       try {
-        connectWallet();
+        // Pass walletList to only show MetaMask and WalletConnect
+        // Explicitly exclude Coinbase Wallet and Rainbow
+        connectWallet({
+          walletList: ['metamask', 'wallet_connect']
+        });
       } catch (error) {
         console.error("Failed to connect external wallet via Privy:", error);
       }
@@ -2105,6 +2107,14 @@ const Home = () => {
               </div>
             </div>
           </div>
+
+          {/* Burn Account Warning Modal */}
+          {showBurnWarningModal && (
+            <BurnAccountWarningModal
+              onConfirm={handleConfirmCreateNewAccount}
+              onCancel={() => setShowBurnWarningModal(false)}
+            />
+          )}
 
           {/* Import Private Key Modal */}
           {showImportKeyModal && (

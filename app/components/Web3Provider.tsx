@@ -58,19 +58,12 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         },
         // Explicitly specify supported external wallets
         // Only MetaMask and WalletConnect are supported
-        // Coinbase Wallet and Rainbow have been removed
+        // Coinbase Wallet and Rainbow have been excluded
+        walletList: ['metamask', 'wallet_connect'],
+        // Also configure externalWallets to ensure proper wallet filtering
         externalWallets: {
-          metamask: {
-            connectionOptions: 'all'
-          },
-          walletConnect: {
-            enabled: true
-          },
           coinbaseWallet: {
-            enabled: false
-          },
-          rainbow: {
-            enabled: false
+            connectionOptions: 'none' // Disable Coinbase Wallet
           }
         },
         embeddedWallets: {
