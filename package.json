@@ -61,14 +61,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
-    "@nomicfoundation/hardhat-ethers": "^4.0.0",
-    "@nomicfoundation/hardhat-ignition": "^3.0.3",
-    "@nomicfoundation/hardhat-ignition-ethers": "^3.0.3",
-    "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
-    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
-    "@nomiclabs/hardhat-ethers": "^2.2.3",
-    "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -77,15 +69,10 @@
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
-    "chai": "^6.0.1",
-    "dotenv": "^17.2.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "happy-dom": "^18.0.1",
-    "hardhat": "^3.0.2",
     "jsdom": "^27.0.1",
-    "raw-loader": "^4.0.2",
-    "solc": "^0.8.19",
     "vitest": "^3.2.4"
   }
 }
