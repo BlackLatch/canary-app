@@ -238,66 +238,39 @@ class TacoService {
     let provider: ethers.providers.Provider;
     let signer: ethers.Signer;
 
+    // IMPORTANT: TACo decrypt needs a provider connected to Polygon Amoy (where TACo infrastructure exists)
+    // The contract condition will be verified against Status Network (where our Dossier contract lives)
+    console.log('🔗 Creating TACo provider connected to Polygon Amoy (for TACo infrastructure)');
+    const tacoProvider = new ethers.providers.JsonRpcProvider('https://rpc-amoy.polygon.technology/');
+
     if (burnerWallet) {
-      // For burner wallet, create a provider connected to Status Network Sepolia
+      // For burner wallet, connect to Polygon Amoy for TACo decryption
       console.log('🔥 Using burner wallet for decryption');
-      provider = new ethers.providers.JsonRpcProvider('https://public.sepolia.rpc.status.network');
-      signer = burnerWallet.connect(provider);
+      provider = tacoProvider;
+      signer = burnerWallet.connect(tacoProvider);
     } else {
       // Get the ethers provider from Privy (handles embedded wallets)
-      provider = await getPrivyEthersProvider();
-      signer = provider.getSigner();
+      const privyProvider = await getPrivyEthersProvider();
+      provider = tacoProvider;
+      signer = privyProvider.getSigner();
     }
-    
-    // Check if we're on the correct chain
+
+    // Verify TACo provider is on Polygon Amoy (chain ID 80002)
     try {
       const network = await provider.getNetwork();
-      console.log('🔗 Current network:', network.chainId, 'Type:', typeof network.chainId);
-      console.log('🔗 Expected network:', statusSepolia.id, 'Type:', typeof statusSepolia.id);
+      console.log('🔗 TACo provider network:', network.chainId);
 
-      // Convert both to Numbers for comparison to handle both BigInt and number types
       const currentChainId = Number(network.chainId);
-      const expectedChainId = Number(statusSepolia.id);
+      const expectedChainId = 80002; // Polygon Amoy
 
       if (currentChainId !== expectedChainId) {
-        console.error(`❌ Wrong network! Expected Status Network Sepolia (${expectedChainId}), got ${currentChainId}`);
-
-        // Attempt to switch networks automatically (only for non-burner wallets)
-        if (!burnerWallet) {
-          console.log('🔄 Attempting to switch to Status Network Sepolia...');
-          try {
-            await switchToStatusNetwork();
-
-            // Wait a moment for the switch to complete
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Get updated provider after network switch
-            const updatedProvider = await getPrivyEthersProvider();
-            const updatedNetwork = await updatedProvider.getNetwork();
-
-            if (Number(updatedNetwork.chainId) === Number(statusSepolia.id)) {
-              console.log('✅ Successfully switched to Status Network Sepolia');
-              // Continue with the updated provider
-              return this.decryptFile(messageKit, burnerWallet); // Recursive call with correct network
-            } else {
-              throw new Error(`Network switch failed. Still on chain ${updatedNetwork.chainId}`);
-            }
-          } catch (switchError) {
-            console.error('Failed to switch network:', switchError);
-            throw new Error(`Please switch to Status Network Sepolia testnet (Chain ID: ${statusSepolia.id}) to decrypt this content.`);
-          }
-        } else {
-          // For burner wallets, we can't switch networks, so just log a warning
-          console.warn('⚠️ Burner wallet on wrong network, but continuing anyway as network switching is not supported');
-        }
+        console.warn(`⚠️ TACo provider on unexpected network: ${currentChainId}, expected Polygon Amoy (${expectedChainId})`);
+      } else {
+        console.log('✅ TACo provider correctly connected to Polygon Amoy');
       }
     } catch (networkError) {
-      console.error('Failed to check network:', networkError);
-      // If it's our custom error, re-throw it
-      if (networkError instanceof Error && networkError.message.includes('switch to Status Network')) {
-        throw networkError;
-      }
-      // Otherwise continue and let TACo handle it
+      console.error('Failed to check TACo provider network:', networkError);
+      // Continue anyway - TACo will handle network issues
     }
 
     console.log('🔓 Attempting decryption with contract verification...');
