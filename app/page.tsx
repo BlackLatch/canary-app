@@ -48,10 +48,10 @@ import {
   isOnStatusNetwork,
   getNetworkName,
 } from "./lib/contract";
-import { ensureCorrectNetwork } from "./lib/network-switch";
 import { statusSepolia } from "./lib/chains/status";
 import toast, { Toaster } from "react-hot-toast";
 import { getMimeType } from "./lib/mime-types";
+import { useNetworkGuard } from "./lib/hooks/useNetworkGuard";
 
 // Extended dossier interface with accurate decryptable status
 interface DossierWithStatus extends Dossier {
@@ -217,47 +217,6 @@ const Home = () => {
       // Don't automatically show the popup - user must click the button
     }
   }, [currentStep, showCreateForm, address, user]);
-
-  // Automatic network detection and switching for external Web3 wallets
-  useEffect(() => {
-    // Only check for external Web3 wallets (not burner wallets or Privy embedded wallets)
-    if (!isConnected || !address || burnerWallet.isConnected) {
-      return;
-    }
-
-    // Check if on correct network
-    if (chainId !== statusSepolia.id) {
-      const currentNetwork = getNetworkName(chainId);
-      console.log(`🔗 External wallet detected on ${currentNetwork} (chain ${chainId})`);
-      console.log(`📍 Need to switch to Status Network Sepolia (chain ${statusSepolia.id})`);
-
-      // Show toast and attempt automatic switch
-      const switchToast = toast.loading(
-        `Wrong network detected. Switching to Status Network Sepolia...`
-      );
-
-      ensureCorrectNetwork()
-        .then((success) => {
-          if (success) {
-            toast.success('✅ Successfully switched to Status Network Sepolia', {
-              id: switchToast,
-            });
-          } else {
-            toast.error(
-              `Please manually switch to Status Network Sepolia in your wallet`,
-              { id: switchToast, duration: 5000 }
-            );
-          }
-        })
-        .catch((error) => {
-          console.error('Failed to switch network:', error);
-          toast.error(
-            `Network switch failed. Please manually switch to Status Network Sepolia`,
-            { id: switchToast, duration: 5000 }
-          );
-        });
-    }
-  }, [isConnected, address, chainId, burnerWallet.isConnected]);
 
   // Dossier detail navigation
   const openDocumentDetail = (document: DossierWithStatus) => {
@@ -498,37 +457,7 @@ const Home = () => {
       return;
     }
 
-    // Check if we're on the right network - MUST be Status Network Sepolia
-    // Skip network check for burner wallets (they don't report chainId)
-    if (!burnerWallet.isConnected && !isOnStatusNetwork(chainId)) {
-      const currentNetwork = getNetworkName(chainId);
-      console.warn(
-        `⚠️ Wrong network! Currently on ${currentNetwork}, need Status Network Sepolia`,
-      );
-
-      // Attempt automatic network switch
-      const switchToast = toast.loading('Switching to Status Network Sepolia...');
-      ensureCorrectNetwork()
-        .then((success) => {
-          toast.dismiss(switchToast);
-          if (success) {
-            toast.success('✅ Network switched successfully. Please try again.');
-          } else {
-            toast.error(
-              `Please switch to Status Network Sepolia network. Currently on ${currentNetwork}`,
-              { duration: 5000 }
-            );
-          }
-        })
-        .catch((error) => {
-          toast.dismiss(switchToast);
-          toast.error(
-            `Please switch to Status Network Sepolia network. Currently on ${currentNetwork}`,
-            { duration: 5000 }
-          );
-        });
-      return;
-    }
+    // Network check is handled by useNetworkGuard wrapper
 
     // Check if smart wallet is available for gasless transactions
     if (!smartWalletClient) {
@@ -987,6 +916,9 @@ const Home = () => {
     }
   };
 
+  // Wrap processCanaryTrigger with network guard for automatic network switching
+  const processCanaryTriggerWithNetworkGuard = useNetworkGuard(processCanaryTrigger);
+
   const copyTraceJson = () => {
     if (traceJson) {
       navigator.clipboard.writeText(JSON.stringify(traceJson, null, 2));
@@ -1421,6 +1353,37 @@ const Home = () => {
       ]);
     }
   };
+
+  // Wrap handleCheckIn with network guard for automatic network switching
+  const handleCheckInWithNetworkGuard = useNetworkGuard(handleCheckIn);
+
+  // Create wrapped versions of dossier management actions
+  const pauseOrResumeDossier = useNetworkGuard(async (dossierId: bigint, isActive: boolean) => {
+    const txHash = isActive
+      ? await ContractService.pauseDossier(
+          dossierId,
+          burnerWallet.isConnected ? burnerWallet.wallet : undefined
+        )
+      : await ContractService.resumeDossier(
+          dossierId,
+          burnerWallet.isConnected ? burnerWallet.wallet : undefined
+        );
+    return txHash;
+  });
+
+  const disableDossier = useNetworkGuard(async (dossierId: bigint) => {
+    return await ContractService.permanentlyDisableDossier(
+      dossierId,
+      burnerWallet.isConnected ? burnerWallet.wallet : undefined
+    );
+  });
+
+  const releaseDossier = useNetworkGuard(async (dossierId: bigint) => {
+    return await ContractService.releaseNow(
+      dossierId,
+      burnerWallet.isConnected ? burnerWallet.wallet : undefined
+    );
+  });
 
   const getTimeSinceLastCheckIn = () => {
     // If connected and have dossiers, use the most recent on-chain check-in
@@ -2888,7 +2851,7 @@ const Home = () => {
 
                           {/* Check In Button - Editorial Style */}
                           <button
-                            onClick={handleCheckIn}
+                            onClick={handleCheckInWithNetworkGuard}
                             disabled={
                               isCheckingIn ||
                               !dummyMasterSwitch ||
@@ -3825,20 +3788,10 @@ const Home = () => {
                                     onClick={async (e) => {
                                       e.stopPropagation();
                                       try {
-                                        let txHash: string;
-                                        if (selectedDocument.isActive) {
-                                          txHash =
-                                            await ContractService.pauseDossier(
-                                              selectedDocument.id,
-                                              burnerWallet.isConnected ? burnerWallet.wallet : undefined
-                                            );
-                                        } else {
-                                          txHash =
-                                            await ContractService.resumeDossier(
-                                              selectedDocument.id,
-                                              burnerWallet.isConnected ? burnerWallet.wallet : undefined
-                                            );
-                                        }
+                                        const txHash = await pauseOrResumeDossier(
+                                          selectedDocument.id,
+                                          selectedDocument.isActive
+                                        );
 
                                         await fetchUserDossiers();
                                         setActivityLog((prev) => [
@@ -6188,7 +6141,7 @@ const Home = () => {
                                 <div className="flex justify-center">
                                   {!encryptedCapsule && (
                                     <button
-                                      onClick={processCanaryTrigger}
+                                      onClick={processCanaryTriggerWithNetworkGuard}
                                       disabled={
                                         (uploadedFiles.length === 0 && !uploadedFile) ||
                                         isProcessing ||
@@ -6565,10 +6518,8 @@ const Home = () => {
                       );
 
                       // Call the contract to permanently disable the dossier (irreversible)
-                      const txHash =
-                        await ContractService.permanentlyDisableDossier(
-                          showDisableConfirm,
-                          burnerWallet.isConnected ? burnerWallet.wallet : undefined
+                      const txHash = await disableDossier(
+                          showDisableConfirm
                         );
 
                       toast.success("Dossier permanently disabled", {
@@ -6749,11 +6700,7 @@ const Home = () => {
                       );
 
                       // Call the contract to release the dossier data
-                      const txHash =
-                        await ContractService.releaseNow(
-                          showReleaseConfirm,
-                          burnerWallet.isConnected ? burnerWallet.wallet : undefined
-                        );
+                      const txHash = await releaseDossier(showReleaseConfirm);
 
                       toast.success("Dossier released", { id: releaseToast });
 
