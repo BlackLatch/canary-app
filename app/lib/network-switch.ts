@@ -5,10 +5,16 @@ import { config } from './web3';
 /**
  * Switch the user's wallet to Status Network Sepolia testnet
  * This will prompt the user's wallet to switch networks
+ * If the network doesn't exist in the wallet, it will prompt to add it first
  */
 export async function switchToStatusNetwork(): Promise<void> {
   try {
     console.log('🔄 Requesting network switch to Status Network Sepolia...');
+    console.log('📍 Network details:', {
+      name: statusSepolia.name,
+      chainId: statusSepolia.id,
+      rpcUrl: statusSepolia.rpcUrls.default.http[0],
+    });
 
     await switchChain(config, {
       chainId: statusSepolia.id,
@@ -22,6 +28,17 @@ export async function switchToStatusNetwork(): Promise<void> {
     if (error instanceof Error) {
       if (error.message.includes('User rejected') || error.message.includes('User denied')) {
         throw new Error('Network switch cancelled. Please manually switch to Status Network Sepolia testnet to continue.');
+      }
+
+      // If network doesn't exist, wagmi should automatically prompt to add it
+      // If that fails, provide helpful error message
+      if (error.message.includes('Unrecognized chain') || error.message.includes('network')) {
+        throw new Error(
+          'Status Network Sepolia not found in wallet. Please add it manually:\n' +
+          `Chain ID: ${statusSepolia.id}\n` +
+          `RPC URL: ${statusSepolia.rpcUrls.default.http[0]}\n` +
+          `Explorer: ${statusSepolia.blockExplorers?.default.url}`
+        );
       }
     }
 
