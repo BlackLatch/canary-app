@@ -28,10 +28,11 @@ export const checkAUPSigned = (identifier: string | undefined): boolean => {
 };
 
 // EIP-712 Domain
+// Note: chainId is omitted to make signature chain-agnostic
+// This allows users to sign from any network since AUP is not a blockchain transaction
 const domain = {
   name: 'Canary',
   version: '1',
-  chainId: 80002, // Polygon Amoy
 } as const;
 
 // EIP-712 Types

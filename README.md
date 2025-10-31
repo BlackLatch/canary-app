@@ -5,8 +5,6 @@
 Canary is a privacy dApp that ensures encrypted data is released only under verifiable conditions.  
 It operates entirely client-side using **threshold cryptography**, **decentralized storage**, and **peer-to-peer signaling**.
 
-ReFi Hackathon Video Submission: https://youtu.be/MSMqIGQ-n88
-
 ---
 
 ## Overview
