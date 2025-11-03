@@ -5345,7 +5345,8 @@ const Home = () => {
                                           } else if (checkInInterval) {
                                             const parsed = parseInt(checkInInterval);
                                             if (!isNaN(parsed) && parsed > 0) {
-                                              intervalHours = parsed;
+                                              // Quick selection values are stored in MINUTES, convert to hours
+                                              intervalHours = parsed / 60;
                                             }
                                           }
 
