@@ -5334,13 +5334,44 @@ const Home = () => {
                                       </h5>
                                       <div className="space-y-2">
                                         {(() => {
+                                          // Determine the interval hours from selected option
+                                          let intervalHours: number | null = null;
+
+                                          if (checkInInterval === "custom") {
+                                            const parsed = parseInt(customInterval);
+                                            if (!isNaN(parsed) && parsed > 0) {
+                                              intervalHours = parsed;
+                                            }
+                                          } else if (checkInInterval) {
+                                            const parsed = parseInt(checkInInterval);
+                                            if (!isNaN(parsed) && parsed > 0) {
+                                              intervalHours = parsed;
+                                            }
+                                          }
+
+                                          // If no valid interval selected, show placeholder
+                                          if (intervalHours === null) {
+                                            return (
+                                              <div
+                                                className={`py-8 text-center rounded border ${
+                                                  theme === "light"
+                                                    ? "bg-gray-50 border-gray-200"
+                                                    : "bg-black/20 border-gray-700"
+                                                }`}
+                                              >
+                                                <span className={`text-sm ${
+                                                  theme === "light" ? "text-gray-500" : "text-gray-500"
+                                                }`}>
+                                                  Select an interval to see check-in schedule
+                                                </span>
+                                              </div>
+                                            );
+                                          }
+
+                                          // Calculate and display next check-in times
                                           const now = new Date();
-                                          const intervalHours = checkInInterval === "custom" 
-                                            ? parseInt(customInterval) || 24
-                                            : parseInt(checkInInterval) || 24;
-                                          
                                           return [1, 2, 3].map((multiplier) => {
-                                            const nextDate = new Date(now.getTime() + (intervalHours * multiplier * 60 * 60 * 1000));
+                                            const nextDate = new Date(now.getTime() + (intervalHours! * multiplier * 60 * 60 * 1000));
                                             return (
                                               <div
                                                 key={multiplier}
