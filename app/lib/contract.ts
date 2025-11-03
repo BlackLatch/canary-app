@@ -1363,15 +1363,21 @@ export class ContractService {
       } as Dossier;
 
     } catch (error) {
+      // Log the full error for debugging
+      console.error('❌ Failed to get dossier - Full error:', error);
+
       // Check for ABI mismatch errors
       if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+
         if (error.message.includes('is not a valid boolean') ||
             error.message.includes('Position') && error.message.includes('out of bounds')) {
           console.error('💥 ABI MISMATCH DETECTED:', {
             dossierId: dossierId.toString(),
             userAddress,
             contractAddress: CANARY_DOSSIER_ADDRESS,
-            error: error.message,
+            errorMessage: error.message,
             hint: 'The deployed contract structure does not match the ABI. Please update the ABI or redeploy the contract.'
           });
 
@@ -1383,7 +1389,6 @@ export class ContractService {
         }
       }
 
-      console.error('❌ Failed to get dossier:', error);
       throw error;
     }
   }
