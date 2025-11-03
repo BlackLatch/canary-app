@@ -1346,7 +1346,7 @@ export class ContractService {
         functionName: 'getDossier',
         args: [userAddress, dossierId],
       });
-      
+
       // V2 has all the latest fields
       const dossier = result as any;
       return {
@@ -1361,8 +1361,28 @@ export class ContractService {
         encryptedFileHashes: dossier.encryptedFileHashes,
         recipients: dossier.recipients
       } as Dossier;
-      
+
     } catch (error) {
+      // Check for ABI mismatch errors
+      if (error instanceof Error) {
+        if (error.message.includes('is not a valid boolean') ||
+            error.message.includes('Position') && error.message.includes('out of bounds')) {
+          console.error('💥 ABI MISMATCH DETECTED:', {
+            dossierId: dossierId.toString(),
+            userAddress,
+            contractAddress: CANARY_DOSSIER_ADDRESS,
+            error: error.message,
+            hint: 'The deployed contract structure does not match the ABI. Please update the ABI or redeploy the contract.'
+          });
+
+          throw new Error(
+            `ABI mismatch for dossier #${dossierId.toString()}. ` +
+            `The deployed contract at ${CANARY_DOSSIER_ADDRESS} has a different structure than expected. ` +
+            `Please check that you're using the correct contract address and ABI version.`
+          );
+        }
+      }
+
       console.error('❌ Failed to get dossier:', error);
       throw error;
     }

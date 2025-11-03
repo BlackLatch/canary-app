@@ -1149,6 +1149,14 @@ const Home = () => {
           );
         } catch (error) {
           console.error(`❌ Failed to load dossier #${id.toString()}:`, error);
+
+          // Show user-friendly error for ABI mismatch
+          if (error instanceof Error && error.message.includes('ABI mismatch')) {
+            toast.error(
+              `Contract ABI mismatch detected. Please check that the deployed contract matches the expected version.`,
+              { duration: 8000, id: 'abi-mismatch' }
+            );
+          }
         }
       }
 
