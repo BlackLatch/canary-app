@@ -89,11 +89,11 @@ class TacoService {
     // For custom contracts, we need to provide the function ABI
     const functionAbi = {
       inputs: [
-        { name: '_user', type: 'address' },
-        { name: '_dossierId', type: 'uint256' }
+        { name: '_user', type: 'address', internalType: 'address' },
+        { name: '_dossierId', type: 'uint256', internalType: 'uint256' }
       ],
       name: 'shouldDossierStayEncrypted',
-      outputs: [{ name: '', type: 'bool' }],
+      outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
       stateMutability: 'view',
       type: 'function'
     };
