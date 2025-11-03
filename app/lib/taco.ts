@@ -86,12 +86,24 @@ class TacoService {
     console.log(`📍 Contract: ${CANARY_DOSSIER_ADDRESS} on Status Network Sepolia`);
     console.log(`🌐 TACo will verify condition against contract`);
 
+    // For custom contracts, we need to provide the function ABI
+    const functionAbi = {
+      inputs: [
+        { name: '_user', type: 'address' },
+        { name: '_dossierId', type: 'uint256' }
+      ],
+      name: 'shouldDossierStayEncrypted',
+      outputs: [{ name: '', type: 'bool' }],
+      stateMutability: 'view',
+      type: 'function'
+    };
+
     // Use ContractCondition to call the contract method
     // TACo nodes will verify this condition by calling the contract
     return new conditions.base.contract.ContractCondition({
       contractAddress: CANARY_DOSSIER_ADDRESS,
       chain: statusSepolia.id,
-      standardContractType: 'custom', // We're using a custom contract
+      functionAbi, // Provide ABI for custom contract
       method: 'shouldDossierStayEncrypted',
       parameters: [userAddress, dossierId.toString()],
       returnValueTest: {
