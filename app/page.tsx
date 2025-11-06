@@ -585,8 +585,7 @@ const Home = () => {
       // Step 2b: Encrypt all files
       console.log(`🔒 Step 2b: Encrypting ${filesToProcess.length} file(s)...`);
       const encryptedFiles = [];
-      const fileHashes = [];
-      
+
       for (let i = 0; i < filesToProcess.length; i++) {
         const file = filesToProcess[i];
         const fileProgress = Math.round((i / filesToProcess.length) * 50); // 0-50% for encryption
