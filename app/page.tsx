@@ -18,8 +18,11 @@ import {
 import {
   commitEncryptedFileToPinata,
   DeadmanCondition,
-  TraceJson,
+  DossierManifest,
   encryptFileWithDossier,
+  createDossierManifest,
+  encryptAndCommitDossierManifest,
+  CommitResult,
 } from "./lib/taco";
 import { useTheme } from "./lib/theme-context";
 import MediaRecorder from "./components/MediaRecorder";
@@ -127,12 +130,12 @@ const Home = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>("");
   const [processingProgress, setProcessingProgress] = useState<number>(0);
-  const [traceJson, setTraceJson] = useState<TraceJson | null>(null);
+  const [dossierManifest, setDossierManifest] = useState<DossierManifest | null>(null);
+  const [manifestStorageUrl, setManifestStorageUrl] = useState<string | null>(null);
   const [encryptedCapsule, setEncryptedCapsule] = useState<any>(null);
   const [allEncryptedFiles, setAllEncryptedFiles] = useState<Array<{
     encryptionResult: any;
-    commitResult: any;
-    traceJson: TraceJson;
+    commitResult: CommitResult;
     originalFile: File;
   }>>([]);
   const [isCommitting, setIsCommitting] = useState(false);
@@ -613,11 +616,10 @@ const Home = () => {
         toast.loading(`Uploading encrypted ${file.name}...`, { id: processingToast });
         
         console.log(`📦 Uploading encrypted file ${i + 1}...`);
-        const { commitResult, traceJson } = await commitEncryptedFileToPinata(encryptionResult);
+        const commitResult = await commitEncryptedFileToPinata(encryptionResult);
         console.log(`📦 File ${i + 1} stored:`, commitResult.storageType);
-        
-        encryptedFiles.push({ encryptionResult, commitResult, traceJson, originalFile: file });
-        fileHashes.push(traceJson.payload_uri);
+
+        encryptedFiles.push({ encryptionResult, commitResult, originalFile: file });
       }
 
       console.log(`✅ All ${filesToProcess.length} files encrypted and uploaded`);
@@ -795,34 +797,67 @@ const Home = () => {
         return;
       }
 
-      // Step 5: Store results
-      setProcessingStatus("Finalizing...");
-      setProcessingProgress(95);
-      
+      // Step 5: Create and encrypt manifest
+      setProcessingStatus("Creating dossier manifest...");
+      setProcessingProgress(92);
+      toast.loading("Creating manifest...", { id: processingToast });
+      console.log("📋 Step 5: Creating dossier manifest...");
+
       // Store all encrypted files for download
       setAllEncryptedFiles(encryptedFiles);
-      
+
       // Store the first encrypted file's data for backward compatibility
       if (encryptedFiles.length > 0) {
         setEncryptedCapsule(encryptedFiles[0].encryptionResult);
-        
-        // Create enhanced trace JSON with dossier information
-        const enhancedTraceJson = {
-          ...encryptedFiles[0].traceJson,
-          dossier_id: dossierId?.toString() || "pending",
-          user_address: address,
-          contract_address: CANARY_DOSSIER_ADDRESS,
-          contract_chain_id: polygonAmoy.id.toString(),
-          contract_tx_hash: contractTxHash,
-          check_in_interval_minutes: checkInMinutes,
-          condition_type: "dossier_contract_verification",
-          encryption_method: "dossier_only",
-          gasless: !!smartWalletClient,
-          total_files: encryptedFiles.length,
-          all_file_hashes: fileHashes,
-        };
-        
-        setTraceJson(enhancedTraceJson);
+      }
+
+      try {
+        // Create manifest from encrypted files
+        const manifest = await createDossierManifest(
+          dossierId?.toString() || "0",
+          dossierName,
+          checkInMinutes * 60, // Convert minutes to seconds
+          'public', // Default to public for now
+          recipients,
+          encryptedFiles.map((ef) => ({
+            commitResult: ef.commitResult,
+            originalFile: ef.originalFile,
+          }))
+        );
+
+        console.log("✅ Manifest created");
+
+        // Encrypt and upload manifest
+        setProcessingStatus("Encrypting manifest...");
+        setProcessingProgress(95);
+        toast.loading("Encrypting manifest...", { id: processingToast });
+        console.log("🔐 Encrypting manifest...");
+
+        const manifestResult = await encryptAndCommitDossierManifest(
+          manifest,
+          condition,
+          queryAddress,
+          walletProvider,
+          burnerWalletInstance
+        );
+
+        console.log("✅ Manifest encrypted and stored:", manifestResult.manifestStorageUrl);
+
+        // Store manifest for display
+        setDossierManifest(manifest);
+        setManifestStorageUrl(manifestResult.manifestStorageUrl);
+
+        // Update fileHashes to include manifest as first entry
+        const allFileHashes = [manifestResult.manifestStorageUrl, ...encryptedFiles.map(ef => ef.commitResult.payloadUri)];
+
+        // TODO: Update on-chain dossier with manifest hash as first file
+        console.log("📋 Manifest hash (should be first):", manifestResult.manifestStorageUrl);
+        console.log("📋 All file hashes:", allFileHashes);
+
+      } catch (manifestError) {
+        console.error("❌ Failed to create/encrypt manifest:", manifestError);
+        toast.error("Failed to create manifest, but files were encrypted successfully", { id: processingToast });
+        // Continue anyway - files are already encrypted and stored
       }
 
       // Add all files to uploads table
@@ -882,7 +917,8 @@ const Home = () => {
       setCurrentStep(1);
       setEncryptedCapsule(null);
       setAllEncryptedFiles([]);
-      setTraceJson(null);
+      setDossierManifest(null);
+      setManifestStorageUrl(null);
       setUploadedFile(null);
       setUploadedFiles([]);
       setName("");
@@ -919,25 +955,27 @@ const Home = () => {
   // Wrap processCanaryTrigger with network guard for automatic network switching
   const processCanaryTriggerWithNetworkGuard = useNetworkGuard(processCanaryTrigger);
 
-  const copyTraceJson = () => {
-    if (traceJson) {
-      navigator.clipboard.writeText(JSON.stringify(traceJson, null, 2));
+  const copyManifest = () => {
+    if (dossierManifest) {
+      navigator.clipboard.writeText(JSON.stringify(dossierManifest, null, 2));
+      toast.success("Manifest copied to clipboard");
     }
   };
 
-  const downloadTraceJson = () => {
-    if (traceJson) {
-      const blob = new Blob([JSON.stringify(traceJson, null, 2)], {
+  const downloadManifest = () => {
+    if (dossierManifest) {
+      const blob = new Blob([JSON.stringify(dossierManifest, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "trace.json";
+      a.download = `dossier_${dossierManifest.dossierId}_manifest.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toast.success("Manifest downloaded");
     }
   };
 
@@ -4567,7 +4605,8 @@ const Home = () => {
                             setCurrentStep(1);
                             setEncryptedCapsule(null);
                             setAllEncryptedFiles([]);
-                            setTraceJson(null);
+                            setDossierManifest(null);
+                            setManifestStorageUrl(null);
                             setUploadedFile(null);
                             setProcessingStatus("");
                             setProcessingProgress(0);
@@ -4609,7 +4648,7 @@ const Home = () => {
                                     className={`flex items-center gap-2 cursor-pointer`}
                                     onClick={() => {
                                       // Allow free navigation between all steps
-                                      if (!isProcessing && !traceJson) {
+                                      if (!isProcessing && !dossierManifest) {
                                         setCurrentStep(step);
                                       }
                                     }}
@@ -6096,7 +6135,7 @@ const Home = () => {
                                 )}
 
                                 {/* Download Ciphertext Section */}
-                                {allEncryptedFiles.length > 0 && traceJson && (
+                                {allEncryptedFiles.length > 0 && dossierManifest && (
                                   <div className={`mb-6 p-6 rounded-lg border ${
                                     theme === "light"
                                       ? "bg-green-50 border-green-200"
@@ -6212,13 +6251,14 @@ const Home = () => {
                                   )}
 
                                   {/* Reset Button - shown after everything is complete */}
-                                  {traceJson && (
+                                  {dossierManifest && (
                                     <button
                                       onClick={() => {
                                         setCurrentStep(1);
                                         setEncryptedCapsule(null);
                                         setAllEncryptedFiles([]);
-                                        setTraceJson(null);
+                                        setDossierManifest(null);
+                                        setManifestStorageUrl(null);
                                         setUploadedFile(null);
                                         setUploadedFiles([]);
                                         setName("");
@@ -6242,7 +6282,7 @@ const Home = () => {
                           </div>
 
                           {/* Navigation */}
-                          {currentStep < 5 && !traceJson && (
+                          {currentStep < 5 && !dossierManifest && (
                             <div
                               className={`flex justify-between pt-6 mt-6 border-t ${theme === "light" ? "border-gray-200" : "border-gray-700"}`}
                             >

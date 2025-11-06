@@ -49,21 +49,32 @@ export interface CommitResult {
   storageType: 'codex' | 'ipfs' | 'pinata';
 }
 
-export interface TraceJson {
-  payload_uri: string;
-  taco_capsule_uri: string;
-  condition: string;
-  description: string;
-  storage_type: 'codex' | 'ipfs' | 'pinata';
-  gateway_url?: string;
-  gatewayUsed?: 'primary' | 'secondary';
-  created_at: string;
-  // Dossier integration fields
-  dossier_id: string;
-  user_address: string;
-  contract_address: string;
-  // File metadata
-  original_filename: string;
+// Dossier Manifest Interfaces (based on specification)
+
+export interface DossierManifestFile {
+  name: string;
+  type: string;
+  size: number;
+  encryptedHash: string;
+  storageUrl: string;
+}
+
+export interface DossierManifest {
+  version: string;
+  dossierId: string;
+  name: string;
+  createdAt: number;
+  checkInInterval: number;
+  releaseMode: 'public' | 'private';
+  recipients: string[];
+  files: DossierManifestFile[];
+}
+
+export interface ManifestCommitResult {
+  manifestEncryptionResult: EncryptionResult;
+  manifestCid: string;
+  manifestStorageUrl: string;
+  manifestStorageType: 'codex' | 'ipfs' | 'pinata';
 }
 
 class TacoService {
@@ -388,42 +399,200 @@ class TacoService {
     throw new Error('Commit failed: no storage backend available');
   }
 
-  createTraceJson(commitResult: CommitResult): TraceJson {
-    const conditionText = this.formatConditionText(commitResult.encryptionResult.condition);
-    
-    let gatewayUrl: string | undefined;
-    let gatewayUsed: 'primary' | 'secondary' | undefined;
-    
-    if (commitResult.pinataUploadResult?.success) {
-      gatewayUrl = commitResult.pinataUploadResult.gatewayUrl;
-      gatewayUsed = 'primary';
-    } else if (commitResult.ipfsUploadResult?.success) {
-      gatewayUrl = commitResult.ipfsUploadResult.gatewayUrl;
-      gatewayUsed = commitResult.ipfsUploadResult.gatewayUsed;
+  /**
+   * Create a dossier manifest from multiple file commit results
+   */
+  createManifest(
+    dossierId: string,
+    dossierName: string,
+    checkInIntervalSeconds: number,
+    releaseMode: 'public' | 'private',
+    recipients: string[],
+    fileCommitResults: Array<{ commitResult: CommitResult; originalFile: File }>
+  ): DossierManifest {
+    console.log('📋 Creating dossier manifest...');
+    console.log(`   Dossier ID: ${dossierId}`);
+    console.log(`   Name: ${dossierName}`);
+    console.log(`   Files: ${fileCommitResults.length}`);
+    console.log(`   Release mode: ${releaseMode}`);
+
+    const files: DossierManifestFile[] = fileCommitResults.map(({ commitResult, originalFile }) => {
+      // Extract hash from storage URL (last part after /)
+      const storageUrl = commitResult.payloadUri;
+      const encryptedHash = storageUrl.substring(storageUrl.lastIndexOf('/') + 1);
+
+      return {
+        name: originalFile.name,
+        type: originalFile.type || 'application/octet-stream',
+        size: originalFile.size,
+        encryptedHash,
+        storageUrl,
+      };
+    });
+
+    const manifest: DossierManifest = {
+      version: '1.0',
+      dossierId,
+      name: dossierName,
+      createdAt: Math.floor(Date.now() / 1000),
+      checkInInterval: checkInIntervalSeconds,
+      releaseMode,
+      recipients,
+      files,
+    };
+
+    console.log('✅ Manifest created:', {
+      version: manifest.version,
+      dossierId: manifest.dossierId,
+      fileCount: manifest.files.length,
+      releaseMode: manifest.releaseMode,
+      recipientCount: manifest.recipients.length,
+    });
+
+    return manifest;
+  }
+
+  /**
+   * Validate a dossier manifest according to specification
+   */
+  validateManifest(manifest: DossierManifest): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Version validation
+    if (!manifest.version || manifest.version !== '1.0') {
+      errors.push('Invalid or unsupported manifest version');
     }
-    
-    const condition = commitResult.encryptionResult.condition;
-    
+
+    // Dossier ID validation
+    if (!manifest.dossierId || typeof manifest.dossierId !== 'string') {
+      errors.push('Dossier ID must be a non-empty string');
+    }
+
+    // Name validation
+    if (!manifest.name || typeof manifest.name !== 'string' || manifest.name.length === 0) {
+      errors.push('Name must be a non-empty string');
+    }
+
+    // Timestamp validation
+    if (!Number.isInteger(manifest.createdAt) || manifest.createdAt <= 0) {
+      errors.push('Created timestamp must be a positive integer');
+    }
+
+    // Check-in interval validation (1 hour to 1 year in seconds)
+    const MIN_INTERVAL = 3600; // 1 hour
+    const MAX_INTERVAL = 31536000; // 1 year
+    if (
+      !Number.isInteger(manifest.checkInInterval) ||
+      manifest.checkInInterval < MIN_INTERVAL ||
+      manifest.checkInInterval > MAX_INTERVAL
+    ) {
+      errors.push(`Check-in interval must be between ${MIN_INTERVAL} and ${MAX_INTERVAL} seconds`);
+    }
+
+    // Release mode validation
+    if (manifest.releaseMode !== 'public' && manifest.releaseMode !== 'private') {
+      errors.push('Release mode must be either "public" or "private"');
+    }
+
+    // Recipients validation
+    if (!Array.isArray(manifest.recipients)) {
+      errors.push('Recipients must be an array');
+    } else {
+      if (manifest.releaseMode === 'private' && manifest.recipients.length === 0) {
+        errors.push('Private dossiers must have at least one recipient');
+      }
+      // Validate Ethereum addresses
+      manifest.recipients.forEach((address, index) => {
+        if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+          errors.push(`Invalid Ethereum address at recipients[${index}]: ${address}`);
+        }
+      });
+    }
+
+    // Files validation
+    if (!Array.isArray(manifest.files) || manifest.files.length === 0) {
+      errors.push('Files must be a non-empty array');
+    } else {
+      manifest.files.forEach((file, index) => {
+        if (!file.name || typeof file.name !== 'string') {
+          errors.push(`File at index ${index} has invalid name`);
+        }
+        if (!file.type || typeof file.type !== 'string') {
+          errors.push(`File at index ${index} has invalid type`);
+        }
+        if (!Number.isInteger(file.size) || file.size < 0) {
+          errors.push(`File at index ${index} has invalid size`);
+        }
+        if (!file.encryptedHash || typeof file.encryptedHash !== 'string') {
+          errors.push(`File at index ${index} has invalid encrypted hash`);
+        }
+        if (!file.storageUrl || !file.storageUrl.startsWith('ipfs://')) {
+          errors.push(`File at index ${index} has invalid storage URL (must be IPFS URL)`);
+        }
+      });
+    }
+
     return {
-      payload_uri: commitResult.payloadUri,
-      taco_capsule_uri: commitResult.encryptionResult.capsuleUri,
-      condition: conditionText,
-      description: commitResult.encryptionResult.description || 'Encrypted file with dossier conditions',
-      storage_type: commitResult.storageType,
-      gateway_url: gatewayUrl,
-      gatewayUsed: gatewayUsed,
-      created_at: new Date().toISOString(),
-      // Dossier integration metadata (required)
-      dossier_id: condition.dossierId.toString(),
-      user_address: condition.userAddress,
-      contract_address: CANARY_DOSSIER_ADDRESS,
-      // File metadata
-      original_filename: commitResult.encryptionResult.originalFileName,
+      isValid: errors.length === 0,
+      errors,
     };
   }
 
-  private formatConditionText(condition: DeadmanCondition): string {
-    return `Dossier #${condition.dossierId.toString()} contract verification (${condition.duration || 'contract-defined interval'})`;
+  /**
+   * Encrypt and store a manifest as a file
+   */
+  async encryptAndCommitManifest(
+    manifest: DossierManifest,
+    condition: DeadmanCondition,
+    userAddress: string,
+    walletProvider?: any,
+    burnerWallet?: any
+  ): Promise<ManifestCommitResult> {
+    console.log('🔐 Encrypting manifest...');
+
+    // Validate manifest first
+    const validation = this.validateManifest(manifest);
+    if (!validation.isValid) {
+      throw new Error(`Invalid manifest: ${validation.errors.join(', ')}`);
+    }
+
+    // Convert manifest to JSON bytes
+    const manifestJson = JSON.stringify(manifest, null, 2);
+    const manifestBytes = new TextEncoder().encode(manifestJson);
+
+    // Create a File object from the manifest
+    const manifestBlob = new Blob([manifestBytes], { type: 'application/json' });
+    const manifestFile = new File([manifestBlob], `dossier_${manifest.dossierId}_manifest.json`, {
+      type: 'application/json',
+    });
+
+    console.log(`📄 Manifest file size: ${manifestBytes.length} bytes`);
+
+    // Encrypt the manifest using the same encryption method as files
+    const encryptionResult = await this.encryptFile(
+      manifestFile,
+      condition,
+      `Dossier #${manifest.dossierId} Manifest`,
+      BigInt(manifest.dossierId),
+      userAddress,
+      walletProvider,
+      burnerWallet
+    );
+
+    console.log('✅ Manifest encrypted');
+
+    // Commit to storage (prefer Pinata for reliability)
+    console.log('📤 Uploading encrypted manifest to storage...');
+    const commitResult = await this.commitToPinataOnly(encryptionResult);
+
+    console.log('✅ Manifest stored:', commitResult.payloadUri);
+
+    return {
+      manifestEncryptionResult: encryptionResult,
+      manifestCid: commitResult.pinataCid || commitResult.ipfsCid || commitResult.codexCid || '',
+      manifestStorageUrl: commitResult.payloadUri,
+      manifestStorageType: commitResult.storageType,
+    };
   }
 }
 
@@ -446,23 +615,56 @@ export async function encryptFileWithDossier(
   return await tacoService.encryptFile(file, condition, description, dossierId, userAddress, walletProvider, burnerWallet);
 }
 
-// Storage functions remain unchanged
+// Storage functions - simplified without trace JSON
 export async function commitEncryptedFile(
   encryptionResult: EncryptionResult
-): Promise<{ commitResult: CommitResult; traceJson: TraceJson }> {
-  const commitResult = await tacoService.commitToCodex(encryptionResult);
-  const traceJson = tacoService.createTraceJson(commitResult);
-  
-  return { commitResult, traceJson };
+): Promise<CommitResult> {
+  return await tacoService.commitToCodex(encryptionResult);
 }
 
 export async function commitEncryptedFileToPinata(
   encryptionResult: EncryptionResult
-): Promise<{ commitResult: CommitResult; traceJson: TraceJson }> {
-  const commitResult = await tacoService.commitToPinataOnly(encryptionResult);
-  const traceJson = tacoService.createTraceJson(commitResult);
-  
-  return { commitResult, traceJson };
+): Promise<CommitResult> {
+  return await tacoService.commitToPinataOnly(encryptionResult);
+}
+
+// Manifest functions
+export async function createDossierManifest(
+  dossierId: string,
+  dossierName: string,
+  checkInIntervalSeconds: number,
+  releaseMode: 'public' | 'private',
+  recipients: string[],
+  fileCommitResults: Array<{ commitResult: CommitResult; originalFile: File }>
+): Promise<DossierManifest> {
+  return tacoService.createManifest(
+    dossierId,
+    dossierName,
+    checkInIntervalSeconds,
+    releaseMode,
+    recipients,
+    fileCommitResults
+  );
+}
+
+export async function encryptAndCommitDossierManifest(
+  manifest: DossierManifest,
+  condition: DeadmanCondition,
+  userAddress: string,
+  walletProvider?: any,
+  burnerWallet?: any
+): Promise<ManifestCommitResult> {
+  return await tacoService.encryptAndCommitManifest(
+    manifest,
+    condition,
+    userAddress,
+    walletProvider,
+    burnerWallet
+  );
+}
+
+export function validateDossierManifest(manifest: DossierManifest): { isValid: boolean; errors: string[] } {
+  return tacoService.validateManifest(manifest);
 }
 
 export async function initializeTaco(): Promise<boolean> {
