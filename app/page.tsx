@@ -523,12 +523,25 @@ const Home = () => {
 
       // Step 2: Encrypt with Dossier condition
       console.log("🔒 Step 2: Encrypting with Dossier contract condition...");
+
+      // Prepare recipients list for private dossiers (emergency contacts)
+      const recipientsList = releaseMode === 'private'
+        ? emergencyContacts.filter(addr => addr && addr.trim() !== '')
+        : [];
+
       const condition: DeadmanCondition = {
         type: "no_checkin",
         duration: `${checkInInterval} MINUTES`,
         dossierId: nextDossierId,
         userAddress: queryAddress,
+        releaseMode: releaseMode,
+        recipients: recipientsList,
       };
+
+      console.log(`🔓 Dossier release mode: ${releaseMode}`);
+      if (releaseMode === 'private') {
+        console.log(`👥 Emergency contacts: ${recipientsList.length} addresses`);
+      }
 
       // Get the wallet provider for encryption based on auth mode
       let walletProvider = null;

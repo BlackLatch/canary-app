@@ -26,6 +26,9 @@ export interface DeadmanCondition {
   // Dossier integration fields
   dossierId: bigint;
   userAddress: string;
+  // Privacy fields
+  releaseMode?: 'public' | 'private';
+  recipients?: string[]; // Emergency contact addresses for private dossiers
 }
 
 export interface EncryptionResult {
@@ -103,11 +106,11 @@ class TacoService {
   }
 
   /**
-   * Create a Dossier contract condition
+   * Create a Dossier contract condition for public releases
    * This allows TACo nodes to verify the condition against the contract
    */
-  private createDossierCondition(userAddress: string, dossierId: bigint) {
-    console.log(`🔒 Creating Contract Dossier condition: user=${userAddress}, dossier=${dossierId.toString()}`);
+  private createPublicDossierCondition(userAddress: string, dossierId: bigint) {
+    console.log(`🔒 Creating PUBLIC Dossier condition: user=${userAddress}, dossier=${dossierId.toString()}`);
     console.log(`📍 Contract: ${CANARY_DOSSIER_ADDRESS} on Status Network Sepolia`);
     console.log(`🌐 TACo will verify condition against contract`);
 
@@ -139,16 +142,99 @@ class TacoService {
       },
     });
 
-    // Log the condition for debugging (without JSON.stringify to avoid BigInt serialization issues)
-    console.log('📋 Condition created:', {
-      contractAddress: CANARY_DOSSIER_ADDRESS,
-      chain: statusSepolia.id,
-      method: 'shouldDossierStayEncrypted',
-      parameters: [userAddress, Number(dossierId)],
-      returnValueTest: { comparator: '==', value: false }
-    });
+    console.log('📋 Public condition created (contract check only)');
 
     return condition;
+  }
+
+  /**
+   * Create a compound condition for private dossiers
+   * Combines contract check AND recipient address check
+   */
+  private createPrivateDossierCondition(
+    userAddress: string,
+    dossierId: bigint,
+    recipients: string[]
+  ) {
+    console.log(`🔒 Creating PRIVATE Dossier condition: user=${userAddress}, dossier=${dossierId.toString()}`);
+    console.log(`📍 Contract: ${CANARY_DOSSIER_ADDRESS} on Status Network Sepolia`);
+    console.log(`👥 Recipients: ${recipients.length} addresses`);
+    console.log(`🌐 TACo will verify both contract AND recipient list`);
+
+    // Validate recipients
+    if (!recipients || recipients.length === 0) {
+      throw new Error('Private dossiers must have at least one recipient');
+    }
+
+    // First condition: Contract check (same as public)
+    const functionAbi = {
+      inputs: [
+        { internalType: 'address', name: '_user', type: 'address' },
+        { internalType: 'uint256', name: '_dossierId', type: 'uint256' }
+      ],
+      name: 'shouldDossierStayEncrypted',
+      outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+      stateMutability: 'view',
+      type: 'function'
+    };
+
+    const contractCondition = new conditions.base.contract.ContractCondition({
+      contractAddress: CANARY_DOSSIER_ADDRESS,
+      chain: statusSepolia.id,
+      functionAbi,
+      method: 'shouldDossierStayEncrypted',
+      parameters: [userAddress, Number(dossierId)],
+      returnValueTest: {
+        comparator: '==',
+        value: false,
+      },
+    });
+
+    // Second condition: User address must be in recipients list
+    // Uses :userAddress context variable (the address trying to decrypt)
+    const recipientCondition = new conditions.base.ConditionContext({
+      contextVariable: ':userAddress',
+      returnValueTest: {
+        comparator: 'in',
+        value: recipients, // Array of emergency contact addresses
+      },
+    });
+
+    // Combine both conditions with AND operator
+    // BOTH must be true: contract allows decryption AND user is in recipients list
+    const compoundCondition = new conditions.base.CompoundCondition({
+      operator: 'and',
+      operands: [contractCondition, recipientCondition],
+    });
+
+    console.log('📋 Private compound condition created:', {
+      operator: 'and',
+      conditions: [
+        'Contract: shouldDossierStayEncrypted == false',
+        `Recipients: :userAddress in [${recipients.length} addresses]`
+      ]
+    });
+
+    return compoundCondition;
+  }
+
+  /**
+   * Create the appropriate condition based on release mode
+   */
+  private createDossierCondition(
+    userAddress: string,
+    dossierId: bigint,
+    releaseMode: 'public' | 'private' = 'public',
+    recipients?: string[]
+  ) {
+    if (releaseMode === 'private') {
+      if (!recipients || recipients.length === 0) {
+        throw new Error('Private dossiers require at least one recipient');
+      }
+      return this.createPrivateDossierCondition(userAddress, dossierId, recipients);
+    } else {
+      return this.createPublicDossierCondition(userAddress, dossierId);
+    }
   }
 
 
@@ -200,18 +286,35 @@ class TacoService {
 
     console.log('🔒 Using Contract Dossier condition for maximum security');
     console.log('📍 Contract on Status Network, TACo infrastructure on Polygon Amoy');
-    const tacoCondition = this.createDossierCondition(userAddress, dossierId);
+
+    // Create condition based on release mode (public or private)
+    const releaseMode = condition.releaseMode || 'public';
+    const recipients = condition.recipients || [];
+
+    console.log(`🔓 Release mode: ${releaseMode.toUpperCase()}`);
+    if (releaseMode === 'private') {
+      console.log(`👥 Emergency contacts: ${recipients.length} addresses`);
+    }
+
+    const tacoCondition = this.createDossierCondition(
+      userAddress,
+      dossierId,
+      releaseMode,
+      recipients
+    );
 
     const fileArrayBuffer = await file.arrayBuffer();
     const message = new Uint8Array(fileArrayBuffer);
 
     console.log('🔐 Encrypting with Contract Dossier condition:', {
-      type: 'contract_condition',
+      type: releaseMode === 'private' ? 'compound_condition' : 'contract_condition',
+      releaseMode: releaseMode,
       dossierId: dossierId.toString(),
       userAddress: userAddress,
       contractAddress: CANARY_DOSSIER_ADDRESS,
       contractChain: statusSepolia.id,
       contractMethod: 'shouldDossierStayEncrypted',
+      ...(releaseMode === 'private' && { recipientCount: recipients.length }),
       tacoInfraChain: 'Polygon Amoy (80002)'
     });
 
