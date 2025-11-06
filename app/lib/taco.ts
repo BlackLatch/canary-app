@@ -126,12 +126,13 @@ class TacoService {
 
     // Use ContractCondition to call the contract method
     // TACo nodes will verify this condition by calling the contract
+    // Note: dossier ID is passed as number (not string) for uint256 ABI type
     const condition = new conditions.base.contract.ContractCondition({
       contractAddress: CANARY_DOSSIER_ADDRESS,
       chain: statusSepolia.id,
       functionAbi, // Provide ABI for custom contract
       method: 'shouldDossierStayEncrypted',
-      parameters: [userAddress, dossierId.toString()],
+      parameters: [userAddress, Number(dossierId)],
       returnValueTest: {
         comparator: '==',
         value: false, // Function returns false when decryption is allowed
@@ -143,7 +144,7 @@ class TacoService {
       contractAddress: CANARY_DOSSIER_ADDRESS,
       chain: statusSepolia.id,
       method: 'shouldDossierStayEncrypted',
-      parameters: [userAddress, dossierId.toString()],
+      parameters: [userAddress, Number(dossierId)],
       returnValueTest: { comparator: '==', value: false }
     });
 
