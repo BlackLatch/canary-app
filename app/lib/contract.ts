@@ -1501,9 +1501,8 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - all gas parameters must be 0
+        // Status Network is gasless (EIP-1559)
         const tx = await contract.pauseDossier(dossierId, {
-          gasPrice: 0,
           gasLimit: 200000,
           maxFeePerGas: 0,
           maxPriorityFeePerGas: 0,
@@ -1556,9 +1555,8 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - all gas parameters must be 0
+        // Status Network is gasless (EIP-1559)
         const tx = await contract.resumeDossier(dossierId, {
-          gasPrice: 0,
           gasLimit: 200000,
           maxFeePerGas: 0,
           maxPriorityFeePerGas: 0,
@@ -1612,9 +1610,8 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - all gas parameters must be 0
+        // Status Network is gasless (EIP-1559)
         const tx = await contract.releaseNow(dossierId, {
-          gasPrice: 0,
           gasLimit: 200000,
           maxFeePerGas: 0,
           maxPriorityFeePerGas: 0,
@@ -1668,9 +1665,8 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - all gas parameters must be 0
+        // Status Network is gasless (EIP-1559)
         const tx = await contract.permanentlyDisableDossier(dossierId, {
-          gasPrice: 0,
           gasLimit: 200000,
           maxFeePerGas: 0,
           maxPriorityFeePerGas: 0,
@@ -2008,7 +2004,8 @@ export class ContractService {
           maxFeePerGas: maxFeePerGas.toString()
         });
 
-        // Send transaction - Status Network is gasless, ALL gas parameters must be 0
+        // Send transaction - Status Network is gasless (EIP-1559)
+        // Only use maxFeePerGas and maxPriorityFeePerGas (not gasPrice for EIP-1559)
         const tx = await contract.createDossier(
           name,
           description,
@@ -2016,14 +2013,13 @@ export class ContractService {
           recipients,
           encryptedFileHashes,
           {
-            gasPrice: 0,
             gasLimit: 500000,
             maxFeePerGas: 0,
             maxPriorityFeePerGas: 0,
           }
         );
 
-        console.log('✅ Transaction sent with gasless settings (all gas params = 0)');
+        console.log('✅ Transaction sent with EIP-1559 gasless settings');
 
         console.log('⏳ Waiting for burner wallet transaction confirmation...');
         const receipt = await tx.wait();
