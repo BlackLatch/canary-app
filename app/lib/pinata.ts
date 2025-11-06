@@ -18,10 +18,10 @@ class PinataService {
 
   constructor() {
     // Try to get credentials from environment
-    this.apiKey = process.env.NEXT_PUBLIC_PINATA_API_KEY || '69f2807bf8c79d48899a';
-    this.apiSecret = process.env.NEXT_PUBLIC_PINATA_API_SECRET || '2f0b396b6ba151bda7339199b1b9c94b8d038a6177cc94820582d95e821e8d8e';
-    this.jwt = process.env.NEXT_PUBLIC_PINATA_JWT || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzZjNlODA4MC04Y2Q5LTQxNDMtOThiMS0zMDhjNzgzOTg4OWMiLCJlbWFpbCI6ImtpZXJhbnByYXNjaEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiNjlmMjgwN2JmOGM3OWQ0ODg5OWEiLCJzY29wZWRLZXlTZWNyZXQiOiIyZjBiMzk2YjZiYTE1MWJkYTczMzkxOTliMWI5Yzk0YjhkMDM4YTYxNzdjYzk0ODIwNTgyZDk1ZTgyMWU4ZDhlIiwiZXhwIjoxNzgxNDU3Njc1fQ.BO5bFwE70d_lT_hHPwwQmu7FSvnFHO31qO9i0dST_Bs';
-    
+    this.apiKey = process.env.NEXT_PUBLIC_PINATA_API_KEY || 'afbaeacb39a9b50e2d0b';
+    this.apiSecret = process.env.NEXT_PUBLIC_PINATA_API_SECRET || '0776df9027df8278eca6a7f89bd373c853436779f7332d625d1ff62fa07f5490';
+    this.jwt = process.env.NEXT_PUBLIC_PINATA_JWT || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzZjNlODA4MC04Y2Q5LTQxNDMtOThiMS0zMDhjNzgzOTg4OWMiLCJlbWFpbCI6ImtpZXJhbnByYXNjaEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiYWZiYWVhY2IzOWE5YjUwZTJkMGIiLCJzY29wZWRLZXlTZWNyZXQiOiIwNzc2ZGY5MDI3ZGY4Mjc4ZWNhNmE3Zjg5YmQzNzNjODUzNDM2Nzc5ZjczMzJkNjI1ZDFmZjYyZmEwN2Y1NDkwIiwiZXhwIjoxNzkzODAyMDY3fQ.wOvVLQF4TzQcqqofWmWG11F2vudd9eseJ18AA9gXm5A';
+
     console.log('🟣 Pinata service initialized');
     console.log('📍 API Key available:', !!this.apiKey);
     console.log('📍 JWT available:', !!this.jwt);

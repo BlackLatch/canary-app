@@ -10,9 +10,12 @@ import { statusSepolia } from './chains/status';
 import { getPrivyEthersProvider } from './ethers-adapter';
 import { switchToStatusNetwork } from './network-switch';
 
-// TACo Configuration
-const TACO_DOMAIN = domains.DEVNET;
+// TACo Configuration for Lynx Testnet
+// Lynx is the TACo devnet with ritual ID 27
+// The porter URL and coordinator address are configured for Lynx
+const TACO_DOMAIN = domains.LYNX || domains.DEVNET;
 const RITUAL_ID = 27;
+const PORTER_URI = 'https://porter-lynx.nucypher.io';
 
 export interface DeadmanCondition {
   type: 'no_activity' | 'no_checkin' | 'location' | 'keyword';
@@ -70,6 +73,17 @@ class TacoService {
     try {
       await initialize();
       this.initialized = true;
+
+      // Log available domains for debugging
+      console.log('🔍 TACo domains available:', {
+        DEVNET: domains.DEVNET,
+        TESTNET: domains.TESTNET,
+        MAINNET: domains.MAINNET,
+        LYNX: (domains as any).LYNX
+      });
+      console.log('🔍 Using domain:', TACO_DOMAIN);
+      console.log('🔍 Ritual ID:', RITUAL_ID);
+
       return true;
     } catch (error) {
       console.error('TACo initialization failed:', error);
@@ -87,20 +101,21 @@ class TacoService {
     console.log(`🌐 TACo will verify condition against contract`);
 
     // For custom contracts, we need to provide the function ABI
+    // Format matches standard Solidity ABI format
     const functionAbi = {
       inputs: [
-        { name: '_user', type: 'address', internalType: 'address' },
-        { name: '_dossierId', type: 'uint256', internalType: 'uint256' }
+        { internalType: 'address', name: '_user', type: 'address' },
+        { internalType: 'uint256', name: '_dossierId', type: 'uint256' }
       ],
       name: 'shouldDossierStayEncrypted',
-      outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+      outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
       stateMutability: 'view',
       type: 'function'
     };
 
     // Use ContractCondition to call the contract method
     // TACo nodes will verify this condition by calling the contract
-    return new conditions.base.contract.ContractCondition({
+    const condition = new conditions.base.contract.ContractCondition({
       contractAddress: CANARY_DOSSIER_ADDRESS,
       chain: statusSepolia.id,
       functionAbi, // Provide ABI for custom contract
@@ -111,6 +126,17 @@ class TacoService {
         value: false, // Function returns false when decryption is allowed
       },
     });
+
+    // Log the condition for debugging (without JSON.stringify to avoid BigInt serialization issues)
+    console.log('📋 Condition created:', {
+      contractAddress: CANARY_DOSSIER_ADDRESS,
+      chain: statusSepolia.id,
+      method: 'shouldDossierStayEncrypted',
+      parameters: [userAddress, dossierId.toString()],
+      returnValueTest: { comparator: '==', value: false }
+    });
+
+    return condition;
   }
 
 
