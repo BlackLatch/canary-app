@@ -1,4 +1,23 @@
 // Enhanced TACo integration with Dossier contract conditions
+//
+// PUBLIC vs PRIVATE Dossiers:
+//
+// PUBLIC DOSSIERS:
+// - Simple contract condition: checks shouldDossierStayEncrypted(user, dossierId)
+// - Anyone can decrypt when the contract returns false (dossier released)
+// - No SIWE authentication required
+//
+// PRIVATE DOSSIERS:
+// - Compound condition with AND operator:
+//   1. Contract check: shouldDossierStayEncrypted == false
+//   2. Recipient check: :userAddress in [emergency contacts list]
+// - BOTH conditions must be true to decrypt
+// - Requires SIWE (Sign-In With Ethereum) authentication:
+//   * During ENCRYPTION: signer creates SIWE message proving they own the address
+//   * During DECRYPTION: decryptor must provide SIWE auth proving they're a recipient
+//   * EIP4361AuthProvider handles the SIWE message creation and signing
+//   * Auth context passed to TACo nodes for verification
+//
 import { encrypt, decrypt, conditions, domains, initialize } from '@nucypher/taco';
 import { EIP4361AuthProvider, USER_ADDRESS_PARAM_DEFAULT } from '@nucypher/taco-auth';
 import { ethers } from 'ethers';
@@ -318,16 +337,41 @@ class TacoService {
       tacoInfraChain: 'Polygon Amoy (80002)'
     });
 
+    // For private dossiers, we need to provide SIWE (Sign-In With Ethereum) authentication
+    // This proves ownership of the address for the :userAddress context variable
+    //
+    // The EIP4361AuthProvider will:
+    // 1. Create a SIWE message with domain, address, statement, uri, version, nonce, chain_id, issued_at
+    // 2. Sign the message with the user's wallet (signer)
+    // 3. Create auth context: { signature, address, scheme: "EIP4361", typedData: siwe_message }
+    // 4. Pass this to TACo nodes to verify the user is an authorized recipient
+    //
+    // This is ONLY needed for private dossiers using :userAddress context variable
+    let authProvider = undefined;
+    if (releaseMode === 'private') {
+      console.log('🔐 Creating SIWE auth provider for private dossier...');
+
+      // EIP4361AuthProvider creates and signs a SIWE message
+      authProvider = new EIP4361AuthProvider(
+        tacoProvider, // Provider for signing
+        signer        // Signer to create SIWE signature
+      );
+
+      console.log('✅ SIWE auth provider created for recipient verification');
+      console.log('📝 Auth will prove signer owns address for :userAddress context variable');
+    }
+
     const messageKit = await encrypt(
       tacoProvider, // Use Polygon Amoy provider for TACo
       TACO_DOMAIN,
       message,
       tacoCondition,
       RITUAL_ID,
-      signer
+      signer,
+      authProvider  // Pass auth for private dossiers (undefined for public)
     );
 
-    console.log('✅ Encryption successful with Contract Dossier condition');
+    console.log(`✅ Encryption successful with ${releaseMode.toUpperCase()} Dossier condition`);
 
     // Add dossier information to condition
     const enhancedCondition = {
