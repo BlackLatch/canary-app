@@ -624,7 +624,12 @@ const Home = () => {
 
       console.log(`✅ All ${filesToProcess.length} files encrypted and uploaded`);
 
-      // Step 4: Create dossier on-chain
+      // Build file hashes array from encrypted files
+      // Note: Manifest will be added as the first file after dossier creation
+      const fileHashes = encryptedFiles.map(ef => ef.commitResult.payloadUri);
+      console.log(`📋 File hashes prepared: ${fileHashes.length} files`);
+
+      // Step 4: Create dossier on-chain (initially without manifest)
       setProcessingStatus("Creating dossier on blockchain...");
       setProcessingProgress(90);
       toast.loading("Creating dossier on blockchain...", { id: processingToast });
@@ -634,7 +639,7 @@ const Home = () => {
         checkInInterval === "custom"
           ? parseInt(customInterval) * 60 // Convert hours to minutes
           : parseInt(checkInInterval);
-      
+
       console.log("🔍 DEBUG: Check-in interval values:");
       console.log("  - checkInInterval (raw):", checkInInterval);
       console.log("  - checkInInterval type:", typeof checkInInterval);
@@ -644,7 +649,7 @@ const Home = () => {
       console.log("  - checkInMinutes type:", typeof checkInMinutes);
       console.log("  - Expected seconds:", checkInMinutes * 60);
       console.log("  - Expected seconds as BigInt:", BigInt(checkInMinutes * 60).toString());
-      
+
       // Recipients should match the address used for creation
       const recipients = [queryAddress];
 

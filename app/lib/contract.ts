@@ -1501,8 +1501,13 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - set gas to 0
-        const tx = await contract.pauseDossier(dossierId, { gasPrice: 0 });
+        // Status Network is gasless - all gas parameters must be 0
+        const tx = await contract.pauseDossier(dossierId, {
+          gasPrice: 0,
+          gasLimit: 200000,
+          maxFeePerGas: 0,
+          maxPriorityFeePerGas: 0,
+        });
         const receipt = await tx.wait();
         hash = receipt.transactionHash;
       } else {
@@ -1551,8 +1556,13 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - set gas to 0
-        const tx = await contract.resumeDossier(dossierId, { gasPrice: 0 });
+        // Status Network is gasless - all gas parameters must be 0
+        const tx = await contract.resumeDossier(dossierId, {
+          gasPrice: 0,
+          gasLimit: 200000,
+          maxFeePerGas: 0,
+          maxPriorityFeePerGas: 0,
+        });
         const receipt = await tx.wait();
         hash = receipt.transactionHash;
       } else {
@@ -1602,8 +1612,13 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - set gas to 0
-        const tx = await contract.releaseNow(dossierId, { gasPrice: 0 });
+        // Status Network is gasless - all gas parameters must be 0
+        const tx = await contract.releaseNow(dossierId, {
+          gasPrice: 0,
+          gasLimit: 200000,
+          maxFeePerGas: 0,
+          maxPriorityFeePerGas: 0,
+        });
         const receipt = await tx.wait();
         hash = receipt.transactionHash;
       } else {
@@ -1653,8 +1668,13 @@ export class ContractService {
           signer
         );
 
-        // Status Network is gasless - set gas to 0
-        const tx = await contract.permanentlyDisableDossier(dossierId, { gasPrice: 0 });
+        // Status Network is gasless - all gas parameters must be 0
+        const tx = await contract.permanentlyDisableDossier(dossierId, {
+          gasPrice: 0,
+          gasLimit: 200000,
+          maxFeePerGas: 0,
+          maxPriorityFeePerGas: 0,
+        });
         const receipt = await tx.wait();
         hash = receipt.transactionHash;
       } else {
@@ -1988,20 +2008,22 @@ export class ContractService {
           maxFeePerGas: maxFeePerGas.toString()
         });
 
-        // Send transaction - Status Network is gasless, set gas to 0
+        // Send transaction - Status Network is gasless, ALL gas parameters must be 0
         const tx = await contract.createDossier(
           name,
           description,
           checkInIntervalSeconds,
           recipients,
           encryptedFileHashes,
-          { gasPrice: 0 }
+          {
+            gasPrice: 0,
+            gasLimit: 500000,
+            maxFeePerGas: 0,
+            maxPriorityFeePerGas: 0,
+          }
         );
 
-        console.log('✅ Transaction sent with gasless settings:', {
-          gasLimit: 500000,
-          gasPrice: gasPrice.toString()
-        });
+        console.log('✅ Transaction sent with gasless settings (all gas params = 0)');
 
         console.log('⏳ Waiting for burner wallet transaction confirmation...');
         const receipt = await tx.wait();
