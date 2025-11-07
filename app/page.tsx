@@ -32,7 +32,7 @@ import SettingsView from "./components/SettingsView";
 import MonitorView from "./components/MonitorView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
 import BurnAccountWarningModal from "./components/BurnAccountWarningModal";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
 import { usePrivy, useWallets, useConnectWallet } from "@privy-io/react-auth";
@@ -86,6 +86,7 @@ const HomeContent = ({
 };
 
 const Home = () => {
+  const router = useRouter();
   const { connectors, connect, isPending } = useConnect();
 
   const { address, isConnected, chainId } = useAccount();
@@ -223,8 +224,11 @@ const Home = () => {
 
   // Dossier detail navigation
   const openDocumentDetail = (document: DossierWithStatus) => {
-    setSelectedDocument(document);
-    setDocumentDetailView(true);
+    // Navigate to the permalink URL for this dossier
+    const currentAddress = getCurrentAddress();
+    if (currentAddress) {
+      router.push(`/release?user=${currentAddress}&id=${document.id.toString()}`);
+    }
   };
 
   const closeDocumentDetail = () => {
