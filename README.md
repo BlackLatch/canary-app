@@ -102,9 +102,8 @@ NEXT_PUBLIC_CODEX_API_URL=http://localhost:8080  # For local Codex
 ```
 canary/
 ├── app/
-│   ├── page.tsx                 # Main app (check-in, dossiers, monitor)
+│   ├── page.tsx                 # Main app (check-in, dossiers, monitor, share)
 │   ├── release/page.tsx         # Dossier detail permalink page
-│   ├── share/page.tsx           # Share page for user profiles
 │   ├── feed/page.tsx            # Public releases feed
 │   ├── lib/
 │   │   ├── contract.ts          # Smart contract interactions
@@ -158,10 +157,9 @@ canary/
 
 ### URL Structure
 
-- `/?user={address}` - View user's dossier list
+- `/?user={address}` - View user's dossier list (also used for sharing)
 - `/?user={address}&id={id}` - View specific dossier detail
 - `/release?user={address}&id={id}` - Alternative permalink (legacy)
-- `/share?address={address}` - User profile share page
 - `/feed` - Public releases feed
 
 ---

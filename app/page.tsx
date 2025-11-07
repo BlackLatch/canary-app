@@ -3203,7 +3203,7 @@ const Home = () => {
                         <button
                           onClick={() => {
                             const currentAddress = getCurrentAddress();
-                            const shareUrl = `${window.location.origin}/share?address=${currentAddress}`;
+                            const shareUrl = `${window.location.origin}/?user=${currentAddress}`;
                             navigator.clipboard
                               .writeText(shareUrl)
                               .then(() => {
