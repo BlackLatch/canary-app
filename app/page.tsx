@@ -3270,22 +3270,13 @@ const Home = () => {
                         </p>
                         <button
                           onClick={() => setCurrentView("documents")}
-                          className="editorial-button editorial-button-primary inline-flex items-center gap-2"
+                          className={`inline-flex items-center gap-2 px-6 py-3 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
+                            theme === "light"
+                              ? "text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.05)]"
+                              : "text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
+                          }`}
                         >
-                          <span className="font-medium">Get Started</span>
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
+                          Log In
                         </button>
                       </div>
                     </div>
