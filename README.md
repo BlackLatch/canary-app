@@ -61,38 +61,39 @@ git clone https://github.com/BlackLatch/canary-app.git
 cd canary-app
 npm install
 
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your API keys (see Configuration below)
-
-# Run development server
+# Run development server (no setup needed!)
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
 
+**That's it.** The app has hardcoded API keys for Pinata and Privy for development. Just clone and run.
+
 ---
 
-## Configuration
+## Configuration (Optional)
 
-Create `.env.local` with these keys:
+The app works out-of-the-box with hardcoded dev API keys. If you want to use your own:
 
 ```bash
-# Required
+# Optional - only if you want your own API keys
+cp .env.example .env.local
+# Edit .env.local with your keys
+```
+
+```bash
+# Optional API keys
 NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
 NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt
-PINATA_API_KEY=your_pinata_api_key
-
-# Optional
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_id
 NEXT_PUBLIC_CODEX_API_URL=http://localhost:8080  # For local Codex
 ```
 
-### Getting API Keys
+### Getting Your Own API Keys (Optional)
 
-- **Privy**: Sign up at [privy.io](https://privy.io) - Embedded wallet provider
-- **Pinata**: Get JWT at [pinata.cloud](https://pinata.cloud) - IPFS pinning service
-- **WalletConnect**: Optional, get at [walletconnect.com](https://walletconnect.com)
+- **Privy**: [privy.io](https://privy.io) - Embedded wallet provider
+- **Pinata**: [pinata.cloud](https://pinata.cloud) - IPFS pinning service
+- **WalletConnect**: [walletconnect.com](https://walletconnect.com) - Optional
 
 ---
 
