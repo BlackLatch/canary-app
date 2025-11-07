@@ -3269,7 +3269,7 @@ const Home = () => {
                           protecting your documents
                         </p>
                         <button
-                          onClick={() => setCurrentView("documents")}
+                          onClick={() => setSignedIn(false)}
                           className={`inline-flex items-center gap-2 px-6 py-3 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
                             theme === "light"
                               ? "text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.05)]"
