@@ -3478,7 +3478,16 @@ const Home = () => {
                                           <div
                                             className={`text-sm font-medium mb-1 ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
                                           >
-                                            File #{index + 1}
+                                            {index === 0 ? (
+                                              <span className="inline-flex items-center gap-1">
+                                                📋 Manifest
+                                                <span className={`text-xs font-normal ${theme === "light" ? "text-gray-500" : "text-gray-400"}`}>
+                                                  (Dossier Metadata)
+                                                </span>
+                                              </span>
+                                            ) : (
+                                              `File #${index}`
+                                            )}
                                           </div>
                                           <a
                                             href={ipldExplorerUrl}
