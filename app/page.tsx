@@ -252,6 +252,11 @@ const Home = () => {
     return currentAddress.toLowerCase() === viewingUserAddress.toLowerCase();
   };
 
+  // Check if we can view dossiers (either connected OR viewing someone's dossiers via URL)
+  const canViewDossiers = () => {
+    return hasWalletConnection() || hasUserParam;
+  };
+
   const intervalOptions = [
     { value: "60", label: "1 Hour" },
     { value: "1440", label: "1 Day" },
@@ -2002,8 +2007,11 @@ const Home = () => {
     return () => window.removeEventListener('popstate', handleUrlChange);
   }, [userDossiers, documentDetailView, viewingUserAddress]);
 
-  // Show sign-in page if not signed in
-  if (!signedIn) {
+  // Check if there's a user param in URL (viewing someone's dossiers while logged out)
+  const hasUserParam = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('user');
+
+  // Show sign-in page if not signed in AND not viewing someone's dossiers
+  if (!signedIn && !hasUserParam) {
     return (
       <div className={theme}>
         <Toaster position="top-right" />
@@ -4140,7 +4148,7 @@ const Home = () => {
                       </div>
 
                       {/* Documents Content */}
-                      {hasWalletConnection() && isLoadingDossiers ? (
+                      {canViewDossiers() && isLoadingDossiers ? (
                         // Loading Animation for Documents
                         <div className="space-y-6">
                           {/* Filter skeleton */}
@@ -4193,7 +4201,7 @@ const Home = () => {
                           </div>
                         </div>
                       ) : (
-                        hasWalletConnection() && (
+                        canViewDossiers() && (
                           <div className="spacing-section">
                             <div className="spacing-medium">
                               {/* Filter Controls */}
