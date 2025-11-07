@@ -1796,6 +1796,39 @@ const Home = () => {
     }
   };
 
+  const handleLogout = () => {
+    console.log("Logging out...", { authMode, authenticated, isConnected, burnerConnected: burnerWallet.isConnected });
+
+    // Disconnect based on mode and wallet type
+    if (authMode === "advanced") {
+      if (burnerWallet.isConnected) {
+        console.log("Disconnecting burner wallet...");
+        burnerWallet.disconnect();
+      }
+      if (isConnected) {
+        console.log("Disconnecting wagmi wallet...");
+        disconnect();
+      }
+    }
+    if (authMode === "standard" && authenticated) {
+      console.log("Logging out from Privy...");
+      logout();
+    }
+
+    // Reset all states and redirect to login
+    setSignedIn(false);
+    setAuthModeWithPersistence("standard");
+    setCurrentView("checkin"); // Reset to default view
+    setShowCreateForm(false); // Close any open forms
+    setDocumentDetailView(false); // Close document detail
+    setSelectedDocument(null); // Clear selected document
+    // Clear dossiers data
+    setUserDossiers([]);
+    setIsLoadingDossiers(true);
+
+    console.log("Logout complete");
+  };
+
   const handleInstallClick = async () => {
     // iOS-specific instructions
     if (isIOS) {
@@ -2705,30 +2738,7 @@ const Home = () => {
                         ) : null}
 
                         <button
-                          onClick={() => {
-                            // Disconnect based on mode and wallet type
-                            if (authMode === "advanced") {
-                              if (burnerWallet.isConnected) {
-                                burnerWallet.disconnect();
-                              }
-                              if (isConnected) {
-                                disconnect();
-                              }
-                            }
-                            if (authMode === "standard" && authenticated) {
-                              logout();
-                            }
-                            // Reset all states and redirect to login
-                            setSignedIn(false);
-                            setAuthModeWithPersistence("standard");
-                            setCurrentView("checkin"); // Reset to default view
-                            setShowCreateForm(false); // Close any open forms
-                            setDocumentDetailView(false); // Close document detail
-                            setSelectedDocument(null); // Clear selected document
-                            // Clear dossiers data
-                            setUserDossiers([]);
-                            setIsLoadingDossiers(true);
-                          }}
+                          onClick={handleLogout}
                           className="text-sm text-muted hover:text-primary transition-colors"
                         >
                           SIGN OUT
@@ -2736,7 +2746,7 @@ const Home = () => {
                       </div>
                     ) : (
                       <button
-                        onClick={() => setSignedIn(false)}
+                        onClick={handleLogout}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                       >
                         <div className="w-2 h-2 rounded-full bg-gray-400"></div>
@@ -3269,7 +3279,7 @@ const Home = () => {
                           protecting your documents
                         </p>
                         <button
-                          onClick={() => setSignedIn(false)}
+                          onClick={handleLogout}
                           className={`inline-flex items-center gap-2 px-6 py-3 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
                             theme === "light"
                               ? "text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.05)]"
