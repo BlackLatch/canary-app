@@ -474,14 +474,22 @@ class TacoService {
     console.log('🔐 Creating condition context from messageKit...');
     const conditionContext = conditions.context.ConditionContext.fromMessageKit(messageKit);
 
-    console.log('🔑 Creating EIP4361 auth provider for decryption...');
-    const authProvider = new EIP4361AuthProvider(
-      provider,
-      signer,
-    );
+    // Check if the condition requires authentication (checks for :userAddress or other context variables)
+    const requiresAuth = conditionContext.requestedContextParameters?.has(':userAddress') ||
+                        conditionContext.requestedContextParameters?.has(USER_ADDRESS_PARAM_DEFAULT);
 
-    console.log('➕ Adding auth provider to condition context...');
-    conditionContext.addAuthProvider(USER_ADDRESS_PARAM_DEFAULT, authProvider);
+    if (requiresAuth) {
+      console.log('🔑 Private dossier detected - creating EIP4361 auth provider for :userAddress...');
+      const authProvider = new EIP4361AuthProvider(
+        provider,
+        signer,
+      );
+
+      console.log('➕ Adding auth provider to condition context...');
+      conditionContext.addAuthProvider(USER_ADDRESS_PARAM_DEFAULT, authProvider);
+    } else {
+      console.log('🌐 Public dossier - no :userAddress context variable needed');
+    }
 
     console.log('🌐 Sending decryption request to TACo network...');
     console.log('   Domain:', TACO_DOMAIN);
