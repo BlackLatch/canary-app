@@ -6,9 +6,10 @@ import { ContractService, type Dossier } from '@/app/lib/contract';
 import { tacoService } from '@/app/lib/taco';
 import type { Address } from 'viem';
 import { useTheme } from '@/app/lib/theme-context';
-import { Sun, Moon, Shield, ArrowLeft } from 'lucide-react';
+import { Sun, Moon, Shield, ArrowLeft, Settings } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAccount } from 'wagmi';
+import { usePrivy } from '@privy-io/react-auth';
 import DossierDetailView from '@/app/components/DossierDetailView';
 import Link from 'next/link';
 
@@ -30,6 +31,7 @@ function ReleaseDetailContent() {
 
   const { theme, toggleTheme } = useTheme();
   const { address: connectedAddress } = useAccount();
+  const { authenticated, login } = usePrivy();
 
   const [dossier, setDossier] = useState<Dossier | null>(null);
   const [loading, setLoading] = useState(true);
@@ -262,38 +264,93 @@ function ReleaseDetailContent() {
       <Toaster position="bottom-right" />
 
       {/* Header Bar */}
-      <header className={`border-b ${theme === 'light' ? 'border-gray-200 bg-white' : 'border-gray-600 bg-black'}`}>
+      <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`}>
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between h-10">
             {/* Left: Logo */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <img
-                  src="/solo-canary.png"
-                  alt="Canary"
-                  className="h-8 w-auto"
-                  style={{
-                    filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
-                  }}
-                />
-                <span className={`text-lg font-medium tracking-wide uppercase ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                  CANARY
-                </span>
-              </div>
+            <div className="flex items-center gap-3">
+              <img
+                src="/solo-canary.png"
+                alt="Canary"
+                className="h-10 w-auto"
+                style={{
+                  filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
+                }}
+              />
+              <span className={`text-xl font-medium tracking-wide uppercase ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                CANARY
+              </span>
             </div>
 
-            {/* Right: Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
-              title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            >
-              {theme === 'light' ? (
-                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              ) : (
-                <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              )}
-            </button>
+            {/* Right: Navigation and Auth Status */}
+            <div className="flex items-center gap-8">
+              {/* Main Navigation */}
+              <nav className="flex items-center gap-6 h-full">
+                <Link href="/" className="nav-link">
+                  CHECK IN
+                </Link>
+                <Link href="/?view=documents" className="nav-link">
+                  DOSSIERS
+                </Link>
+                <Link href="/?view=monitor" className="nav-link">
+                  MONITOR
+                </Link>
+                <Link href="/feed" className="nav-link">
+                  PUBLIC RELEASES
+                </Link>
+                <Link
+                  href="/?view=settings"
+                  className={`p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-white/10 ${
+                    theme === 'light'
+                      ? 'text-gray-500 hover:text-gray-700'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                  aria-label="Settings"
+                  title="Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </Link>
+              </nav>
+
+              {/* Auth Status and Theme Toggle */}
+              <div className="flex items-center gap-6">
+                {/* Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                  title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                >
+                  {theme === 'light' ? (
+                    <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  ) : (
+                    <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  )}
+                </button>
+
+                {/* Authentication Status */}
+                {authenticated && connectedAddress ? (
+                  <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                        {`${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={login}
+                    className={`px-4 py-1.5 text-sm font-medium rounded border transition-all ${
+                      theme === 'light'
+                        ? 'border-gray-900 bg-gray-900 text-white hover:bg-gray-800'
+                        : 'border-white bg-white text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    SIGN IN
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </header>
