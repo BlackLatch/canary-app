@@ -2419,7 +2419,7 @@ const Home = () => {
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
                   <svg
-                    className="w-2.5 h-2.5"
+                    className="w-[18px] h-[18px]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2441,7 +2441,7 @@ const Home = () => {
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
                   <svg
-                    className="w-2.5 h-2.5"
+                    className="w-[18px] h-[18px]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2462,7 +2462,7 @@ const Home = () => {
                   rel="noopener noreferrer"
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
-                  <Github size={10} />
+                  <Github size={18} />
                   <span>Source</span>
                 </a>
 
@@ -2471,7 +2471,7 @@ const Home = () => {
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
                   <svg
-                    className="w-2.5 h-2.5"
+                    className="w-[18px] h-[18px]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -6422,7 +6422,7 @@ const Home = () => {
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
                   <svg
-                    className="w-2.5 h-2.5"
+                    className="w-[18px] h-[18px]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -6444,7 +6444,7 @@ const Home = () => {
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
                   <svg
-                    className="w-2.5 h-2.5"
+                    className="w-[18px] h-[18px]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -6465,7 +6465,7 @@ const Home = () => {
                   rel="noopener noreferrer"
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
-                  <Github size={10} />
+                  <Github size={18} />
                   <span>Source</span>
                 </a>
 
@@ -6474,7 +6474,7 @@ const Home = () => {
                   className={`flex items-center gap-1.5 text-xs transition-colors ${theme === "light" ? "text-gray-600 hover:text-gray-900" : "text-gray-400 hover:text-gray-200"}`}
                 >
                   <svg
-                    className="w-2.5 h-2.5"
+                    className="w-[18px] h-[18px]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
