@@ -636,16 +636,12 @@ const Home = () => {
 
       console.log(`✅ All ${filesToProcess.length} files encrypted and uploaded`);
 
-      // Build file hashes array from encrypted files
-      // Note: Manifest will be added as the first file after dossier creation
-      const fileHashes = encryptedFiles.map(ef => ef.commitResult.payloadUri);
-      console.log(`📋 File hashes prepared: ${fileHashes.length} files`);
+      // Step 4: Create and encrypt manifest BEFORE creating dossier on-chain
+      setProcessingStatus("Creating dossier manifest...");
+      setProcessingProgress(85);
+      toast.loading("Creating manifest...", { id: processingToast });
+      console.log("📋 Step 4: Creating dossier manifest...");
 
-      // Step 4: Create dossier on-chain (initially without manifest)
-      setProcessingStatus("Creating dossier on blockchain...");
-      setProcessingProgress(90);
-      toast.loading("Creating dossier on blockchain...", { id: processingToast });
-      console.log("📝 Step 4: Creating dossier on-chain...");
       const dossierName = name || `Encrypted dossier with ${filesToProcess.length} file(s)`;
       const checkInMinutes =
         checkInInterval === "custom"
@@ -664,6 +660,63 @@ const Home = () => {
 
       // Recipients should match the address used for creation
       const recipients = [queryAddress];
+
+      // Create manifest from encrypted files
+        const manifest = await createDossierManifest(
+          nextDossierId.toString(),
+          dossierName,
+          checkInMinutes * 60, // Convert minutes to seconds
+          releaseMode,
+          recipientsList,
+          encryptedFiles.map((ef) => ({
+            commitResult: ef.commitResult,
+            originalFile: ef.originalFile,
+          }))
+        );
+
+        console.log("✅ Manifest created");
+
+        // Encrypt and upload manifest
+        setProcessingStatus("Encrypting manifest...");
+        setProcessingProgress(88);
+        toast.loading("Encrypting manifest...", { id: processingToast });
+        console.log("🔐 Encrypting manifest...");
+
+        const manifestResult = await encryptAndCommitDossierManifest(
+          manifest,
+          condition,
+          queryAddress,
+          walletProvider,
+          burnerWalletInstance
+        );
+
+        console.log("✅ Manifest encrypted and stored:", manifestResult.manifestStorageUrl);
+
+        // Store manifest for display
+        setDossierManifest(manifest);
+        setManifestStorageUrl(manifestResult.manifestStorageUrl);
+
+        // Build complete file hashes array with manifest FIRST, then files
+        const allFileHashes = [
+          manifestResult.manifestStorageUrl,
+          ...encryptedFiles.map(ef => ef.commitResult.payloadUri)
+        ];
+
+        console.log("📋 Complete file hash array:");
+        console.log("  [0] Manifest:", manifestResult.manifestStorageUrl);
+        encryptedFiles.forEach((ef, i) => {
+          console.log(`  [${i + 1}] File #${i + 1}:`, ef.commitResult.payloadUri);
+        });
+
+        // Now create dossier with complete file list (manifest + files)
+        const fileHashes = allFileHashes;
+
+        // Step 5: Create dossier on-chain with manifest + files
+        setProcessingStatus("Creating dossier on blockchain...");
+        setProcessingProgress(90);
+        toast.loading("Creating dossier on blockchain...", { id: processingToast });
+        console.log("📝 Step 5: Creating dossier on-chain with all file hashes...");
+        console.log(`   Total hashes: ${fileHashes.length} (1 manifest + ${encryptedFiles.length} files)`);
 
       let dossierId: bigint;
       let contractTxHash: string;
@@ -814,67 +867,12 @@ const Home = () => {
         return;
       }
 
-      // Step 5: Create and encrypt manifest
-      setProcessingStatus("Creating dossier manifest...");
-      setProcessingProgress(92);
-      toast.loading("Creating manifest...", { id: processingToast });
-      console.log("📋 Step 5: Creating dossier manifest...");
-
       // Store all encrypted files for download
       setAllEncryptedFiles(encryptedFiles);
 
       // Store the first encrypted file's data for backward compatibility
       if (encryptedFiles.length > 0) {
         setEncryptedCapsule(encryptedFiles[0].encryptionResult);
-      }
-
-      try {
-        // Create manifest from encrypted files
-        const manifest = await createDossierManifest(
-          dossierId?.toString() || "0",
-          dossierName,
-          checkInMinutes * 60, // Convert minutes to seconds
-          'public', // Default to public for now
-          recipients,
-          encryptedFiles.map((ef) => ({
-            commitResult: ef.commitResult,
-            originalFile: ef.originalFile,
-          }))
-        );
-
-        console.log("✅ Manifest created");
-
-        // Encrypt and upload manifest
-        setProcessingStatus("Encrypting manifest...");
-        setProcessingProgress(95);
-        toast.loading("Encrypting manifest...", { id: processingToast });
-        console.log("🔐 Encrypting manifest...");
-
-        const manifestResult = await encryptAndCommitDossierManifest(
-          manifest,
-          condition,
-          queryAddress,
-          walletProvider,
-          burnerWalletInstance
-        );
-
-        console.log("✅ Manifest encrypted and stored:", manifestResult.manifestStorageUrl);
-
-        // Store manifest for display
-        setDossierManifest(manifest);
-        setManifestStorageUrl(manifestResult.manifestStorageUrl);
-
-        // Update fileHashes to include manifest as first entry
-        const allFileHashes = [manifestResult.manifestStorageUrl, ...encryptedFiles.map(ef => ef.commitResult.payloadUri)];
-
-        // TODO: Update on-chain dossier with manifest hash as first file
-        console.log("📋 Manifest hash (should be first):", manifestResult.manifestStorageUrl);
-        console.log("📋 All file hashes:", allFileHashes);
-
-      } catch (manifestError) {
-        console.error("❌ Failed to create/encrypt manifest:", manifestError);
-        toast.error("Failed to create manifest, but files were encrypted successfully", { id: processingToast });
-        // Continue anyway - files are already encrypted and stored
       }
 
       // Add all files to uploads table
@@ -3640,171 +3638,149 @@ const Home = () => {
                                           selectedDocument.encryptedFileHashes
                                             .length > 0
                                         ) {
-                                          const fileHash =
-                                            selectedDocument
-                                              .encryptedFileHashes[0];
-                                          if (!fileHash) {
-                                            throw new Error(
-                                              "No encrypted file hash found in dossier",
-                                            );
-                                          }
-
-                                          // Check if document is released - if so, download directly without decryption
+                                          // Check if document is released
                                           const isReleased = selectedDocument.isReleased === true;
+                                          const fileHashes = selectedDocument.encryptedFileHashes;
 
                                           console.log(
                                             isReleased
-                                              ? "🔓 Decrypting released document (deadman switch triggered)..."
-                                              : "🔓 Attempting to decrypt document...",
+                                              ? "🔓 Decrypting released dossier (deadman switch triggered)..."
+                                              : "🔓 Attempting to decrypt dossier...",
                                           );
+                                          console.log(`📋 Total files to decrypt: ${fileHashes.length} (1 manifest + ${fileHashes.length - 1} files)`);
+
                                           decryptToast = toast.loading(
-                                            isReleased
-                                              ? "Decrypting released document..."
-                                              : "Decrypting document...",
+                                            "Decrypting manifest...",
                                           );
 
-                                          // Step 1: Fetch data from IPFS (encrypted or plaintext)
-                                          const ipfsHash = fileHash.replace(
-                                            "ipfs://",
-                                            "",
-                                          );
-                                          const ipfsGateways = [
-                                            `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-                                            `https://ipfs.io/ipfs/${ipfsHash}`,
-                                            `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
-                                          ];
-
-                                          let retrievedData: Uint8Array | null =
-                                            null;
-                                          let gatewayUsed = "";
-
-                                          for (const gateway of ipfsGateways) {
-                                            try {
-                                              console.log(
-                                                `🌐 Trying gateway: ${gateway}`,
-                                              );
-                                              const response =
-                                                await fetch(gateway);
-                                              if (response.ok) {
-                                                const arrayBuffer =
-                                                  await response.arrayBuffer();
-                                                retrievedData = new Uint8Array(
-                                                  arrayBuffer,
-                                                );
-                                                gatewayUsed = gateway;
-                                                console.log(
-                                                  `✅ Successfully retrieved data from: ${gateway}`,
-                                                );
-                                                break;
-                                              } else {
-                                                console.log(
-                                                  `❌ Gateway failed with status ${response.status}: ${gateway}`,
-                                                );
-                                              }
-                                            } catch (error) {
-                                              console.log(
-                                                `❌ Gateway error: ${gateway}`,
-                                                error,
-                                              );
-                                            }
-                                          }
-
-                                          if (!retrievedData) {
-                                            throw new Error(
-                                              "Failed to retrieve encrypted data from IPFS using any gateway",
-                                            );
-                                          }
-
-                                          console.log(
-                                            `📥 Successfully retrieved encrypted data:`,
-                                          );
-                                          console.log(
-                                            `   - IPFS hash: ${ipfsHash}`,
-                                          );
-                                          console.log(
-                                            `   - Gateway used: ${gatewayUsed}`,
-                                          );
-                                          console.log(
-                                            `   - Data length: ${retrievedData.length} bytes`,
-                                          );
-
-                                          // Data on IPFS is always encrypted, even for released documents
-                                          // Released just means the TACo condition now allows decryption
-
-                                          // Step 2a: Initialize TACo
-                                          console.log(
-                                            `🔧 Initializing TACo...`,
-                                          );
-                                          const { tacoService } = await import(
-                                            "./lib/taco"
-                                          );
+                                          // Initialize TACo
+                                          console.log(`🔧 Initializing TACo...`);
+                                          const { tacoService, DossierManifest } = await import("./lib/taco");
                                           await tacoService.initialize();
                                           console.log(`✅ TACo initialized`);
 
-                                          // Step 2b: Import and reconstruct MessageKit
-                                          const { ThresholdMessageKit } =
-                                            await import("@nucypher/taco");
-                                          console.log(
-                                            `🔍 Attempting to reconstruct MessageKit from ${retrievedData.length} bytes...`,
-                                          );
-
-                                          const messageKit =
-                                            ThresholdMessageKit.fromBytes(
-                                              retrievedData,
-                                            );
-                                          console.log(
-                                            `✅ MessageKit reconstructed successfully`,
-                                          );
-
-                                          // Step 3: Decrypt using TACo
-                                          // For released documents, the contract condition should allow decryption
-                                          console.log(
-                                            isReleased
-                                              ? `🔓 Decrypting released document (deadman switch triggered)...`
-                                              : `🔓 Decrypting document...`,
-                                          );
+                                          const { ThresholdMessageKit } = await import("@nucypher/taco");
                                           const burnerWalletInstance = burnerWallet.wallet;
-                                          const finalData =
-                                            await tacoService.decryptFile(
-                                              messageKit,
-                                              burnerWalletInstance
+
+                                          // Helper function to fetch and decrypt a file
+                                          const fetchAndDecrypt = async (fileHash: string, description: string) => {
+                                            const ipfsHash = fileHash.replace("ipfs://", "");
+                                            const ipfsGateways = [
+                                              `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+                                              `https://ipfs.io/ipfs/${ipfsHash}`,
+                                              `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
+                                            ];
+
+                                            console.log(`📥 Fetching ${description} from IPFS...`);
+                                            let retrievedData: Uint8Array | null = null;
+
+                                            for (const gateway of ipfsGateways) {
+                                              try {
+                                                const response = await fetch(gateway);
+                                                if (response.ok) {
+                                                  const arrayBuffer = await response.arrayBuffer();
+                                                  retrievedData = new Uint8Array(arrayBuffer);
+                                                  console.log(`✅ Retrieved ${description} (${retrievedData.length} bytes)`);
+                                                  break;
+                                                }
+                                              } catch (error) {
+                                                console.log(`❌ Gateway failed:`, gateway);
+                                              }
+                                            }
+
+                                            if (!retrievedData) {
+                                              throw new Error(`Failed to retrieve ${description} from IPFS`);
+                                            }
+
+                                            // Reconstruct and decrypt
+                                            console.log(`🔓 Decrypting ${description}...`);
+                                            const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
+                                            const decryptedData = await tacoService.decryptFile(messageKit, burnerWalletInstance);
+                                            console.log(`✅ ${description} decrypted (${decryptedData.length} bytes)`);
+
+                                            return decryptedData;
+                                          };
+
+                                          // Step 1: Decrypt manifest (first file)
+                                          console.log(`📋 Step 1/${fileHashes.length}: Decrypting manifest...`);
+                                          const manifestData = await fetchAndDecrypt(fileHashes[0], "manifest");
+                                          const manifestJson = new TextDecoder().decode(manifestData);
+                                          const manifest: DossierManifest = JSON.parse(manifestJson);
+                                          console.log(`✅ Manifest loaded:`, manifest);
+
+                                          // Step 2: Decrypt all user files
+                                          const decryptedFiles: Array<{ data: Uint8Array; metadata: any }> = [];
+
+                                          for (let i = 1; i < fileHashes.length; i++) {
+                                            const fileMetadata = manifest.files[i - 1]; // Manifest.files doesn't include manifest itself
+                                            const fileNum = i;
+                                            const totalFiles = fileHashes.length - 1;
+
+                                            console.log(`📄 Step ${i + 1}/${fileHashes.length}: Decrypting ${fileMetadata.name}...`);
+                                            toast.loading(
+                                              `Decrypting file ${fileNum}/${totalFiles}: ${fileMetadata.name}`,
+                                              { id: decryptToast }
                                             );
 
-                                          // Step 4: Download the file
-                                          const originalFileName =
-                                            selectedDocument.name.replace(
-                                              "Encrypted file: ",
-                                              "",
-                                            ) || "decrypted-document";
-                                          const mimeType =
-                                            getMimeType(originalFileName);
-                                          const blob = new Blob(
-                                            [finalData],
-                                            { type: mimeType },
-                                          );
-                                          const url = URL.createObjectURL(blob);
+                                            const decryptedData = await fetchAndDecrypt(
+                                              fileHashes[i],
+                                              `file ${fileNum}/${totalFiles} (${fileMetadata.name})`
+                                            );
 
-                                          const link =
-                                            document.createElement("a");
-                                          link.href = url;
-                                          link.download = originalFileName;
-                                          document.body.appendChild(link);
-                                          link.click();
-                                          document.body.removeChild(link);
-                                          URL.revokeObjectURL(url);
+                                            decryptedFiles.push({
+                                              data: decryptedData,
+                                              metadata: fileMetadata
+                                            });
+                                          }
 
+                                          // Step 3: Download or view files
+                                          console.log(`✅ All files decrypted! Processing ${decryptedFiles.length} files...`);
                                           toast.success(
-                                            isReleased
-                                              ? "Released document decrypted and downloaded successfully"
-                                              : "Document decrypted and downloaded successfully",
-                                            { id: decryptToast },
+                                            `All ${decryptedFiles.length} files decrypted successfully!`,
+                                            { id: decryptToast }
                                           );
+
+                                          // Download each file with original name
+                                          for (const { data, metadata } of decryptedFiles) {
+                                            const blob = new Blob([data], { type: metadata.type });
+                                            const url = URL.createObjectURL(blob);
+
+                                            // Check if it's a media file that can be viewed in browser
+                                            const isMedia = metadata.type.startsWith('image/') ||
+                                                          metadata.type.startsWith('video/') ||
+                                                          metadata.type.startsWith('audio/') ||
+                                                          metadata.type === 'application/pdf';
+
+                                            if (isMedia) {
+                                              // Open in new tab for viewing
+                                              window.open(url, '_blank');
+                                              console.log(`👁️ Opened ${metadata.name} for viewing in browser`);
+                                            }
+
+                                            // Always download as well
+                                            const link = document.createElement("a");
+                                            link.href = url;
+                                            link.download = metadata.name;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+
+                                            // Don't revoke URL immediately if viewing in browser
+                                            if (!isMedia) {
+                                              URL.revokeObjectURL(url);
+                                            } else {
+                                              // Revoke after a delay to allow the tab to load
+                                              setTimeout(() => URL.revokeObjectURL(url), 5000);
+                                            }
+
+                                            console.log(`💾 Downloaded ${metadata.name}`);
+                                          }
 
                                           setActivityLog((prev) => [
                                             {
                                               type: isReleased
-                                                ? `🔓 Released dossier #${selectedDocument.id.toString()} decrypted and downloaded (deadman switch triggered)`
-                                                : `🔓 Dossier #${selectedDocument.id.toString()} decrypted and downloaded`,
+                                                ? `🔓 Released dossier #${selectedDocument.id.toString()} decrypted: ${decryptedFiles.length} file(s) downloaded (deadman switch triggered)`
+                                                : `🔓 Dossier #${selectedDocument.id.toString()} decrypted: ${decryptedFiles.length} file(s) downloaded`,
                                               date: new Date().toLocaleString(),
                                             },
                                             ...prev,
@@ -6160,88 +6136,6 @@ const Home = () => {
                                   </div>
                                 )}
 
-                                {/* Download Ciphertext Section */}
-                                {allEncryptedFiles.length > 0 && dossierManifest && (
-                                  <div className={`mb-6 p-6 rounded-lg border ${
-                                    theme === "light"
-                                      ? "bg-green-50 border-green-200"
-                                      : "bg-green-900/10 border-green-800"
-                                  }`}>
-                                    <div className="flex items-center gap-2 mb-4">
-                                      <Shield className={`w-5 h-5 ${
-                                        theme === "light" ? "text-green-600" : "text-green-400"
-                                      }`} />
-                                      <h4 className={`font-semibold ${
-                                        theme === "light" ? "text-green-800" : "text-green-300"
-                                      }`}>
-                                        Encryption Complete!
-                                      </h4>
-                                    </div>
-                                    
-                                    <p className={`text-sm mb-4 ${
-                                      theme === "light" ? "text-gray-700" : "text-gray-300"
-                                    }`}>
-                                      Your files have been encrypted and stored. Download the encrypted files for backup:
-                                    </p>
-                                    
-                                    <div className="space-y-2">
-                                      {allEncryptedFiles.map((file, index) => (
-                                        <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
-                                          theme === "light"
-                                            ? "bg-white border border-gray-200"
-                                            : "bg-black/20 border border-gray-700"
-                                        }`}>
-                                          <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4 opacity-60" />
-                                            <span className={`text-sm ${
-                                              theme === "light" ? "text-gray-700" : "text-gray-300"
-                                            }`}>
-                                              {file.originalFile.name}.encrypted
-                                            </span>
-                                          </div>
-                                          <button
-                                            onClick={() => {
-                                              // Create a blob from the encrypted data
-                                              const blob = new Blob([file.encryptionResult.encryptedData], {
-                                                type: 'application/octet-stream'
-                                              });
-                                              const url = URL.createObjectURL(blob);
-                                              const a = document.createElement('a');
-                                              a.href = url;
-                                              a.download = `${file.originalFile.name}.encrypted`;
-                                              document.body.appendChild(a);
-                                              a.click();
-                                              document.body.removeChild(a);
-                                              URL.revokeObjectURL(url);
-                                              toast.success(`Downloaded ${file.originalFile.name}.encrypted`);
-                                            }}
-                                            className={`px-3 py-1 text-sm font-medium rounded-lg flex items-center gap-1 transition-colors ${
-                                              theme === "light"
-                                                ? "bg-blue-600 text-white hover:bg-blue-700"
-                                                : "bg-blue-600 text-white hover:bg-blue-700"
-                                            }`}
-                                          >
-                                            <Download size={14} />
-                                            Download
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    
-                                    <div className={`mt-4 p-3 rounded-lg ${
-                                      theme === "light"
-                                        ? "bg-amber-50 border border-amber-200"
-                                        : "bg-amber-900/10 border border-amber-800"
-                                    }`}>
-                                      <p className={`text-xs ${
-                                        theme === "light" ? "text-amber-800" : "text-amber-400"
-                                      }`}>
-                                        <strong>Note:</strong> These files are encrypted and can only be decrypted when the conditions are met.
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-
                                 {/* Encrypt Button Container */}
                                 <div className="flex justify-center">
                                   {!encryptedCapsule && (
@@ -6273,33 +6167,6 @@ const Home = () => {
                                           <span>Finalize</span>
                                         </>
                                       )}
-                                    </button>
-                                  )}
-
-                                  {/* Reset Button - shown after everything is complete */}
-                                  {dossierManifest && (
-                                    <button
-                                      onClick={() => {
-                                        setCurrentStep(1);
-                                        setEncryptedCapsule(null);
-                                        setAllEncryptedFiles([]);
-                                        setDossierManifest(null);
-                                        setManifestStorageUrl(null);
-                                        setUploadedFile(null);
-                                        setUploadedFiles([]);
-                                        setName("");
-                                        setEmergencyContacts([""]);
-                                        setReleaseMode("public");
-                                        setProcessingStatus("");
-                                        setProcessingProgress(0);
-                                      }}
-                                      className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all min-w-[280px] ${
-                                        theme === "light"
-                                          ? "border border-gray-300 text-gray-900 hover:bg-gray-50"
-                                          : "border border-gray-600 text-gray-100 hover:bg-white/10"
-                                      }`}
-                                    >
-                                      Create New Dossier
                                     </button>
                                   )}
                                 </div>
