@@ -143,6 +143,7 @@ const Home = () => {
 
   const [userDossiers, setUserDossiers] = useState<DossierWithStatus[]>([]);
   const [isLoadingDossiers, setIsLoadingDossiers] = useState(true);
+  const [viewingUserAddress, setViewingUserAddress] = useState<Address | null>(null); // Address of user whose dossiers we're viewing
   const [currentDossierId, setCurrentDossierId] = useState<bigint | null>(null);
   const [contractConstants, setContractConstants] = useState<{
     minInterval: bigint;
@@ -237,8 +238,18 @@ const Home = () => {
   const closeDocumentDetail = () => {
     setSelectedDocument(null);
     setDocumentDetailView(false);
-    // Reset URL to home
-    window.history.pushState({}, '', '/');
+    // Reset URL to dossiers view (with user param)
+    const currentAddress = getCurrentAddress();
+    if (currentAddress) {
+      window.history.pushState({}, '', `/?user=${currentAddress}`);
+    }
+  };
+
+  // Check if viewing own dossiers (used to show/hide action buttons)
+  const isViewingOwnDossiers = () => {
+    const currentAddress = getCurrentAddress();
+    if (!currentAddress || !viewingUserAddress) return false;
+    return currentAddress.toLowerCase() === viewingUserAddress.toLowerCase();
   };
 
   const intervalOptions = [
@@ -1149,54 +1160,65 @@ const Home = () => {
   };
 
   // Load user's dossiers from contract with accurate decryptable status
-  const fetchUserDossiers = async () => {
+  const fetchUserDossiers = async (targetAddress?: Address) => {
     setIsLoadingDossiers(true);
-    let currentAddress: string | null = null;
+    let addressToFetch: string | null = null;
 
-    // In advanced mode, use the connected wallet address (Web3 wallet or burner wallet)
-    // In standard mode, use smart wallet if available, otherwise embedded wallet
-    if (authMode === "advanced") {
-      currentAddress = getCurrentAddress(); // Gets burner wallet, wagmi, or Privy address
-      console.log(
-        "🔧 Advanced mode - using wallet address:",
-        currentAddress,
-      );
+    if (targetAddress) {
+      // Fetching specific user's dossiers (for viewing someone else's profile)
+      addressToFetch = targetAddress;
+      console.log("📋 Loading dossiers for user:", addressToFetch);
     } else {
-      // Standard mode: prefer smart wallet for gasless transactions
-      const smartWalletAddress = smartWalletClient?.account?.address;
-      const embeddedWalletAddress =
-        wallets.length > 0 ? wallets[0]?.address : null;
-      currentAddress = smartWalletAddress || embeddedWalletAddress;
-      console.log(
-        "🎯 Standard mode - smart wallet:",
-        smartWalletAddress,
-        "embedded:",
-        embeddedWalletAddress,
-      );
+      // Fetching own dossiers
+      // In advanced mode, use the connected wallet address (Web3 wallet or burner wallet)
+      // In standard mode, use smart wallet if available, otherwise embedded wallet
+      if (authMode === "advanced") {
+        addressToFetch = getCurrentAddress(); // Gets burner wallet, wagmi, or Privy address
+        console.log(
+          "🔧 Advanced mode - using wallet address:",
+          addressToFetch,
+        );
+      } else {
+        // Standard mode: prefer smart wallet for gasless transactions
+        const smartWalletAddress = smartWalletClient?.account?.address;
+        const embeddedWalletAddress =
+          wallets.length > 0 ? wallets[0]?.address : null;
+        addressToFetch = smartWalletAddress || embeddedWalletAddress;
+        console.log(
+          "🎯 Standard mode - smart wallet:",
+          smartWalletAddress,
+          "embedded:",
+          embeddedWalletAddress,
+        );
+      }
     }
 
-    if (!currentAddress) {
+    if (!addressToFetch) {
       console.log("No wallet address available for loading dossiers");
+      setIsLoadingDossiers(false);
       return;
     }
+
+    // Update the viewing user address
+    setViewingUserAddress(addressToFetch as Address);
 
     try {
       console.log("📋 Loading user dossiers from contract");
       console.log("🔑 Auth mode:", authMode);
-      console.log("🎯 Using address:", currentAddress);
+      console.log("🎯 Using address:", addressToFetch);
 
       // Get dossier IDs from contract
       const dossierIds = await ContractService.getUserDossierIds(
-        currentAddress as Address,
+        addressToFetch as Address,
       );
 
       const dossiers: DossierWithStatus[] = [];
-      
+
       // Process dossiers
       for (const id of dossierIds) {
         try {
           const dossier = await ContractService.getDossier(
-            currentAddress as Address,
+            addressToFetch as Address,
             id,
           );
           
@@ -1928,7 +1950,7 @@ const Home = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [smartWalletClient, signedIn, authMode]);
 
-  // Handle URL params to open dossier detail view
+  // Handle URL params to show user's dossiers and optionally open detail view
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -1937,23 +1959,38 @@ const Home = () => {
       const userParam = urlParams.get('user');
       const idParam = urlParams.get('id');
 
-      if (userParam && idParam && userDossiers.length > 0) {
-        const currentAddress = getCurrentAddress();
-        // Only open if viewing own dossiers
-        if (currentAddress && currentAddress.toLowerCase() === userParam.toLowerCase()) {
+      if (userParam) {
+        const targetAddress = userParam as Address;
+
+        // Check if we need to fetch different user's dossiers
+        if (!viewingUserAddress || viewingUserAddress.toLowerCase() !== targetAddress.toLowerCase()) {
+          console.log('📍 URL changed to view user:', targetAddress);
+          fetchUserDossiers(targetAddress);
+          setCurrentView('documents'); // Switch to documents view
+        }
+
+        // If there's also an ID param, open that dossier's detail view
+        if (idParam && userDossiers.length > 0) {
           const dossierId = BigInt(idParam);
           const dossier = userDossiers.find(d => d.id === dossierId);
-          if (dossier) {
+          if (dossier && !documentDetailView) {
             setSelectedDocument(dossier);
             setDocumentDetailView(true);
           }
         }
-      } else {
-        // No URL params, close detail view if open
-        if (documentDetailView) {
-          setSelectedDocument(null);
-          setDocumentDetailView(false);
+      } else if (viewingUserAddress) {
+        // No user param in URL, reset to own dossiers
+        const currentAddress = getCurrentAddress();
+        if (currentAddress && viewingUserAddress.toLowerCase() !== currentAddress.toLowerCase()) {
+          console.log('📍 URL cleared, resetting to own dossiers');
+          fetchUserDossiers();
         }
+      }
+
+      // Handle closing detail view when no ID param
+      if (!idParam && documentDetailView) {
+        setSelectedDocument(null);
+        setDocumentDetailView(false);
       }
     };
 
@@ -1963,7 +2000,7 @@ const Home = () => {
     // Handle browser back/forward
     window.addEventListener('popstate', handleUrlChange);
     return () => window.removeEventListener('popstate', handleUrlChange);
-  }, [userDossiers, documentDetailView]);
+  }, [userDossiers, documentDetailView, viewingUserAddress]);
 
   // Show sign-in page if not signed in
   if (!signedIn) {
@@ -2541,7 +2578,14 @@ const Home = () => {
                       CHECK IN
                     </button>
                     <button
-                      onClick={() => setCurrentView("documents")}
+                      onClick={() => {
+                        setCurrentView("documents");
+                        // Update URL to include user param when viewing dossiers
+                        const currentAddress = getCurrentAddress();
+                        if (currentAddress) {
+                          window.history.pushState({}, '', `/?user=${currentAddress}`);
+                        }
+                      }}
                       className={`nav-link ${
                         currentView === "documents" ? "nav-link-active" : ""
                       }`}
@@ -4194,26 +4238,34 @@ const Home = () => {
                                   )}
                               </div>
 
-                              {userDossiers.length === 0 && (
+                              {userDossiers.length === 0 && isViewingOwnDossiers() && (
                                 <NoDocumentsPlaceholder
                                   theme={theme}
                                   onCreateClick={() => setShowCreateForm(true)}
                                 />
+                              )}
+                              {userDossiers.length === 0 && !isViewingOwnDossiers() && (
+                                <div className="text-center py-12">
+                                  <p className={`text-lg ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                                    This user has no dossiers yet.
+                                  </p>
+                                </div>
                               )}
                             </div>
 
                             {userDossiers.length > 0 && (
                               <div className="">
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                  {/* Add New Dossier Card - Always shown */}
-                                  <div
-                                    onClick={() => setShowCreateForm(true)}
-                                    className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 ${
-                                      theme === "light"
-                                        ? "border-gray-200 bg-white hover:bg-gray-50 hover:border-[#e53e3e]"
-                                        : "border-gray-600 bg-black/40 hover:bg-[rgba(229,62,62,0.05)] hover:border-[#e53e3e]"
-                                    }`}
-                                  >
+                                  {/* Add New Dossier Card - Only shown when viewing own dossiers */}
+                                  {isViewingOwnDossiers() && (
+                                    <div
+                                      onClick={() => setShowCreateForm(true)}
+                                      className={`border rounded-lg px-6 py-5 min-h-[180px] flex flex-col cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 ${
+                                        theme === "light"
+                                          ? "border-gray-200 bg-white hover:bg-gray-50 hover:border-[#e53e3e]"
+                                          : "border-gray-600 bg-black/40 hover:bg-[rgba(229,62,62,0.05)] hover:border-[#e53e3e]"
+                                      }`}
+                                    >
                                     <div className="h-full flex flex-col items-center justify-center text-center">
                                       <div
                                         className={`mb-4 ${
@@ -4257,7 +4309,8 @@ const Home = () => {
                                         </p>
                                       </div>
                                     </div>
-                                  </div>
+                                    </div>
+                                  )}
 
                                   {/* Existing documents */}
                                   {userDossiers
