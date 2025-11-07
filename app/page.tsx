@@ -2710,10 +2710,15 @@ const Home = () => {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-xs text-muted">
+                      <button
+                        onClick={() => setSignedIn(false)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
+                      >
                         <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                        <span>Not Signed In</span>
-                      </div>
+                        <span className={`monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}>
+                          Not Signed In
+                        </span>
+                      </button>
                     )}
                   </div>
                 </div>
