@@ -658,8 +658,8 @@ const Home = () => {
       console.log("  - Expected seconds:", checkInMinutes * 60);
       console.log("  - Expected seconds as BigInt:", BigInt(checkInMinutes * 60).toString());
 
-      // Recipients should match the address used for creation
-      const recipients = [queryAddress];
+      // Recipients for contract: empty for public, emergency contacts for private
+      const recipients = recipientsList;
 
       // Create manifest from encrypted files
         const manifest = await createDossierManifest(
@@ -717,6 +717,7 @@ const Home = () => {
         toast.loading("Creating dossier on blockchain...", { id: processingToast });
         console.log("📝 Step 5: Creating dossier on-chain with all file hashes...");
         console.log(`   Total hashes: ${fileHashes.length} (1 manifest + ${encryptedFiles.length} files)`);
+        console.log(`   Recipients: ${recipients.length === 0 ? 'Public (no recipients)' : `Private (${recipients.length} recipient(s))`}`);
 
       let dossierId: bigint;
       let contractTxHash: string;
