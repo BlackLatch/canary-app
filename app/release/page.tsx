@@ -260,11 +260,23 @@ function ReleaseDetailContent() {
   const isOwner = connectedAddress && connectedAddress.toLowerCase() === user.toLowerCase();
 
   return (
-    <div className={`min-h-screen ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+    <div className={`min-h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
       <Toaster position="bottom-right" />
 
-      {/* Header Bar */}
-      <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`}>
+      {/* Demo Banner */}
+      <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-black border-gray-600'}`}>
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-center h-8 gap-2">
+            <span className={`text-xs font-medium tracking-wider uppercase ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+              FOR DEMONSTRATION PURPOSES ONLY
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col" style={{ zoom: '0.8' }}>
+        {/* Header Bar */}
+        <header className={`border-b ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'}`} style={{ marginTop: '0px' }}>
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between h-10">
             {/* Left: Logo */}
@@ -353,20 +365,23 @@ function ReleaseDetailContent() {
             </div>
           </div>
         </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <div className={`${theme === 'light' ? 'bg-gray-50' : 'bg-black'} min-h-[calc(100vh-57px)]`}>
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <DossierDetailView
-            dossier={dossier}
-            owner={user}
-            theme={theme}
-            currentTime={currentTime}
-            isOwner={isOwner}
-            onBack={() => router.push('/')}
-            onDecrypt={handleDecrypt}
-          />
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto">
+          <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+            <div className="max-w-7xl mx-auto px-6 py-8">
+              <DossierDetailView
+                dossier={dossier}
+                owner={user}
+                theme={theme}
+                currentTime={currentTime}
+                isOwner={isOwner}
+                onBack={() => router.push('/')}
+                onDecrypt={handleDecrypt}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
