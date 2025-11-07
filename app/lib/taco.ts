@@ -148,20 +148,27 @@ class TacoService {
 
     // Use ContractCondition to call the contract method
     // TACo nodes will verify this condition by calling the contract
-    // Note: dossier ID is passed as number (not string) for uint256 ABI type
+    // Note: dossier ID must be an integer (not string) for uint256 ABI type
+    // Use parseInt to ensure it's treated as an integer, not a string
+    const dossierIdInt = parseInt(dossierId.toString(), 10);
+
     const condition = new conditions.base.contract.ContractCondition({
       contractAddress: CANARY_DOSSIER_ADDRESS,
       chain: statusSepolia.id,
       functionAbi, // Provide ABI for custom contract
       method: 'shouldDossierStayEncrypted',
-      parameters: [userAddress, Number(dossierId)],
+      parameters: [userAddress, dossierIdInt],
       returnValueTest: {
         comparator: '==',
         value: false, // Function returns false when decryption is allowed
       },
     });
 
-    console.log('📋 Public condition created (contract check only)');
+    console.log('📋 Public condition created:', {
+      dossierId: dossierIdInt,
+      type: typeof dossierIdInt,
+      contractAddress: CANARY_DOSSIER_ADDRESS,
+    });
 
     return condition;
   }
@@ -197,12 +204,15 @@ class TacoService {
       type: 'function'
     };
 
+    // Use parseInt to ensure dossierId is an integer (not string) for uint256
+    const dossierIdInt = parseInt(dossierId.toString(), 10);
+
     const contractCondition = new conditions.base.contract.ContractCondition({
       contractAddress: CANARY_DOSSIER_ADDRESS,
       chain: statusSepolia.id,
       functionAbi,
       method: 'shouldDossierStayEncrypted',
-      parameters: [userAddress, Number(dossierId)],
+      parameters: [userAddress, dossierIdInt],
       returnValueTest: {
         comparator: '==',
         value: false,
@@ -228,6 +238,8 @@ class TacoService {
 
     console.log('📋 Private compound condition created:', {
       operator: 'and',
+      dossierId: dossierIdInt,
+      dossierIdType: typeof dossierIdInt,
       conditions: [
         'Contract: shouldDossierStayEncrypted == false',
         `Recipients: :userAddress in [${recipients.length} addresses]`
