@@ -452,12 +452,40 @@ class TacoService {
 
     console.log('🔓 Attempting decryption with contract verification...');
 
+    // Extract and log condition information from messageKit
+    try {
+      const messageKitConditions = messageKit.conditions;
+      console.log('📋 MessageKit condition type:', messageKitConditions?.conditionType || 'unknown');
+
+      if (messageKitConditions?.conditionType === 'compound') {
+        console.log('🔀 Compound condition detected (private dossier)');
+        console.log('   Operator:', messageKitConditions.operator);
+        console.log('   Operands:', messageKitConditions.operands?.length || 0);
+      } else if (messageKitConditions?.conditionType === 'contract') {
+        console.log('📜 Contract condition detected (public dossier)');
+        console.log('   Contract:', messageKitConditions.contractAddress);
+        console.log('   Method:', messageKitConditions.method);
+        console.log('   Chain:', messageKitConditions.chain);
+      }
+    } catch (e) {
+      console.log('ℹ️ Could not extract condition details from messageKit');
+    }
+
+    console.log('🔐 Creating condition context from messageKit...');
     const conditionContext = conditions.context.ConditionContext.fromMessageKit(messageKit);
+
+    console.log('🔑 Creating EIP4361 auth provider for decryption...');
     const authProvider = new EIP4361AuthProvider(
       provider,
       signer,
     );
+
+    console.log('➕ Adding auth provider to condition context...');
     conditionContext.addAuthProvider(USER_ADDRESS_PARAM_DEFAULT, authProvider);
+
+    console.log('🌐 Sending decryption request to TACo network...');
+    console.log('   Domain:', TACO_DOMAIN);
+    console.log('   Ritual ID:', RITUAL_ID);
 
     // The TACo network will automatically verify the condition
     // The Dossier condition will call shouldDossierStayEncrypted
@@ -469,7 +497,39 @@ class TacoService {
     );
 
     console.log('✅ Decryption successful - dossier conditions verified');
+    console.log('📦 Decrypted data size:', decryptedMessage.length, 'bytes');
     return decryptedMessage;
+  }
+
+  /**
+   * Decrypt and parse the dossier manifest
+   * The manifest is always the first encrypted file in a dossier
+   */
+  async decryptManifest(manifestMessageKit: any, burnerWallet?: any): Promise<DossierManifest> {
+    console.log('📋 Decrypting dossier manifest...');
+
+    // Decrypt the manifest data
+    const decryptedManifestBytes = await this.decryptFile(manifestMessageKit, burnerWallet);
+
+    console.log('📄 Parsing manifest JSON...');
+    const manifestJson = new TextDecoder().decode(decryptedManifestBytes);
+    const manifest: DossierManifest = JSON.parse(manifestJson);
+
+    console.log('✅ Manifest decrypted and parsed:');
+    console.log('   Version:', manifest.version);
+    console.log('   Dossier ID:', manifest.dossierId);
+    console.log('   Name:', manifest.name);
+    console.log('   Files:', manifest.files.length);
+    console.log('   Release mode:', manifest.releaseMode);
+    console.log('   Recipients:', manifest.recipients.length);
+
+    // Validate the manifest
+    const validation = this.validateManifest(manifest);
+    if (!validation.isValid) {
+      console.warn('⚠️ Manifest validation warnings:', validation.errors);
+    }
+
+    return manifest;
   }
 
   // Storage methods remain unchanged
@@ -825,6 +885,40 @@ export async function encryptAndCommitDossierManifest(
 
 export function validateDossierManifest(manifest: DossierManifest): { isValid: boolean; errors: string[] } {
   return tacoService.validateManifest(manifest);
+}
+
+export async function decryptDossierManifest(manifestMessageKit: any, burnerWallet?: any): Promise<DossierManifest> {
+  return await tacoService.decryptManifest(manifestMessageKit, burnerWallet);
+}
+
+/**
+ * Helper function to download a decrypted file with its original filename from the manifest
+ */
+export function downloadDecryptedFile(
+  decryptedData: Uint8Array,
+  fileMetadata: DossierManifestFile
+): void {
+  console.log(`💾 Downloading file: ${fileMetadata.name}`);
+  console.log(`   Type: ${fileMetadata.type}`);
+  console.log(`   Size: ${fileMetadata.size} bytes (original)`);
+  console.log(`   Decrypted size: ${decryptedData.length} bytes`);
+
+  // Create blob with the correct MIME type from manifest
+  const blob = new Blob([decryptedData], { type: fileMetadata.type });
+  const url = URL.createObjectURL(blob);
+
+  // Create download link with original filename
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileMetadata.name; // Use original filename from manifest
+  document.body.appendChild(a);
+  a.click();
+
+  // Cleanup
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  console.log(`✅ File downloaded: ${fileMetadata.name}`);
 }
 
 export async function initializeTaco(): Promise<boolean> {
