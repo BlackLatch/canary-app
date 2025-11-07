@@ -19,6 +19,8 @@
 //   * Auth context passed to TACo nodes for verification
 //
 import { encrypt, decrypt, conditions, domains, initialize } from '@nucypher/taco';
+// IMPORTANT: Must use the same version of taco-auth that @nucypher/taco depends on (0.4.0-alpha.3)
+// to avoid instanceof check failures in ConditionContext.addAuthProvider()
 import { EIP4361AuthProvider, USER_ADDRESS_PARAM_DEFAULT } from '@nucypher/taco-auth';
 import { ethers } from 'ethers';
 import { uploadToCodex, CodexUploadResult } from './codex';
@@ -480,11 +482,17 @@ class TacoService {
 
     if (requiresAuth) {
       console.log('🔑 Private dossier detected - creating EIP4361 auth provider for :userAddress...');
+      console.log('   Provider type:', provider?.constructor?.name);
+      console.log('   Signer type:', signer?.constructor?.name);
+      console.log('   Signer address:', await signer.getAddress());
+
       const authProvider = new EIP4361AuthProvider(
         provider,
         signer,
       );
 
+      console.log('   AuthProvider created:', authProvider?.constructor?.name);
+      console.log('   AuthProvider has getOrCreateAuthSignature:', typeof authProvider?.getOrCreateAuthSignature === 'function');
       console.log('➕ Adding auth provider to condition context...');
       conditionContext.addAuthProvider(USER_ADDRESS_PARAM_DEFAULT, authProvider);
     } else {
