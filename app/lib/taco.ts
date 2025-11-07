@@ -221,7 +221,7 @@ class TacoService {
 
     // Second condition: User address must be in recipients list
     // Uses :userAddress context variable (the address trying to decrypt)
-    const recipientCondition = new conditions.base.ConditionContext({
+    const recipientCondition = new conditions.base.contextVariable.ContextVariableCondition({
       contextVariable: ':userAddress',
       returnValueTest: {
         comparator: 'in',
@@ -231,7 +231,7 @@ class TacoService {
 
     // Combine both conditions with AND operator
     // BOTH must be true: contract allows decryption AND user is in recipients list
-    const compoundCondition = new conditions.base.CompoundCondition({
+    const compoundCondition = new conditions.compound.CompoundCondition({
       operator: 'and',
       operands: [contractCondition, recipientCondition],
     });

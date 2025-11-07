@@ -18,7 +18,7 @@
     "@codex-storage/sdk-js": "^0.1.2",
     "@helia/unixfs": "^5.0.3",
     "@metamask/detect-provider": "^2.0.0",
-    "@nucypher/taco": "^0.6.0",
+    "@nucypher/taco": "0.7.0-alpha.3",
     "@nucypher/taco-auth": "^0.3.0",
     "@privy-io/react-auth": "^1.88.4",
     "@privy-io/wagmi": "^0.2.12",
