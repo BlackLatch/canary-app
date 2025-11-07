@@ -462,9 +462,6 @@ html, body {
 }
 
 /* Dark mode backgrounds */
-.dark .bg-white {
-  background-color: var(--color-paper-warm);
-}
 
 .dark .bg-gray-50 {
   background-color: var(--color-paper-neutral);
