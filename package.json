@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/generate-version.js",
     "build": "next build",
     "build:static": "next build",
     "export": "next export",
