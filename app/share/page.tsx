@@ -491,9 +491,10 @@ function ShareContent() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredDossiers.map((dossier) => (
-              <div
+              <Link
                 key={dossier.id}
-                className={`border rounded-lg px-6 py-5 min-h-[200px] transition-all duration-300 ease-out hover:-translate-y-1 ${
+                href={`/release?user=${address}&id=${dossier.id}`}
+                className={`block border rounded-lg px-6 py-5 min-h-[200px] transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${
                   theme === 'light'
                     ? 'border-gray-300 bg-white hover:border-[#e53e3e]'
                     : 'border-gray-600 bg-black/40 hover:border-[#e53e3e]'
@@ -602,7 +603,7 @@ function ShareContent() {
                     </div>
                   )}
                 </div>
-              </div>
+              </Link>
                     ))}
                 </div>
               </div>
@@ -627,10 +628,13 @@ function ShareContent() {
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredUserDossiers.map((dossier) => (
-                    <div
+                  {filteredUserDossiers.map((dossier) => {
+                    const currentUserAddress = getCurrentUserAddress();
+                    return (
+                    <Link
                       key={`user-${dossier.id}`}
-                      className={`border rounded-lg px-6 py-5 min-h-[200px] transition-all duration-300 ease-out hover:-translate-y-1 ${
+                      href={`/release?user=${currentUserAddress}&id=${dossier.id}`}
+                      className={`block border rounded-lg px-6 py-5 min-h-[200px] transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${
                         theme === 'light'
                           ? 'border-gray-300 bg-white hover:border-[#e53e3e]'
                           : 'border-gray-600 bg-black/40 hover:border-[#e53e3e]'
@@ -739,8 +743,9 @@ function ShareContent() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    </Link>
+                    );
+                  })}
                 </div>
               </div>
             )}
