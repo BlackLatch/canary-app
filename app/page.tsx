@@ -658,8 +658,10 @@ const Home = () => {
       console.log("  - Expected seconds:", checkInMinutes * 60);
       console.log("  - Expected seconds as BigInt:", BigInt(checkInMinutes * 60).toString());
 
-      // Recipients for contract: empty for public, emergency contacts for private
-      const recipients = recipientsList;
+      // Recipients for contract: always include owner, plus emergency contacts for private
+      // Public dossiers: [owner only]
+      // Private dossiers: [owner, ...emergency contacts]
+      const recipients = [queryAddress, ...recipientsList];
 
       // Create manifest from encrypted files
         const manifest = await createDossierManifest(
@@ -717,7 +719,7 @@ const Home = () => {
         toast.loading("Creating dossier on blockchain...", { id: processingToast });
         console.log("📝 Step 5: Creating dossier on-chain with all file hashes...");
         console.log(`   Total hashes: ${fileHashes.length} (1 manifest + ${encryptedFiles.length} files)`);
-        console.log(`   Recipients: ${recipients.length === 0 ? 'Public (no recipients)' : `Private (${recipients.length} recipient(s))`}`);
+        console.log(`   Recipients: ${recipients.length === 1 ? 'Public (owner only)' : `Private (owner + ${recipients.length - 1} emergency contact(s))`}`);
 
       let dossierId: bigint;
       let contractTxHash: string;
@@ -3311,7 +3313,7 @@ const Home = () => {
                                     <div
                                       className={`inline-flex items-center gap-2 px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                                         selectedDocument.recipients &&
-                                        selectedDocument.recipients.length > 0
+                                        selectedDocument.recipients.length > 1
                                           ? theme === "light"
                                             ? "bg-black text-white border-black"
                                             : "bg-white text-gray-900 border-white"
@@ -3328,7 +3330,7 @@ const Home = () => {
                                       >
                                         {selectedDocument.recipients &&
                                         selectedDocument.recipients.length >
-                                          0 ? (
+                                          1 ? (
                                           <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
@@ -3345,7 +3347,7 @@ const Home = () => {
                                         )}
                                       </svg>
                                       {selectedDocument.recipients &&
-                                      selectedDocument.recipients.length > 0
+                                      selectedDocument.recipients.length > 1
                                         ? "Private"
                                         : "Public"}
                                     </div>
@@ -4421,7 +4423,7 @@ const Home = () => {
                                               <div
                                                 className={`inline-flex items-center gap-2 px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                                                   dossier.recipients &&
-                                                  dossier.recipients.length > 0
+                                                  dossier.recipients.length > 1
                                                     ? theme === "light"
                                                       ? "bg-black text-white border-black"
                                                       : "bg-white text-gray-900 border-white"
@@ -4438,7 +4440,7 @@ const Home = () => {
                                                 >
                                                   {dossier.recipients &&
                                                   dossier.recipients.length >
-                                                    0 ? (
+                                                    1 ? (
                                                     <path
                                                       strokeLinecap="round"
                                                       strokeLinejoin="round"
@@ -4455,7 +4457,7 @@ const Home = () => {
                                                   )}
                                                 </svg>
                                                 {dossier.recipients &&
-                                                dossier.recipients.length > 0
+                                                dossier.recipients.length > 1
                                                   ? "Private"
                                                   : "Public"}
                                               </div>
