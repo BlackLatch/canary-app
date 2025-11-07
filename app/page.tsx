@@ -224,16 +224,21 @@ const Home = () => {
 
   // Dossier detail navigation
   const openDocumentDetail = (document: DossierWithStatus) => {
-    // Navigate to the permalink URL for this dossier
+    setSelectedDocument(document);
+    setDocumentDetailView(true);
+    // Update URL without navigating
     const currentAddress = getCurrentAddress();
     if (currentAddress) {
-      router.push(`/release?user=${currentAddress}&id=${document.id.toString()}`);
+      const url = `/?user=${currentAddress}&id=${document.id.toString()}`;
+      window.history.pushState({}, '', url);
     }
   };
 
   const closeDocumentDetail = () => {
     setSelectedDocument(null);
     setDocumentDetailView(false);
+    // Reset URL to home
+    window.history.pushState({}, '', '/');
   };
 
   const intervalOptions = [
@@ -1922,6 +1927,43 @@ const Home = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [smartWalletClient, signedIn, authMode]);
+
+  // Handle URL params to open dossier detail view
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleUrlChange = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const userParam = urlParams.get('user');
+      const idParam = urlParams.get('id');
+
+      if (userParam && idParam && userDossiers.length > 0) {
+        const currentAddress = getCurrentAddress();
+        // Only open if viewing own dossiers
+        if (currentAddress && currentAddress.toLowerCase() === userParam.toLowerCase()) {
+          const dossierId = BigInt(idParam);
+          const dossier = userDossiers.find(d => d.id === dossierId);
+          if (dossier) {
+            setSelectedDocument(dossier);
+            setDocumentDetailView(true);
+          }
+        }
+      } else {
+        // No URL params, close detail view if open
+        if (documentDetailView) {
+          setSelectedDocument(null);
+          setDocumentDetailView(false);
+        }
+      }
+    };
+
+    // Handle initial load
+    handleUrlChange();
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, [userDossiers, documentDetailView]);
 
   // Show sign-in page if not signed in
   if (!signedIn) {
