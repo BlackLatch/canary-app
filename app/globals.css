@@ -489,9 +489,6 @@ html, body {
 }
 
 /* Dark mode text colors */
-.dark .text-gray-900 {
-  color: #e5e5e5;
-}
 
 .dark .text-gray-700 {
   color: #d1d5db;
