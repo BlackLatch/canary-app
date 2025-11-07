@@ -406,7 +406,6 @@ html, body {
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 0.875rem;
   letter-spacing: 0.05em;
-  color: var(--color-ink);
 }
 
 .text-cipher {
@@ -463,9 +462,6 @@ html, body {
 }
 
 /* Dark mode backgrounds */
-.dark .bg-white {
-  background-color: var(--color-paper-warm);
-}
 
 .dark .bg-gray-50 {
   background-color: var(--color-paper-neutral);
@@ -493,9 +489,6 @@ html, body {
 }
 
 /* Dark mode text colors */
-.dark .text-gray-900 {
-  color: #e5e5e5;
-}
 
 .dark .text-gray-700 {
   color: #d1d5db;

@@ -4309,7 +4309,7 @@ const Home = () => {
                                         className={`mb-4 ${
                                           theme === "light"
                                             ? "text-gray-400"
-                                            : "text-gray-500"
+                                            : "text-gray-500 hover:text-gray-300"
                                         }`}
                                       >
                                         <svg
@@ -4331,7 +4331,7 @@ const Home = () => {
                                           className={`editorial-header-small uppercase tracking-wider mb-2 ${
                                             theme === "light"
                                               ? "text-gray-900"
-                                              : "text-gray-100"
+                                              : "text-gray-100 hover:text-white"
                                           }`}
                                         >
                                           CREATE DOSSIER
@@ -4340,7 +4340,7 @@ const Home = () => {
                                           className={`editorial-body-small break-words ${
                                             theme === "light"
                                               ? "text-gray-600"
-                                              : "text-gray-400"
+                                              : "text-gray-400 hover:text-gray-200"
                                           }`}
                                         >
                                           Encrypt and protect a new dossier
@@ -6392,7 +6392,7 @@ const Home = () => {
                                 className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                                   theme === "light"
                                     ? "bg-black text-white border-black hover:bg-gray-800"
-                                    : "bg-white text-gray-900 border-white hover:bg-gray-100"
+                                    : "bg-white text-gray-900 border-white hover:bg-gray-100 hover:text-white"
                                 }`}
                               >
                                 {currentStep === 4 ? "Finalize" : "Next"}
