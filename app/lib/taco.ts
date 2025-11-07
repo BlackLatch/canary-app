@@ -229,12 +229,12 @@ class TacoService {
       },
     });
 
-    // Combine both conditions with AND operator
+    // Combine both conditions with AND operator using static method
     // BOTH must be true: contract allows decryption AND user is in recipients list
-    const compoundCondition = new conditions.compound.CompoundCondition({
-      operator: 'and',
-      operands: [contractCondition, recipientCondition],
-    });
+    const compoundCondition = conditions.compound.CompoundCondition.and([
+      contractCondition,
+      recipientCondition
+    ]);
 
     console.log('📋 Private compound condition created:', {
       operator: 'and',
