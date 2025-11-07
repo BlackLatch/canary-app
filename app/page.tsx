@@ -525,21 +525,24 @@ const Home = () => {
       console.log("🔒 Step 2: Encrypting with Dossier contract condition...");
 
       // Prepare recipients list for private dossiers (emergency contacts)
-      const recipientsList = releaseMode === 'private'
+      // Map UI releaseMode: "contacts" -> private with recipients, "public" -> public with no recipients
+      const isPrivate = releaseMode === 'contacts';
+      const recipientsList = isPrivate
         ? emergencyContacts.filter(addr => addr && addr.trim() !== '')
         : [];
+      const normalizedReleaseMode: 'public' | 'private' = isPrivate ? 'private' : 'public';
 
       const condition: DeadmanCondition = {
         type: "no_checkin",
         duration: `${checkInInterval} MINUTES`,
         dossierId: nextDossierId,
         userAddress: queryAddress,
-        releaseMode: releaseMode,
+        releaseMode: normalizedReleaseMode,
         recipients: recipientsList,
       };
 
-      console.log(`🔓 Dossier release mode: ${releaseMode}`);
-      if (releaseMode === 'private') {
+      console.log(`🔓 Dossier release mode: ${releaseMode} (normalized: ${normalizedReleaseMode})`);
+      if (isPrivate) {
         console.log(`👥 Emergency contacts: ${recipientsList.length} addresses`);
       }
 
@@ -668,7 +671,7 @@ const Home = () => {
           nextDossierId.toString(),
           dossierName,
           checkInMinutes * 60, // Convert minutes to seconds
-          releaseMode,
+          normalizedReleaseMode,
           recipientsList,
           encryptedFiles.map((ef) => ({
             commitResult: ef.commitResult,
