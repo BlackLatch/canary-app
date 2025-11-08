@@ -501,10 +501,27 @@ class TacoService {
             // Parse the cached SIWE message
             const messageData = JSON.parse(cachedMessage);
             console.log('   📦 Found cached signature:', eip4361Key);
+            console.log('   📄 Cached data structure:', {
+              keys: Object.keys(messageData),
+              hasMessage: !!messageData.message,
+              messageKeys: messageData.message ? Object.keys(messageData.message) : null,
+              issuedAt: messageData.message?.issuedAt,
+              // Also check alternative locations
+              issued_at: messageData.message?.issued_at,
+              issuedAtDirect: messageData.issuedAt,
+              issuedAtRoot: messageData['issued-at'],
+            });
 
-            // Check if the message has an issuedAt timestamp
-            if (messageData.message?.issuedAt) {
-              const issuedAt = new Date(messageData.message.issuedAt);
+            // Check if the message has an issuedAt timestamp (try multiple possible locations)
+            const issuedAtValue =
+              messageData.message?.issuedAt ||
+              messageData.message?.issued_at ||
+              messageData.message?.['issued-at'] ||
+              messageData.issuedAt ||
+              messageData['issued-at'];
+
+            if (issuedAtValue) {
+              const issuedAt = new Date(issuedAtValue);
               const now = new Date();
               const ageInHours = (now.getTime() - issuedAt.getTime()) / (1000 * 60 * 60);
 
@@ -520,7 +537,8 @@ class TacoService {
               }
             } else {
               // If we can't determine age, clear it to be safe
-              console.log('   ⚠️  Cannot determine signature age, clearing for safety');
+              console.log('   ⚠️  Cannot determine signature age (no issuedAt field found), clearing for safety');
+              console.log('   Full cached data:', messageData);
               localStorage.removeItem(eip4361Key);
             }
           } catch (error) {
