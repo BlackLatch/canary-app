@@ -487,71 +487,49 @@ class TacoService {
       const signerAddress = await signer.getAddress();
       console.log('   Signer address:', signerAddress);
 
-      // Clear any cached auth signatures from localStorage AND sessionStorage
-      // TACo nodes reject signatures older than 2 hours, so we always want a fresh one
-      if (typeof window !== 'undefined') {
-        // Check and clear from localStorage
-        if (window.localStorage) {
-          console.log('   🔍 Checking localStorage for cached signatures...');
-          const localKeysToRemove: string[] = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key) {
-              // The EIP4361AuthProvider stores signatures as: eth-EIP4361-message-<address>
-              // Match: eth-EIP4361-message-, taco-auth, eip4361, siwe, or signature
-              const shouldRemove =
-                key.startsWith('eth-EIP4361-message-') ||
-                key.startsWith('taco') ||
-                key.includes('auth') ||
-                key.includes('eip4361') ||
-                key.includes('siwe') ||
-                key.includes('signature');
+      // Check cached auth signatures and clear only if older than 2 hours
+      // TACo nodes reject signatures older than 2 hours
+      if (typeof window !== 'undefined' && window.localStorage) {
+        console.log('   🔍 Checking for cached EIP4361 signatures...');
 
-              if (shouldRemove) {
-                console.log('   🎯 Found auth key to clear:', key);
-                localKeysToRemove.push(key);
+        // Look for the specific EIP4361 message key for this address
+        const eip4361Key = `eth-EIP4361-message-${signerAddress}`;
+        const cachedMessage = localStorage.getItem(eip4361Key);
+
+        if (cachedMessage) {
+          try {
+            // Parse the cached SIWE message
+            const messageData = JSON.parse(cachedMessage);
+            console.log('   📦 Found cached signature:', eip4361Key);
+
+            // Check if the message has an issuedAt timestamp
+            if (messageData.message?.issuedAt) {
+              const issuedAt = new Date(messageData.message.issuedAt);
+              const now = new Date();
+              const ageInHours = (now.getTime() - issuedAt.getTime()) / (1000 * 60 * 60);
+
+              console.log('   ⏰ Signature issued at:', issuedAt.toISOString());
+              console.log('   ⏱️  Signature age:', ageInHours.toFixed(2), 'hours');
+
+              // TACo nodes reject signatures older than 2 hours
+              if (ageInHours >= 2) {
+                console.log('   🗑️  Signature is stale (>= 2 hours), clearing...');
+                localStorage.removeItem(eip4361Key);
+              } else {
+                console.log('   ✅ Signature is fresh, reusing existing signature');
               }
+            } else {
+              // If we can't determine age, clear it to be safe
+              console.log('   ⚠️  Cannot determine signature age, clearing for safety');
+              localStorage.removeItem(eip4361Key);
             }
+          } catch (error) {
+            // If parsing fails, clear the cached data
+            console.log('   ⚠️  Failed to parse cached signature, clearing:', error);
+            localStorage.removeItem(eip4361Key);
           }
-          if (localKeysToRemove.length > 0) {
-            localKeysToRemove.forEach(key => {
-              console.log('   🗑️ Clearing localStorage key:', key);
-              localStorage.removeItem(key);
-            });
-          } else {
-            console.log('   ✓ No cached auth signatures found in localStorage');
-          }
-        }
-
-        // Check and clear from sessionStorage
-        if (window.sessionStorage) {
-          console.log('   🔍 Checking sessionStorage for cached signatures...');
-          const sessionKeysToRemove: string[] = [];
-          for (let i = 0; i < sessionStorage.length; i++) {
-            const key = sessionStorage.key(i);
-            if (key) {
-              const shouldRemove =
-                key.startsWith('eth-EIP4361-message-') ||
-                key.startsWith('taco') ||
-                key.includes('auth') ||
-                key.includes('eip4361') ||
-                key.includes('siwe') ||
-                key.includes('signature');
-
-              if (shouldRemove) {
-                console.log('   🎯 Found auth key in sessionStorage:', key);
-                sessionKeysToRemove.push(key);
-              }
-            }
-          }
-          if (sessionKeysToRemove.length > 0) {
-            sessionKeysToRemove.forEach(key => {
-              console.log('   🗑️ Clearing sessionStorage key:', key);
-              sessionStorage.removeItem(key);
-            });
-          } else {
-            console.log('   ✓ No cached auth signatures found in sessionStorage');
-          }
+        } else {
+          console.log('   ✓ No cached signature found, will generate fresh one');
         }
       }
 
