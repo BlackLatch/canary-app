@@ -512,13 +512,18 @@ class TacoService {
               issuedAtRoot: messageData['issued-at'],
             });
 
-            // Check if the message has an issuedAt timestamp (try multiple possible locations)
-            const issuedAtValue =
-              messageData.message?.issuedAt ||
-              messageData.message?.issued_at ||
-              messageData.message?.['issued-at'] ||
-              messageData.issuedAt ||
-              messageData['issued-at'];
+            // The timestamp is in the typedData field as a SIWE message string
+            // Extract "Issued At: YYYY-MM-DDTHH:MM:SS.sssZ" from the typedData string
+            let issuedAtValue = null;
+
+            if (messageData.typedData && typeof messageData.typedData === 'string') {
+              // Parse the SIWE message string to extract Issued At timestamp
+              const issuedAtMatch = messageData.typedData.match(/Issued At: ([^\n]+)/);
+              if (issuedAtMatch && issuedAtMatch[1]) {
+                issuedAtValue = issuedAtMatch[1].trim();
+                console.log('   📅 Extracted Issued At from SIWE message:', issuedAtValue);
+              }
+            }
 
             if (issuedAtValue) {
               const issuedAt = new Date(issuedAtValue);
@@ -537,8 +542,8 @@ class TacoService {
               }
             } else {
               // If we can't determine age, clear it to be safe
-              console.log('   ⚠️  Cannot determine signature age (no issuedAt field found), clearing for safety');
-              console.log('   Full cached data:', messageData);
+              console.log('   ⚠️  Cannot determine signature age (no Issued At field found), clearing for safety');
+              console.log('   typedData:', messageData.typedData);
               localStorage.removeItem(eip4361Key);
             }
           } catch (error) {
