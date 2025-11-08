@@ -4273,21 +4273,22 @@ const Home = () => {
                                     {
                                       userDossiers.filter(
                                         (d) =>
-                                          showInactiveDocuments || d.isActive,
+                                          showInactiveDocuments || d.isActive || !isViewingOwnDossiers(),
                                       ).length
                                     }{" "}
                                     DOSSIER
                                     {userDossiers.filter(
                                       (d) =>
-                                        showInactiveDocuments || d.isActive,
+                                        showInactiveDocuments || d.isActive || !isViewingOwnDossiers(),
                                     ).length !== 1
                                       ? "S"
                                       : ""}
                                   </span>
                                 </div>
 
-                                {/* Right side: Show All Button */}
-                                {userDossiers.length > 0 &&
+                                {/* Right side: Show All Button - Only show when viewing own dossiers */}
+                                {isViewingOwnDossiers() &&
+                                  userDossiers.length > 0 &&
                                   userDossiers.some((d) => !d.isActive) && (
                                     <button
                                       onClick={() =>
@@ -4387,7 +4388,8 @@ const Home = () => {
                                     .filter(
                                       (dossier) =>
                                         showInactiveDocuments ||
-                                        dossier.isActive,
+                                        dossier.isActive ||
+                                        !isViewingOwnDossiers(), // Show all dossiers when viewing others
                                     )
                                     .map((dossier, index) => {
                                       const lastCheckInMs =
