@@ -1325,10 +1325,11 @@ export class ContractService {
         abi: CANARY_DOSSIER_ABI,
         functionName: 'getUserDossierIds',
         args: [userAddress],
+        chainId: statusSepolia.id, // Always read from Status Network Sepolia
       });
-      
+
       return result as bigint[];
-      
+
     } catch (error) {
       console.error('❌ Failed to get user dossier IDs:', error);
       throw error;
@@ -1345,6 +1346,7 @@ export class ContractService {
         abi: CANARY_DOSSIER_ABI,
         functionName: 'getDossier',
         args: [userAddress, dossierId],
+        chainId: statusSepolia.id, // Always read from Status Network Sepolia
       });
 
       // V2 has all the latest fields
@@ -1439,27 +1441,31 @@ export class ContractService {
     static async getConstants() {
     try {
       console.log('🔧 Getting contract constants via wallet provider...');
-      
+
       const [minInterval, maxInterval, gracePeriod, maxDossiers] = await Promise.all([
         readContract(config, {
           address: CANARY_DOSSIER_ADDRESS,
           abi: CANARY_DOSSIER_ABI,
           functionName: 'MIN_CHECK_IN_INTERVAL',
+          chainId: statusSepolia.id,
         }),
         readContract(config, {
           address: CANARY_DOSSIER_ADDRESS,
           abi: CANARY_DOSSIER_ABI,
           functionName: 'MAX_CHECK_IN_INTERVAL',
+          chainId: statusSepolia.id,
         }),
         readContract(config, {
           address: CANARY_DOSSIER_ADDRESS,
           abi: CANARY_DOSSIER_ABI,
           functionName: 'GRACE_PERIOD',
+          chainId: statusSepolia.id,
         }),
         readContract(config, {
           address: CANARY_DOSSIER_ADDRESS,
           abi: CANARY_DOSSIER_ABI,
           functionName: 'MAX_DOSSIERS_PER_USER',
+          chainId: statusSepolia.id,
         }),
       ]);
 
