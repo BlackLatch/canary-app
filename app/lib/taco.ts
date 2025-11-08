@@ -484,15 +484,36 @@ class TacoService {
       console.log('🔑 Private dossier detected - creating EIP4361 auth provider for :userAddress...');
       console.log('   Provider type:', provider?.constructor?.name);
       console.log('   Signer type:', signer?.constructor?.name);
-      console.log('   Signer address:', await signer.getAddress());
+      const signerAddress = await signer.getAddress();
+      console.log('   Signer address:', signerAddress);
 
+      // Clear any cached auth signatures from localStorage to force fresh signature generation
+      // TACo nodes reject signatures older than 2 hours, so we always want a fresh one
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // The EIP4361AuthProvider caches signatures with keys like 'taco-auth-<address>'
+        // Clear all taco-auth related keys to ensure fresh signature
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('taco-auth') || key.includes('eip4361') || key.includes('siwe'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => {
+          console.log('   🗑️ Clearing cached auth signature:', key);
+          localStorage.removeItem(key);
+        });
+      }
+
+      // Create a fresh auth provider each time to avoid using stale cached signatures
+      // EIP4361AuthProvider caches signatures, but TACo nodes reject signatures older than 2 hours
       const authProvider = new EIP4361AuthProvider(
         provider,
         signer,
       );
 
       console.log('   AuthProvider created:', authProvider?.constructor?.name);
-      console.log('   AuthProvider has getOrCreateAuthSignature:', typeof authProvider?.getOrCreateAuthSignature === 'function');
+      console.log('   Fresh auth provider will generate new SIWE signature on demand');
       console.log('➕ Adding auth provider to condition context...');
       conditionContext.addAuthProvider(USER_ADDRESS_PARAM_DEFAULT, authProvider);
     } else {
