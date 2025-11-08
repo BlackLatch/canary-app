@@ -3316,7 +3316,16 @@ const Home = () => {
               <SettingsView onBack={() => setCurrentView("checkin")} />
             ) : currentView === "monitor" ? (
               // Monitor View
-              <MonitorView onBack={() => setCurrentView("checkin")} />
+              <MonitorView
+                onBack={() => setCurrentView("checkin")}
+                onViewDossiers={(address: Address) => {
+                  // Navigate to dossiers view for the specified address
+                  fetchUserDossiers(address);
+                  setCurrentView("documents");
+                  // Update URL to reflect the address
+                  window.history.pushState({}, '', `/?user=${address}`);
+                }}
+              />
             ) : (
               // Documents View - Matching Public Releases Layout
               <div

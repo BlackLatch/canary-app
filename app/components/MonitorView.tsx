@@ -12,6 +12,7 @@ import { useBurnerWallet } from '../lib/burner-wallet-context';
 
 interface MonitorViewProps {
   onBack: () => void;
+  onViewDossiers: (address: Address) => void;
 }
 
 interface MonitoredContact {
@@ -24,13 +25,14 @@ interface MonitoredContact {
   address: Address | null;
 }
 
-export default function MonitorView({ onBack }: MonitorViewProps) {
+export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps) {
   const { theme } = useTheme();
   const [monitoredContacts, setMonitoredContacts] = useState<MonitoredContact[]>([]);
   const [newCodePhrase, setNewCodePhrase] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [subscriptions, setSubscriptions] = useState<Map<string, () => void>>(new Map());
+  const [addressInput, setAddressInput] = useState('');
 
   // Wallet hooks
   const { address } = useAccount();
@@ -217,6 +219,19 @@ export default function MonitorView({ onBack }: MonitorViewProps) {
     return date.toLocaleDateString();
   };
 
+  const handleViewDossiers = () => {
+    const trimmedAddress = addressInput.trim();
+
+    // Basic validation for Ethereum address
+    if (!trimmedAddress.startsWith('0x') || trimmedAddress.length !== 42) {
+      toast.error('Invalid Ethereum address format');
+      return;
+    }
+
+    onViewDossiers(trimmedAddress as Address);
+    setAddressInput('');
+  };
+
   return (
     <div className={`flex-1 overflow-auto ${theme === "light" ? "bg-white" : "bg-black"}`}>
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -239,8 +254,50 @@ export default function MonitorView({ onBack }: MonitorViewProps) {
             </h1>
           </div>
           <p className="editorial-body text-gray-600 dark:text-gray-400">
-            Monitor heartbeat status of trusted contacts using their code phrases
+            View dossiers by address or monitor heartbeat status of trusted contacts
           </p>
+        </div>
+
+        {/* View Dossiers by Address Section */}
+        <div className={`mb-8 p-6 rounded-lg border ${
+          theme === 'light'
+            ? 'bg-white border-gray-200'
+            : 'bg-black border-gray-700'
+        }`}>
+          <h2 className={`text-lg font-medium mb-4 ${
+            theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+          }`}>
+            View Dossiers by Address
+          </h2>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleViewDossiers();
+                }
+              }}
+              placeholder="Enter Ethereum address (0x...)"
+              className={`flex-1 px-3 py-2 rounded border font-mono text-sm ${
+                theme === 'light'
+                  ? 'bg-white border-gray-300 text-gray-900'
+                  : 'bg-black border-gray-600 text-white'
+              }`}
+            />
+            <button
+              onClick={handleViewDossiers}
+              disabled={!addressInput.trim()}
+              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-300 ease-out border disabled:opacity-50 disabled:cursor-not-allowed ${
+                theme === 'light'
+                  ? 'text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.05)]'
+                  : 'text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]'
+              }`}
+            >
+              View Dossiers
+            </button>
+          </div>
         </div>
 
         {/* Add Contact Section */}
