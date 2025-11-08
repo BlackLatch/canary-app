@@ -12,6 +12,7 @@ interface DossierDetailViewProps {
   theme: 'light' | 'dark';
   currentTime: Date;
   isOwner: boolean;
+  currentUserAddress?: Address | null;
   onBack: () => void;
   onCheckIn?: () => Promise<void>;
   onEditSchedule?: (newInterval: string) => void;
@@ -27,6 +28,7 @@ export default function DossierDetailView({
   theme,
   currentTime,
   isOwner,
+  currentUserAddress,
   onBack,
   onCheckIn,
   onEditSchedule,
@@ -107,7 +109,25 @@ export default function DossierDetailView({
     const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
     const remainingMs = intervalMs - timeSinceLastCheckIn;
     const isTimeExpired = remainingMs <= 0;
-    return (isTimeExpired || dossier.isReleased === true) && dossier.encryptedFileHashes.length > 0;
+
+    // Check if dossier is expired/released and has files
+    const isDecryptable = (isTimeExpired || dossier.isReleased === true) && dossier.encryptedFileHashes.length > 0;
+
+    if (!isDecryptable) return false;
+
+    // If it's a private dossier (has recipients beyond just the owner)
+    const isPrivate = dossier.recipients && dossier.recipients.length > 1;
+
+    if (isPrivate && currentUserAddress) {
+      // Check if current user is in the recipients list
+      const userIsRecipient = dossier.recipients?.some(
+        (recipient) => recipient.toLowerCase() === currentUserAddress.toLowerCase()
+      );
+      return userIsRecipient;
+    }
+
+    // For public dossiers, anyone can decrypt
+    return true;
   })();
 
   return (

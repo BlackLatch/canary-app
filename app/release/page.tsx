@@ -377,6 +377,7 @@ function ReleaseDetailContent() {
                 theme={theme}
                 currentTime={currentTime}
                 isOwner={isOwner}
+                currentUserAddress={connectedAddress}
                 onBack={() => router.push('/')}
                 onDecrypt={handleDecrypt}
               />

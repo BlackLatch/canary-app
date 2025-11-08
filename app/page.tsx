@@ -3765,12 +3765,28 @@ const Home = () => {
                                 const remainingMs =
                                   intervalMs - timeSinceLastCheckIn;
                                 const isTimeExpired = remainingMs <= 0;
-                                const shouldShowButton =
-                                  (isTimeExpired ||
-                                    selectedDocument.isDecryptable ||
-                                    selectedDocument.isReleased === true) &&
-                                  selectedDocument.encryptedFileHashes.length >
-                                    0;
+
+                                // Check if dossier is decryptable
+                                const isDecryptable = (isTimeExpired ||
+                                  selectedDocument.isDecryptable ||
+                                  selectedDocument.isReleased === true) &&
+                                selectedDocument.encryptedFileHashes.length > 0;
+
+                                // For private dossiers, check if current user is in recipients list
+                                const isPrivate = selectedDocument.recipients && selectedDocument.recipients.length > 1;
+                                let canAccessPrivate = true;
+                                if (isPrivate) {
+                                  const currentAddress = getCurrentAddress();
+                                  if (currentAddress) {
+                                    canAccessPrivate = selectedDocument.recipients?.some(
+                                      (recipient) => recipient.toLowerCase() === currentAddress.toLowerCase()
+                                    ) ?? false;
+                                  } else {
+                                    canAccessPrivate = false;
+                                  }
+                                }
+
+                                const shouldShowButton = isDecryptable && canAccessPrivate;
 
                                 return shouldShowButton ? (
                                   <button
