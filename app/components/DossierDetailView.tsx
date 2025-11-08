@@ -36,6 +36,17 @@ export default function DossierDetailView({
   isCheckingIn = false,
 }: DossierDetailViewProps) {
   const [showEditSchedule, setShowEditSchedule] = useState(false);
+  const [copiedOwner, setCopiedOwner] = useState(false);
+
+  const copyOwnerAddress = () => {
+    navigator.clipboard.writeText(owner).then(() => {
+      setCopiedOwner(true);
+      toast.success('Owner address copied!');
+      setTimeout(() => setCopiedOwner(false), 2000);
+    }).catch(() => {
+      toast.error('Failed to copy address');
+    });
+  };
 
   // Calculate status
   const getStatus = () => {
@@ -130,7 +141,7 @@ export default function DossierDetailView({
                   <h1 className="editorial-header-large text-black dark:text-gray-100 mb-2">
                     {dossier.name.replace('Encrypted file: ', '')}
                   </h1>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
                     <div className={`status-indicator text-xs ${getStatusClass()}`}>
                       <div className="status-dot"></div>
                       <span>{getStatusLabel()}</span>
@@ -138,6 +149,22 @@ export default function DossierDetailView({
                     <div className={`text-xs font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                       Dossier #{dossier.id.toString()}
                     </div>
+                    <button
+                      onClick={copyOwnerAddress}
+                      className={`flex items-center gap-1 text-xs font-medium font-mono transition-colors ${
+                        theme === 'light'
+                          ? 'text-gray-600 hover:text-gray-900'
+                          : 'text-gray-400 hover:text-gray-100'
+                      }`}
+                      title="Click to copy owner address"
+                    >
+                      <span>Owner: {owner.slice(0, 6)}...{owner.slice(-4)}</span>
+                      {copiedOwner ? (
+                        <CheckCircle className="w-3 h-3 text-green-500" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
                     {/* Release Visibility Badge */}
                     <div
                       className={`inline-flex items-center gap-2 px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
