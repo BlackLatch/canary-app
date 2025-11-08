@@ -487,22 +487,55 @@ class TacoService {
       const signerAddress = await signer.getAddress();
       console.log('   Signer address:', signerAddress);
 
-      // Clear any cached auth signatures from localStorage to force fresh signature generation
+      // Clear any cached auth signatures from localStorage AND sessionStorage
       // TACo nodes reject signatures older than 2 hours, so we always want a fresh one
-      if (typeof window !== 'undefined' && window.localStorage) {
-        // The EIP4361AuthProvider caches signatures with keys like 'taco-auth-<address>'
-        // Clear all taco-auth related keys to ensure fresh signature
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('taco-auth') || key.includes('eip4361') || key.includes('siwe'))) {
-            keysToRemove.push(key);
+      if (typeof window !== 'undefined') {
+        // Check and clear from localStorage
+        if (window.localStorage) {
+          console.log('   🔍 Checking localStorage for cached signatures...');
+          const localKeysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key) {
+              // Log all keys to debug
+              console.log('   📦 localStorage key:', key);
+              if (key.startsWith('taco') || key.includes('auth') || key.includes('eip4361') || key.includes('siwe') || key.includes('signature')) {
+                localKeysToRemove.push(key);
+              }
+            }
+          }
+          if (localKeysToRemove.length > 0) {
+            localKeysToRemove.forEach(key => {
+              console.log('   🗑️ Clearing localStorage key:', key);
+              localStorage.removeItem(key);
+            });
+          } else {
+            console.log('   ✓ No cached auth signatures found in localStorage');
           }
         }
-        keysToRemove.forEach(key => {
-          console.log('   🗑️ Clearing cached auth signature:', key);
-          localStorage.removeItem(key);
-        });
+
+        // Check and clear from sessionStorage
+        if (window.sessionStorage) {
+          console.log('   🔍 Checking sessionStorage for cached signatures...');
+          const sessionKeysToRemove: string[] = [];
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key) {
+              console.log('   📦 sessionStorage key:', key);
+              if (key.startsWith('taco') || key.includes('auth') || key.includes('eip4361') || key.includes('siwe') || key.includes('signature')) {
+                sessionKeysToRemove.push(key);
+              }
+            }
+          }
+          if (sessionKeysToRemove.length > 0) {
+            sessionKeysToRemove.forEach(key => {
+              console.log('   🗑️ Clearing sessionStorage key:', key);
+              sessionStorage.removeItem(key);
+            });
+          } else {
+            console.log('   ✓ No cached auth signatures found in sessionStorage');
+          }
+        }
       }
 
       // Create a fresh auth provider each time to avoid using stale cached signatures
