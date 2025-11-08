@@ -1815,6 +1815,11 @@ const Home = () => {
       logout();
     }
 
+    // Clear URL parameters to ensure sign-in screen shows
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/');
+    }
+
     // Reset all states and redirect to login
     setSignedIn(false);
     setAuthModeWithPersistence("standard");
@@ -1825,6 +1830,7 @@ const Home = () => {
     // Clear dossiers data
     setUserDossiers([]);
     setIsLoadingDossiers(true);
+    setViewingUserAddress(null);
 
     console.log("Logout complete");
   };
