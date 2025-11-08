@@ -497,9 +497,18 @@ class TacoService {
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key) {
-              // Log all keys to debug
-              console.log('   📦 localStorage key:', key);
-              if (key.startsWith('taco') || key.includes('auth') || key.includes('eip4361') || key.includes('siwe') || key.includes('signature')) {
+              // The EIP4361AuthProvider stores signatures as: eth-EIP4361-message-<address>
+              // Match: eth-EIP4361-message-, taco-auth, eip4361, siwe, or signature
+              const shouldRemove =
+                key.startsWith('eth-EIP4361-message-') ||
+                key.startsWith('taco') ||
+                key.includes('auth') ||
+                key.includes('eip4361') ||
+                key.includes('siwe') ||
+                key.includes('signature');
+
+              if (shouldRemove) {
+                console.log('   🎯 Found auth key to clear:', key);
                 localKeysToRemove.push(key);
               }
             }
@@ -521,8 +530,16 @@ class TacoService {
           for (let i = 0; i < sessionStorage.length; i++) {
             const key = sessionStorage.key(i);
             if (key) {
-              console.log('   📦 sessionStorage key:', key);
-              if (key.startsWith('taco') || key.includes('auth') || key.includes('eip4361') || key.includes('siwe') || key.includes('signature')) {
+              const shouldRemove =
+                key.startsWith('eth-EIP4361-message-') ||
+                key.startsWith('taco') ||
+                key.includes('auth') ||
+                key.includes('eip4361') ||
+                key.includes('siwe') ||
+                key.includes('signature');
+
+              if (shouldRemove) {
+                console.log('   🎯 Found auth key in sessionStorage:', key);
                 sessionKeysToRemove.push(key);
               }
             }
