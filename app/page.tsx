@@ -4025,16 +4025,37 @@ const Home = () => {
                       >
                         {!isViewingOwnDossiers() && viewingUserAddress ? (
                           <>
-                            <div className="flex items-baseline gap-3 mb-3 flex-wrap">
-                              <h1 className="editorial-header-large text-black dark:text-gray-100">
-                                DOSSIERS
-                              </h1>
-                              <span className={`text-3xl font-light ${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                /
-                              </span>
-                              <code className={`text-xl font-mono font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                                {viewingUserAddress}
-                              </code>
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-baseline gap-3 flex-wrap">
+                                <h1 className="editorial-header-large text-black dark:text-gray-100">
+                                  DOSSIERS
+                                </h1>
+                                <span className={`text-3xl font-light ${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  /
+                                </span>
+                                <code className={`text-xl font-mono font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                                  {viewingUserAddress}
+                                </code>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const currentAddress = getCurrentAddress();
+                                  if (currentAddress) {
+                                    fetchUserDossiers(currentAddress);
+                                    window.history.pushState({}, '', `/?user=${currentAddress}`);
+                                  }
+                                }}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                                  theme === 'light'
+                                    ? 'bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e]'
+                                    : 'bg-black text-gray-100 border-gray-600 hover:border-[#e53e3e]'
+                                }`}
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                                <span>MY DOSSIERS</span>
+                              </button>
                             </div>
                           </>
                         ) : (
