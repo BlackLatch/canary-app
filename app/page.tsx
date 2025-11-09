@@ -2940,9 +2940,52 @@ const Home = () => {
                   <div
                     className={`mb-12 border-b pb-8 ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
                   >
-                    <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
-                      CHECK IN
-                    </h1>
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h1 className="editorial-header-large text-black dark:text-gray-100">
+                          CHECK IN
+                        </h1>
+                      </div>
+                      {/* Share Status Button - Prominent in upper right */}
+                      <button
+                        onClick={() => {
+                          const currentAddress = getCurrentAddress();
+                          const shareUrl = `${window.location.origin}/?user=${currentAddress}`;
+                          navigator.clipboard
+                            .writeText(shareUrl)
+                            .then(() => {
+                              toast.success("Share link copied!", {
+                                duration: 3000,
+                              });
+                            })
+                            .catch(() => {
+                              toast.error("Failed to copy share link");
+                            });
+                        }}
+                        className={`px-6 py-3 rounded-lg font-medium text-sm uppercase tracking-wider transition-all duration-200 ${
+                          theme === "light"
+                            ? "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md"
+                            : "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                            />
+                          </svg>
+                          <span>SHARE STATUS</span>
+                        </div>
+                      </button>
+                    </div>
                     <p className="editorial-body dark:text-gray-400">
                       Maintain your system status and manage your encrypted
                       documents
@@ -3212,48 +3255,6 @@ const Home = () => {
                             </svg>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Share Status Button - Editorial Style */}
-                      <div className="mt-8">
-                        <button
-                          onClick={() => {
-                            const currentAddress = getCurrentAddress();
-                            const shareUrl = `${window.location.origin}/?user=${currentAddress}`;
-                            navigator.clipboard
-                              .writeText(shareUrl)
-                              .then(() => {
-                                toast.success("Share link copied!", {
-                                  duration: 3000,
-                                });
-                              })
-                              .catch(() => {
-                                toast.error("Failed to copy share link");
-                              });
-                          }}
-                          className={`w-full py-3 px-6 border rounded-lg font-medium text-sm uppercase tracking-wider transition-all duration-300 ease-out ${
-                            theme === "light"
-                              ? "border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:border-[#e53e3e]"
-                              : "border-gray-600 bg-black/40 text-gray-100 hover:bg-white/5 hover:border-[#e53e3e]"
-                          }`}
-                        >
-                          <div className="flex items-center justify-center gap-3">
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                              />
-                            </svg>
-                            <span>SHARE STATUS</span>
-                          </div>
-                        </button>
                       </div>
                     </div>
                   ) : !hasWalletConnection() ? (
