@@ -24,15 +24,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     return 'light'; // SSR default
   });
-  const [mounted, setMounted] = useState(false);
 
   // Apply theme immediately and set up listener
   useEffect(() => {
-    setMounted(true);
     // Apply the theme immediately
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
-    
+
     // Save to localStorage if not already saved
     if (!localStorage.getItem('theme')) {
       localStorage.setItem('theme', theme);
@@ -46,11 +44,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(newTheme);
   };
-
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
