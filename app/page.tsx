@@ -3791,209 +3791,33 @@ const Home = () => {
 
                                 return shouldShowButton ? (
                                   <button
-                                    onClick={async (e) => {
+                                    onClick={(e) => {
                                       e.stopPropagation();
-                                      // Add decrypt logic here (reuse from the card view)
-                                      let decryptToast: any;
-                                      try {
-                                        console.log(
-                                          "🔓 Attempting decryption for dossier:",
-                                          selectedDocument.id.toString(),
-                                        );
-
-                                        if (
-                                          selectedDocument.encryptedFileHashes
-                                            .length > 0
-                                        ) {
-                                          // Check if document is released
-                                          const isReleased = selectedDocument.isReleased === true;
-                                          const fileHashes = selectedDocument.encryptedFileHashes;
-
-                                          console.log(
-                                            isReleased
-                                              ? "🔓 Decrypting released dossier (deadman switch triggered)..."
-                                              : "🔓 Attempting to decrypt dossier...",
-                                          );
-                                          console.log(`📋 Total files to decrypt: ${fileHashes.length} (1 manifest + ${fileHashes.length - 1} files)`);
-
-                                          decryptToast = toast.loading(
-                                            "Decrypting manifest...",
-                                          );
-
-                                          // Initialize TACo
-                                          console.log(`🔧 Initializing TACo...`);
-                                          const { tacoService, DossierManifest } = await import("./lib/taco");
-                                          await tacoService.initialize();
-                                          console.log(`✅ TACo initialized`);
-
-                                          const { ThresholdMessageKit } = await import("@nucypher/taco");
-                                          const burnerWalletInstance = burnerWallet.wallet;
-
-                                          // Helper function to fetch and decrypt a file
-                                          const fetchAndDecrypt = async (fileHash: string, description: string) => {
-                                            const ipfsHash = fileHash.replace("ipfs://", "");
-                                            const ipfsGateways = [
-                                              `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-                                              `https://ipfs.io/ipfs/${ipfsHash}`,
-                                              `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
-                                            ];
-
-                                            console.log(`📥 Fetching ${description} from IPFS...`);
-                                            let retrievedData: Uint8Array | null = null;
-
-                                            for (const gateway of ipfsGateways) {
-                                              try {
-                                                const response = await fetch(gateway);
-                                                if (response.ok) {
-                                                  const arrayBuffer = await response.arrayBuffer();
-                                                  retrievedData = new Uint8Array(arrayBuffer);
-                                                  console.log(`✅ Retrieved ${description} (${retrievedData.length} bytes)`);
-                                                  break;
-                                                }
-                                              } catch (error) {
-                                                console.log(`❌ Gateway failed:`, gateway);
-                                              }
-                                            }
-
-                                            if (!retrievedData) {
-                                              throw new Error(`Failed to retrieve ${description} from IPFS`);
-                                            }
-
-                                            // Reconstruct and decrypt
-                                            console.log(`🔓 Decrypting ${description}...`);
-                                            const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
-                                            const decryptedData = await tacoService.decryptFile(messageKit, burnerWalletInstance);
-                                            console.log(`✅ ${description} decrypted (${decryptedData.length} bytes)`);
-
-                                            return decryptedData;
-                                          };
-
-                                          // Step 1: Decrypt manifest (first file)
-                                          console.log(`📋 Step 1/${fileHashes.length}: Decrypting manifest...`);
-                                          const manifestData = await fetchAndDecrypt(fileHashes[0], "manifest");
-                                          const manifestJson = new TextDecoder().decode(manifestData);
-                                          const manifest: DossierManifest = JSON.parse(manifestJson);
-                                          console.log(`✅ Manifest loaded:`, manifest);
-
-                                          // Step 2: Decrypt all user files
-                                          const decryptedFiles: Array<{ data: Uint8Array; metadata: any }> = [];
-
-                                          for (let i = 1; i < fileHashes.length; i++) {
-                                            const fileMetadata = manifest.files[i - 1]; // Manifest.files doesn't include manifest itself
-                                            const fileNum = i;
-                                            const totalFiles = fileHashes.length - 1;
-
-                                            console.log(`📄 Step ${i + 1}/${fileHashes.length}: Decrypting ${fileMetadata.name}...`);
-                                            toast.loading(
-                                              `Decrypting file ${fileNum}/${totalFiles}: ${fileMetadata.name}`,
-                                              { id: decryptToast }
-                                            );
-
-                                            const decryptedData = await fetchAndDecrypt(
-                                              fileHashes[i],
-                                              `file ${fileNum}/${totalFiles} (${fileMetadata.name})`
-                                            );
-
-                                            decryptedFiles.push({
-                                              data: decryptedData,
-                                              metadata: fileMetadata
-                                            });
-                                          }
-
-                                          // Step 3: Download or view files
-                                          console.log(`✅ All files decrypted! Processing ${decryptedFiles.length} files...`);
-                                          toast.success(
-                                            `All ${decryptedFiles.length} files decrypted successfully!`,
-                                            { id: decryptToast }
-                                          );
-
-                                          // Download each file with original name
-                                          for (const { data, metadata } of decryptedFiles) {
-                                            const blob = new Blob([data], { type: metadata.type });
-                                            const url = URL.createObjectURL(blob);
-
-                                            // Check if it's a media file that can be viewed in browser
-                                            const isMedia = metadata.type.startsWith('image/') ||
-                                                          metadata.type.startsWith('video/') ||
-                                                          metadata.type.startsWith('audio/') ||
-                                                          metadata.type === 'application/pdf';
-
-                                            if (isMedia) {
-                                              // Open in new tab for viewing
-                                              window.open(url, '_blank');
-                                              console.log(`👁️ Opened ${metadata.name} for viewing in browser`);
-                                            }
-
-                                            // Always download as well
-                                            const link = document.createElement("a");
-                                            link.href = url;
-                                            link.download = metadata.name;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-
-                                            // Don't revoke URL immediately if viewing in browser
-                                            if (!isMedia) {
-                                              URL.revokeObjectURL(url);
-                                            } else {
-                                              // Revoke after a delay to allow the tab to load
-                                              setTimeout(() => URL.revokeObjectURL(url), 5000);
-                                            }
-
-                                            console.log(`💾 Downloaded ${metadata.name}`);
-                                          }
-
-                                          setActivityLog((prev) => [
-                                            {
-                                              type: isReleased
-                                                ? `🔓 Released dossier #${selectedDocument.id.toString()} decrypted: ${decryptedFiles.length} file(s) downloaded (deadman switch triggered)`
-                                                : `🔓 Dossier #${selectedDocument.id.toString()} decrypted: ${decryptedFiles.length} file(s) downloaded`,
-                                              date: new Date().toLocaleString(),
-                                            },
-                                            ...prev,
-                                          ]);
-                                        } else {
-                                          toast.error(
-                                            `No encrypted files found in this dossier. Dossier #${selectedDocument.id.toString()} appears to be empty or corrupted.`,
-                                          );
-                                        }
-                                      } catch (error) {
-                                        console.error(
-                                          "❌ Decryption failed:",
-                                          error,
-                                        );
-                                        toast.error(
-                                          `Failed to decrypt document: ${error}`,
-                                          { id: decryptToast },
-                                        );
+                                      // Navigate to dedicated dossier view page
+                                      const owner = viewingUserAddress || getCurrentAddress();
+                                      if (owner) {
+                                        router.push(`/release?user=${owner}&id=${selectedDocument.id.toString()}`);
+                                      } else {
+                                        toast.error('Unable to view dossier: No wallet address found');
                                       }
                                     }}
-                                    disabled={false}
                                     className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
                                       theme === "light"
-                                        ? "bg-white text-gray-900 hover:bg-gray-50 border-gray-300"
-                                        : "bg-transparent text-gray-100 hover:bg-white/10 border-gray-600"
+                                        ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                                        : "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
                                     }`}
                                   >
                                     <div className="flex items-center justify-center gap-2">
-                                      <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                        />
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                       </svg>
-                                      <span>DOWNLOAD</span>
+                                      <span>VIEW DOSSIER</span>
                                     </div>
                                   </button>
                                 ) : null;
                               })()}
+
 
                               {/* Pause/Resume Button - Hidden if released or permanently disabled */}
                               {selectedDocument.isPermanentlyDisabled !==
