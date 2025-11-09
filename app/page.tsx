@@ -4023,34 +4023,34 @@ const Home = () => {
                       <div
                         className={`mb-12 border-b pb-8 ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
                       >
-                        {!isViewingOwnDossiers() && viewingUserAddress ? (
-                          <>
-                            <div className="flex items-center gap-3 mb-3">
-                              <h1 className="editorial-header-large text-black dark:text-gray-100">
-                                DOSSIERS
-                              </h1>
-                              <span className={`text-2xl font-light ${theme === 'light' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                /
-                              </span>
-                              <code className={`text-xl font-mono font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                                {viewingUserAddress.slice(0, 6)}...{viewingUserAddress.slice(-4)}
-                              </code>
+                        <div className="flex items-start justify-between mb-3">
+                          <h1 className="editorial-header-large text-black dark:text-gray-100">
+                            DOSSIERS
+                          </h1>
+                          {!isViewingOwnDossiers() && viewingUserAddress && (
+                            <div className={`px-4 py-2 rounded border-2 transition-all duration-200 ${
+                              theme === 'light'
+                                ? 'bg-white border-gray-300 hover:border-[#e53e3e]'
+                                : 'bg-black border-gray-600 hover:border-[#e53e3e]'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <svg className={`w-4 h-4 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <code className={`text-sm font-mono font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                                  {viewingUserAddress.slice(0, 6)}...{viewingUserAddress.slice(-4)}
+                                </code>
+                              </div>
                             </div>
-                            <p className="editorial-body dark:text-gray-400">
-                              Viewing dossiers for {viewingUserAddress}
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
-                              DOSSIERS
-                            </h1>
-                            <p className="editorial-body dark:text-gray-400">
-                              Create and manage encrypted dossiers with conditional
-                              release triggers
-                            </p>
-                          </>
-                        )}
+                          )}
+                        </div>
+                        <p className="editorial-body dark:text-gray-400">
+                          {!isViewingOwnDossiers() && viewingUserAddress
+                            ? `Viewing dossiers for ${viewingUserAddress}`
+                            : 'Create and manage encrypted dossiers with conditional release triggers'
+                          }
+                        </p>
                       </div>
 
                       {/* Documents Content */}
