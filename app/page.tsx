@@ -4570,8 +4570,7 @@ const Home = () => {
                                               // Show VIEW RELEASE for expired/released documents (but NOT permanently disabled)
                                               const isReleasedOrExpired =
                                                 (dossier.isReleased === true ||
-                                                (!dossier.isActive &&
-                                                  fullyExpired)) &&
+                                                  fullyExpired) &&
                                                 dossier.isPermanentlyDisabled !== true;
 
                                               return (
