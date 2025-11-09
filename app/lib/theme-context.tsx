@@ -12,42 +12,37 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Initialize theme immediately on client side to prevent flash
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme') as Theme | null;
-      if (savedTheme) {
-        return savedTheme;
-      }
-      // Default to light theme
-      return 'light';
-    }
-    return 'light'; // SSR default
-  });
+  const [theme, setTheme] = useState<Theme>('light'); // Always start with light to match SSR
+  const [mounted, setMounted] = useState(false);
 
-  // Apply theme immediately and set up listener
+  // Load theme from localStorage after mounting
   useEffect(() => {
-    // Apply the theme immediately
+    const savedTheme = localStorage.getItem('theme') as Theme | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+    setMounted(true);
+  }, []);
+
+  // Apply theme to document whenever it changes
+  useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
-
-    // Save to localStorage if not already saved
-    if (!localStorage.getItem('theme')) {
-      localStorage.setItem('theme', theme);
-    }
+    localStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(newTheme);
   };
 
+  // Provide the current theme immediately, even before mounting
+  // This prevents useTheme() from returning the default 'light' value
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
+      <div suppressHydrationWarning>
+        {children}
+      </div>
     </ThemeContext.Provider>
   );
 }
