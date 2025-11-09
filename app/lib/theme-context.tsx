@@ -12,17 +12,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light'); // Always start with light to match SSR
-  const [mounted, setMounted] = useState(false);
-
-  // Load theme from localStorage after mounting
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
+  // Read theme synchronously from localStorage on client, or use 'light' for SSR
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme') as Theme | null;
+      return savedTheme || 'light';
     }
-    setMounted(true);
-  }, []);
+    return 'light'; // SSR default
+  });
 
   // Apply theme to document whenever it changes
   useEffect(() => {
@@ -36,13 +33,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(newTheme);
   };
 
-  // Provide the current theme immediately, even before mounting
-  // This prevents useTheme() from returning the default 'light' value
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div suppressHydrationWarning>
-        {children}
-      </div>
+      {children}
     </ThemeContext.Provider>
   );
 }
