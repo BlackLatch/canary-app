@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, ChevronLeft, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, AlertCircle, ExternalLink } from 'lucide-react';
 import { useTheme } from '../lib/theme-context';
-import { getHeartbeatService } from '../lib/heartbeat';
 import toast from 'react-hot-toast';
-import { Address } from 'viem';
+import { Address, isAddress } from 'viem';
 import { useAccount } from 'wagmi';
-import { usePrivy } from '@privy-io/react-auth';
 import { useBurnerWallet } from '../lib/burner-wallet-context';
 
 interface MonitorViewProps {
@@ -15,51 +13,43 @@ interface MonitorViewProps {
   onViewDossiers: (address: Address) => void;
 }
 
-interface MonitoredContact {
+interface EmergencyContact {
   id: string;
-  codePhrase: string;
+  address: Address;
   label: string;
   addedAt: number;
-  lastHeartbeat: number | null;
-  isAlive: boolean;
-  address: Address | null;
 }
 
 export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps) {
   const { theme } = useTheme();
-  const [monitoredContacts, setMonitoredContacts] = useState<MonitoredContact[]>([]);
-  const [newCodePhrase, setNewCodePhrase] = useState('');
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [newAddress, setNewAddress] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [isAddingContact, setIsAddingContact] = useState(false);
-  const [subscriptions, setSubscriptions] = useState<Map<string, () => void>>(new Map());
-  const [addressInput, setAddressInput] = useState('');
 
   // Wallet hooks
   const { address } = useAccount();
-  const { wallets } = usePrivy();
   const burnerWallet = useBurnerWallet();
-
-  const heartbeatService = getHeartbeatService();
 
   // Helper to get current address (prioritize burner wallet)
   const getCurrentAddress = () => {
-    return burnerWallet.address || address || (wallets && wallets.length > 0 ? wallets[0]?.address : null);
+    return burnerWallet.address || address || null;
   };
 
   // Get storage key for current account
   const getStorageKey = () => {
     const currentAddress = getCurrentAddress();
     if (!currentAddress) return null;
-    return `canary-monitored-contacts-${currentAddress.toLowerCase()}`;
+    return `canary-emergency-contacts-${currentAddress.toLowerCase()}`;
   };
 
-  // Load monitored contacts from localStorage for current account
+  // Load emergency contacts from localStorage for current account
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storageKey = getStorageKey();
       if (!storageKey) {
-        console.log('No wallet connected, cannot load monitored contacts');
-        setMonitoredContacts([]);
+        console.log('No wallet connected, cannot load emergency contacts');
+        setEmergencyContacts([]);
         return;
       }
 
@@ -67,24 +57,14 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
       if (saved) {
         try {
           const contacts = JSON.parse(saved);
-          setMonitoredContacts(contacts);
-
-          // Subscribe to each contact
-          contacts.forEach((contact: MonitoredContact) => {
-            subscribeToContact(contact);
-          });
+          setEmergencyContacts(contacts);
         } catch (error) {
-          console.error('Failed to load monitored contacts:', error);
+          console.error('Failed to load emergency contacts:', error);
         }
       } else {
-        setMonitoredContacts([]);
+        setEmergencyContacts([]);
       }
     }
-
-    // Cleanup subscriptions on unmount
-    return () => {
-      subscriptions.forEach(unsubscribe => unsubscribe());
-    };
   }, [getCurrentAddress()]);
 
   // Save contacts to localStorage whenever they change
@@ -93,143 +73,69 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
       const storageKey = getStorageKey();
       if (!storageKey) return;
 
-      localStorage.setItem(storageKey, JSON.stringify(monitoredContacts));
+      localStorage.setItem(storageKey, JSON.stringify(emergencyContacts));
     }
-  }, [monitoredContacts]);
+  }, [emergencyContacts]);
 
-  const subscribeToContact = async (contact: MonitoredContact) => {
-    try {
-      const unsubscribe = await heartbeatService.subscribeToHeartbeat(
-        contact.codePhrase,
-        (heartbeat) => {
-          setMonitoredContacts(prev =>
-            prev.map(c =>
-              c.id === contact.id
-                ? {
-                    ...c,
-                    lastHeartbeat: heartbeat.timestamp,
-                    isAlive: heartbeat.isAlive,
-                    address: heartbeat.address || c.address,
-                  }
-                : c
-            )
-          );
+  const addContact = () => {
+    const trimmedAddress = newAddress.trim();
+    const trimmedLabel = newLabel.trim();
 
-          // Show notification if contact goes offline
-          if (!heartbeat.isAlive) {
-            toast.error(`⚠️ ${contact.label} heartbeat timeout!`, {
-              duration: 10000,
-            });
-          }
-        }
-      );
-
-      setSubscriptions(prev => new Map(prev).set(contact.id, unsubscribe));
-    } catch (error) {
-      console.error('Failed to subscribe to contact:', error);
-      toast.error(`Failed to subscribe to ${contact.label}`);
-    }
-  };
-
-  const addContact = async () => {
-    if (!newCodePhrase.trim() || !newLabel.trim()) {
-      toast.error('Please enter both a code phrase and a label');
+    if (!trimmedAddress || !trimmedLabel) {
+      toast.error('Please enter both an address and a label');
       return;
     }
 
-    // Validate code phrase format (should be word-word-word)
-    const codePhraseRegex = /^[a-z]+-[a-z]+-[a-z]+$/;
-    if (!codePhraseRegex.test(newCodePhrase.trim())) {
-      toast.error('Invalid code phrase format. Should be: word-word-word');
-      return;
-    }
-
-    const newContact: MonitoredContact = {
-      id: `${Date.now()}-${Math.random()}`,
-      codePhrase: newCodePhrase.trim(),
-      label: newLabel.trim(),
-      addedAt: Date.now(),
-      lastHeartbeat: null,
-      isAlive: false,
-      address: null,
-    };
-
-    setMonitoredContacts(prev => [...prev, newContact]);
-
-    // Subscribe to the new contact
-    await subscribeToContact(newContact);
-
-    // Reset form
-    setNewCodePhrase('');
-    setNewLabel('');
-    setIsAddingContact(false);
-
-    toast.success(`Now monitoring ${newContact.label}`);
-  };
-
-  const removeContact = (contactId: string) => {
-    const contact = monitoredContacts.find(c => c.id === contactId);
-    if (!contact) return;
-
-    if (confirm(`Stop monitoring ${contact.label}?`)) {
-      // Unsubscribe
-      const unsubscribe = subscriptions.get(contactId);
-      if (unsubscribe) {
-        unsubscribe();
-        subscriptions.delete(contactId);
-      }
-
-      setMonitoredContacts(prev => prev.filter(c => c.id !== contactId));
-      toast.success(`Stopped monitoring ${contact.label}`);
-    }
-  };
-
-  const getStatusColor = (contact: MonitoredContact) => {
-    if (!contact.lastHeartbeat) return 'gray';
-    if (contact.isAlive) return 'green';
-    return 'red';
-  };
-
-  const getStatusText = (contact: MonitoredContact) => {
-    if (!contact.lastHeartbeat) return 'Waiting for signal...';
-    if (contact.isAlive) return 'Online';
-    return 'Offline (Timeout)';
-  };
-
-  const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = Date.now();
-    const diff = now - timestamp;
-
-    // Less than 1 minute
-    if (diff < 60 * 1000) {
-      return 'Just now';
-    }
-    // Less than 1 hour
-    if (diff < 60 * 60 * 1000) {
-      const minutes = Math.floor(diff / (60 * 1000));
-      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-    }
-    // Less than 1 day
-    if (diff < 24 * 60 * 60 * 1000) {
-      const hours = Math.floor(diff / (60 * 60 * 1000));
-      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-    }
-    // More than 1 day
-    return date.toLocaleDateString();
-  };
-
-  const handleViewDossiers = () => {
-    const trimmedAddress = addressInput.trim();
-
-    // Basic validation for Ethereum address
-    if (!trimmedAddress.startsWith('0x') || trimmedAddress.length !== 42) {
+    // Validate Ethereum address
+    if (!isAddress(trimmedAddress)) {
       toast.error('Invalid Ethereum address format');
       return;
     }
 
-    onViewDossiers(trimmedAddress as Address);
-    setAddressInput('');
+    // Check for duplicates
+    const normalizedAddress = trimmedAddress.toLowerCase();
+    if (emergencyContacts.some(c => c.address.toLowerCase() === normalizedAddress)) {
+      toast.error('This address is already in your emergency contacts');
+      return;
+    }
+
+    const newContact: EmergencyContact = {
+      id: `${Date.now()}-${Math.random()}`,
+      address: trimmedAddress as Address,
+      label: trimmedLabel,
+      addedAt: Date.now(),
+    };
+
+    setEmergencyContacts(prev => [...prev, newContact]);
+
+    // Reset form
+    setNewAddress('');
+    setNewLabel('');
+    setIsAddingContact(false);
+
+    toast.success(`Added ${newContact.label} to emergency contacts`);
+  };
+
+  const removeContact = (contactId: string) => {
+    const contact = emergencyContacts.find(c => c.id === contactId);
+    if (!contact) return;
+
+    if (confirm(`Remove ${contact.label} from emergency contacts?`)) {
+      setEmergencyContacts(prev => prev.filter(c => c.id !== contactId));
+      toast.success(`Removed ${contact.label}`);
+    }
+  };
+
+  const handleContactClick = (contact: EmergencyContact) => {
+    onViewDossiers(contact.address);
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   return (
@@ -250,54 +156,12 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
               <ChevronLeft className="w-5 h-5" />
             </button>
             <h1 className="editorial-header-large text-gray-900 dark:text-gray-100">
-              MONITOR
+              EMERGENCY CONTACTS
             </h1>
           </div>
           <p className="editorial-body text-gray-600 dark:text-gray-400">
-            View dossiers by address or monitor heartbeat status of trusted contacts
+            Manage your emergency contacts and view their dossiers
           </p>
-        </div>
-
-        {/* View Dossiers by Address Section */}
-        <div className={`mb-8 p-6 rounded-lg border ${
-          theme === 'light'
-            ? 'bg-white border-gray-200'
-            : 'bg-black border-gray-700'
-        }`}>
-          <h2 className={`text-lg font-medium mb-4 ${
-            theme === 'light' ? 'text-gray-900' : 'text-gray-100'
-          }`}>
-            View Dossiers by Address
-          </h2>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={addressInput}
-              onChange={(e) => setAddressInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleViewDossiers();
-                }
-              }}
-              placeholder="Enter Ethereum address (0x...)"
-              className={`flex-1 px-3 py-2 rounded border font-mono text-sm ${
-                theme === 'light'
-                  ? 'bg-white border-gray-300 text-gray-900'
-                  : 'bg-black border-gray-600 text-white'
-              }`}
-            />
-            <button
-              onClick={handleViewDossiers}
-              disabled={!addressInput.trim()}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-300 ease-out border disabled:opacity-50 disabled:cursor-not-allowed ${
-                theme === 'light'
-                  ? 'text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.05)]'
-                  : 'text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]'
-              }`}
-            >
-              View Dossiers
-            </button>
-          </div>
         </div>
 
         {/* Add Contact Section */}
@@ -310,7 +174,7 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
             <h2 className={`text-lg font-medium ${
               theme === 'light' ? 'text-gray-900' : 'text-gray-100'
             }`}>
-              Add Contact to Monitor
+              Add Emergency Contact
             </h2>
             {!isAddingContact && (
               <button
@@ -352,13 +216,18 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
                 <label className={`text-sm font-medium block mb-2 ${
                   theme === 'light' ? 'text-gray-700' : 'text-gray-300'
                 }`}>
-                  Code Phrase
+                  Ethereum Address
                 </label>
                 <input
                   type="text"
-                  value={newCodePhrase}
-                  onChange={(e) => setNewCodePhrase(e.target.value.toLowerCase())}
-                  placeholder="word-word-word"
+                  value={newAddress}
+                  onChange={(e) => setNewAddress(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      addContact();
+                    }
+                  }}
+                  placeholder="0x..."
                   className={`w-full px-3 py-2 rounded border font-mono ${
                     theme === 'light'
                       ? 'bg-white border-gray-300 text-gray-900'
@@ -368,7 +237,7 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
                 <p className={`text-xs mt-1 ${
                   theme === 'light' ? 'text-gray-500' : 'text-gray-500'
                 }`}>
-                  Enter the 3-word code phrase shared by the contact (format: word-word-word)
+                  Enter the Ethereum address of your emergency contact
                 </p>
               </div>
 
@@ -381,12 +250,12 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
                       : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
                 >
-                  Add & Subscribe
+                  Add Contact
                 </button>
                 <button
                   onClick={() => {
                     setIsAddingContact(false);
-                    setNewCodePhrase('');
+                    setNewAddress('');
                     setNewLabel('');
                   }}
                   className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
@@ -401,121 +270,77 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
             </div>
           )}
 
-          {!isAddingContact && monitoredContacts.length === 0 && (
+          {!isAddingContact && emergencyContacts.length === 0 && (
             <p className={`text-sm ${
               theme === 'light' ? 'text-gray-600' : 'text-gray-400'
             }`}>
-              No contacts being monitored yet. Click "Add Contact" to start.
+              No emergency contacts added yet. Click "Add Contact" to start.
             </p>
           )}
         </div>
 
-        {/* Monitored Contacts List */}
-        {monitoredContacts.length > 0 && (
+        {/* Emergency Contacts List */}
+        {emergencyContacts.length > 0 && (
           <div className="space-y-4">
             <h2 className={`text-lg font-medium ${
               theme === 'light' ? 'text-gray-900' : 'text-gray-100'
             }`}>
-              Monitored Contacts ({monitoredContacts.length})
+              Your Emergency Contacts ({emergencyContacts.length})
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {monitoredContacts.map(contact => {
-                const statusColor = getStatusColor(contact);
-                const statusText = getStatusText(contact);
-
-                return (
-                  <div
-                    key={contact.id}
-                    className={`p-4 rounded-lg border ${
-                      theme === 'light'
-                        ? 'bg-white border-gray-200'
-                        : 'bg-black border-gray-700'
-                    }`}
-                  >
-                    {/* Contact Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className={`font-medium mb-1 ${
+            <div className="space-y-2">
+              {emergencyContacts.map(contact => (
+                <div
+                  key={contact.id}
+                  onClick={() => handleContactClick(contact)}
+                  className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                    theme === 'light'
+                      ? 'bg-white border-gray-200 hover:border-blue-400 hover:shadow-md'
+                      : 'bg-black border-gray-700 hover:border-blue-600 hover:bg-gray-900/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className={`font-medium text-lg ${
                           theme === 'light' ? 'text-gray-900' : 'text-gray-100'
                         }`}>
                           {contact.label}
                         </h3>
-                        <code className={`text-xs font-mono ${
+                        <ExternalLink className={`w-4 h-4 ${
+                          theme === 'light' ? 'text-gray-400' : 'text-gray-500'
+                        }`} />
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <code className={`text-sm font-mono ${
                           theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                         }`}>
-                          {contact.codePhrase}
+                          {contact.address}
                         </code>
-                      </div>
-                      <button
-                        onClick={() => removeContact(contact.id)}
-                        className={`p-1 rounded transition-colors ${
-                          theme === 'light'
-                            ? 'hover:bg-red-50 text-red-600'
-                            : 'hover:bg-red-900/20 text-red-400'
-                        }`}
-                        title="Remove contact"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Status Indicator */}
-                    <div className={`p-3 rounded-lg mb-3 ${
-                      statusColor === 'green'
-                        ? theme === 'light'
-                          ? 'bg-green-50 border border-green-200'
-                          : 'bg-green-900/10 border border-green-800'
-                        : statusColor === 'red'
-                          ? theme === 'light'
-                            ? 'bg-red-50 border border-red-200'
-                            : 'bg-red-900/10 border border-red-800'
-                          : theme === 'light'
-                            ? 'bg-gray-50 border border-gray-200'
-                            : 'bg-white/5 border border-gray-700'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className={`w-2 h-2 rounded-full ${
-                          statusColor === 'green'
-                            ? 'bg-green-500 animate-pulse'
-                            : statusColor === 'red'
-                              ? 'bg-red-500'
-                              : 'bg-gray-400'
-                        }`} />
-                        <span className={`text-sm font-medium ${
-                          statusColor === 'green'
-                            ? theme === 'light' ? 'text-green-700' : 'text-green-400'
-                            : statusColor === 'red'
-                              ? theme === 'light' ? 'text-red-700' : 'text-red-400'
-                              : theme === 'light' ? 'text-gray-700' : 'text-gray-400'
+                        <span className={`text-xs ${
+                          theme === 'light' ? 'text-gray-500' : 'text-gray-500'
                         }`}>
-                          {statusText}
+                          Added {formatDate(contact.addedAt)}
                         </span>
                       </div>
-                      {contact.lastHeartbeat && (
-                        <p className={`text-xs ${
-                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                        }`}>
-                          Last seen: {formatTimestamp(contact.lastHeartbeat)}
-                        </p>
-                      )}
                     </div>
-
-                    {/* Address */}
-                    {contact.address && (
-                      <div className={`text-xs ${
-                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                      }`}>
-                        <span className="font-medium">Address:</span>
-                        <br />
-                        <code className="font-mono">
-                          {contact.address.slice(0, 6)}...{contact.address.slice(-4)}
-                        </code>
-                      </div>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeContact(contact.id);
+                      }}
+                      className={`p-2 rounded transition-colors ${
+                        theme === 'light'
+                          ? 'hover:bg-red-50 text-red-600'
+                          : 'hover:bg-red-900/20 text-red-400'
+                      }`}
+                      title="Remove contact"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -534,15 +359,15 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
               <h3 className={`font-medium mb-2 ${
                 theme === 'light' ? 'text-gray-900' : 'text-gray-100'
               }`}>
-                How Monitoring Works
+                About Emergency Contacts
               </h3>
               <ul className={`text-sm space-y-1 ${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
               }`}>
-                <li>• Contacts must have heartbeat enabled and share their code phrase with you</li>
-                <li>• You'll receive real-time updates about their status via the Waku network</li>
-                <li>• If no heartbeat is received for 15 minutes, you'll be notified of a timeout</li>
-                <li>• Monitored contacts are saved per wallet address - switch accounts to see different lists</li>
+                <li>• Add trusted contacts by their Ethereum address for quick access to their dossiers</li>
+                <li>• Click on any contact to view all dossiers they've created</li>
+                <li>• Contacts are saved per wallet address - switch accounts to see different lists</li>
+                <li>• Use this to keep track of people you trust in emergency situations</li>
               </ul>
             </div>
           </div>
