@@ -3420,13 +3420,13 @@ const Home = () => {
                                             selectedDocument.isPermanentlyDisabled ===
                                             true
                                           )
-                                            return "Permanently Disabled";
+                                            return "PERMANENTLY DISABLED";
                                           if (
                                             selectedDocument.isReleased === true
                                           )
-                                            return "Released";
+                                            return "MANUALLY RELEASED";
                                           if (!selectedDocument.isActive)
-                                            return "Paused";
+                                            return "PAUSED";
 
                                           const lastCheckInMs =
                                             Number(
@@ -4289,13 +4289,13 @@ const Home = () => {
                                         timeDisplay = "Permanently Disabled";
                                         timeColor = "text-red-500";
                                       } else if (dossier.isReleased === true) {
-                                        timeDisplay = "Released";
-                                        timeColor = "text-green-500";
+                                        timeDisplay = "RELEASED";
+                                        timeColor = "text-red-600";
                                       } else if (!dossier.isActive) {
                                         timeDisplay = "Paused";
                                         timeColor = "text-yellow-500";
                                       } else if (fullyExpired) {
-                                        timeDisplay = "⚠ FULLY EXPIRED";
+                                        timeDisplay = "⚠ EXPIRED";
                                         timeColor = "text-red-600";
                                       } else if (inGracePeriod) {
                                         timeDisplay = "⚠ IN GRACE PERIOD";
@@ -4377,6 +4377,10 @@ const Home = () => {
 
                                               <div
                                                 className={`status-indicator flex-shrink-0 ${(() => {
+                                                  // Manual release takes priority
+                                                  if (dossier.isReleased === true)
+                                                    return "status-released-manual";
+
                                                   if (!dossier.isActive)
                                                     return "status-inactive";
 
@@ -4405,8 +4409,12 @@ const Home = () => {
                                                 <div className="status-dot"></div>
                                                 <span>
                                                   {(() => {
+                                                    // Manual release takes priority
+                                                    if (dossier.isReleased === true)
+                                                      return "MANUALLY RELEASED";
+
                                                     if (!dossier.isActive)
-                                                      return "Inactive";
+                                                      return "INACTIVE";
 
                                                     const lastCheckInMs =
                                                       Number(
@@ -4426,8 +4434,8 @@ const Home = () => {
                                                       remainingMs <= 0;
 
                                                     return isTimeExpired
-                                                      ? "Released"
-                                                      : "Active";
+                                                      ? "RELEASED"
+                                                      : "ACTIVE";
                                                   })()}
                                                 </span>
                                               </div>
