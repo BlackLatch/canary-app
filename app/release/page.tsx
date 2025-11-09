@@ -11,7 +11,25 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useAccount } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import DossierDetailView from '@/app/components/DossierDetailView';
+import DecryptionView from '@/app/components/DecryptionView';
 import Link from 'next/link';
+
+interface DecryptedFile {
+  data: Uint8Array;
+  metadata: {
+    name: string;
+    type: string;
+    size: number;
+  };
+}
+
+interface DecryptionProgress {
+  stage: 'fetching' | 'decrypting' | 'complete' | 'error';
+  currentFile: number;
+  totalFiles: number;
+  currentFileName?: string;
+  error?: string;
+}
 
 function ReleaseDetailContent() {
   const searchParams = useSearchParams();
@@ -36,6 +54,15 @@ function ReleaseDetailContent() {
   const [dossier, setDossier] = useState<Dossier | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Decryption state
+  const [showDecryptionView, setShowDecryptionView] = useState(false);
+  const [decryptionProgress, setDecryptionProgress] = useState<DecryptionProgress>({
+    stage: 'fetching',
+    currentFile: 0,
+    totalFiles: 0,
+  });
+  const [decryptedFiles, setDecryptedFiles] = useState<DecryptedFile[]>([]);
 
   // Update time every second for accurate status display
   useEffect(() => {
@@ -70,7 +97,6 @@ function ReleaseDetailContent() {
   const handleDecrypt = async () => {
     if (!dossier || !user || dossierId === null) return;
 
-    let decryptToast: any;
     try {
       console.log('🔓 Attempting decryption for dossier:', dossierId.toString());
 
@@ -89,18 +115,24 @@ function ReleaseDetailContent() {
       );
       console.log(`📋 Total files to decrypt: ${fileHashes.length} (1 manifest + ${fileHashes.length - 1} files)`);
 
-      decryptToast = toast.loading('Decrypting manifest...');
+      // Open decryption view and initialize progress
+      setShowDecryptionView(true);
+      setDecryptedFiles([]);
+      setDecryptionProgress({
+        stage: 'fetching',
+        currentFile: 0,
+        totalFiles: fileHashes.length,
+      });
 
       // Initialize TACo
       console.log(`🔧 Initializing TACo...`);
-      const { DossierManifest } = await import('@/app/lib/taco');
       await tacoService.initialize();
       console.log(`✅ TACo initialized`);
 
       const { ThresholdMessageKit } = await import('@nucypher/taco');
 
       // Helper function to fetch and decrypt a file
-      const fetchAndDecrypt = async (fileHash: string, description: string) => {
+      const fetchAndDecrypt = async (fileHash: string, description: string, fileName?: string) => {
         const ipfsHash = fileHash.replace('ipfs://', '');
         const ipfsGateways = [
           `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
@@ -109,6 +141,12 @@ function ReleaseDetailContent() {
         ];
 
         console.log(`📥 Fetching ${description} from IPFS...`);
+        setDecryptionProgress(prev => ({
+          ...prev,
+          stage: 'fetching',
+          currentFileName: fileName,
+        }));
+
         let retrievedData: Uint8Array | null = null;
 
         for (const gateway of ipfsGateways) {
@@ -131,6 +169,12 @@ function ReleaseDetailContent() {
 
         // Reconstruct and decrypt
         console.log(`🔓 Decrypting ${description}...`);
+        setDecryptionProgress(prev => ({
+          ...prev,
+          stage: 'decrypting',
+          currentFileName: fileName,
+        }));
+
         const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
         const decryptedData = await tacoService.decryptFile(messageKit);
         console.log(`✅ ${description} decrypted (${decryptedData.length} bytes)`);
@@ -140,13 +184,20 @@ function ReleaseDetailContent() {
 
       // Step 1: Decrypt manifest (first file)
       console.log(`📋 Step 1/${fileHashes.length}: Decrypting manifest...`);
-      const manifestData = await fetchAndDecrypt(fileHashes[0], 'manifest');
+      setDecryptionProgress({
+        stage: 'fetching',
+        currentFile: 1,
+        totalFiles: fileHashes.length,
+        currentFileName: 'Manifest',
+      });
+
+      const manifestData = await fetchAndDecrypt(fileHashes[0], 'manifest', 'Manifest');
       const manifestJson = new TextDecoder().decode(manifestData);
       const manifest = JSON.parse(manifestJson);
       console.log(`✅ Manifest loaded:`, manifest);
 
       // Step 2: Decrypt all user files
-      const decryptedFiles: Array<{ data: Uint8Array; metadata: any }> = [];
+      const decryptedFilesList: DecryptedFile[] = [];
 
       for (let i = 1; i < fileHashes.length; i++) {
         const fileMetadata = manifest.files[i - 1];
@@ -154,61 +205,46 @@ function ReleaseDetailContent() {
         const totalFiles = fileHashes.length - 1;
 
         console.log(`📄 Step ${i + 1}/${fileHashes.length}: Decrypting ${fileMetadata.name}...`);
-        toast.loading(`Decrypting file ${fileNum}/${totalFiles}: ${fileMetadata.name}`, { id: decryptToast });
+        setDecryptionProgress({
+          stage: 'fetching',
+          currentFile: i + 1,
+          totalFiles: fileHashes.length,
+          currentFileName: fileMetadata.name,
+        });
 
         const decryptedData = await fetchAndDecrypt(
           fileHashes[i],
-          `file ${fileNum}/${totalFiles} (${fileMetadata.name})`
+          `file ${fileNum}/${totalFiles} (${fileMetadata.name})`,
+          fileMetadata.name
         );
 
-        decryptedFiles.push({
+        const decryptedFile: DecryptedFile = {
           data: decryptedData,
           metadata: fileMetadata,
-        });
+        };
+
+        decryptedFilesList.push(decryptedFile);
+        setDecryptedFiles(prev => [...prev, decryptedFile]);
       }
 
-      // Step 3: Download or view files
-      console.log(`✅ All files decrypted! Processing ${decryptedFiles.length} files...`);
-      toast.success(`All ${decryptedFiles.length} files decrypted successfully!`, { id: decryptToast });
+      // Step 3: Complete
+      console.log(`✅ All files decrypted! ${decryptedFilesList.length} files ready.`);
+      setDecryptionProgress({
+        stage: 'complete',
+        currentFile: fileHashes.length,
+        totalFiles: fileHashes.length,
+      });
 
-      // Download each file with original name
-      for (const { data, metadata } of decryptedFiles) {
-        const blob = new Blob([data], { type: metadata.type });
-        const url = URL.createObjectURL(blob);
-
-        // Check if it's a media file that can be viewed in browser
-        const isMedia =
-          metadata.type.startsWith('image/') ||
-          metadata.type.startsWith('video/') ||
-          metadata.type.startsWith('audio/') ||
-          metadata.type === 'application/pdf';
-
-        if (isMedia) {
-          window.open(url, '_blank');
-          console.log(`👁️ Opened ${metadata.name} for viewing in browser`);
-        }
-
-        // Always download as well
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = metadata.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        if (!isMedia) {
-          URL.revokeObjectURL(url);
-        } else {
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
-        }
-
-        console.log(`💾 Downloaded ${metadata.name}`);
-      }
+      toast.success(`All ${decryptedFilesList.length} files decrypted successfully!`);
     } catch (error) {
       console.error('❌ Decryption failed:', error);
-      toast.error(`Failed to decrypt: ${error instanceof Error ? error.message : 'Unknown error'}`, {
-        id: decryptToast,
+      setDecryptionProgress({
+        stage: 'error',
+        currentFile: 0,
+        totalFiles: 0,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
+      toast.error(`Failed to decrypt: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -257,7 +293,7 @@ function ReleaseDetailContent() {
     );
   }
 
-  const isOwner = connectedAddress && connectedAddress.toLowerCase() === user.toLowerCase();
+  const isOwner = !!(connectedAddress && connectedAddress.toLowerCase() === user.toLowerCase());
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
@@ -384,6 +420,14 @@ function ReleaseDetailContent() {
             </div>
           </div>
         </div>
+
+        {/* Decryption Modal */}
+        <DecryptionView
+          isOpen={showDecryptionView}
+          onClose={() => setShowDecryptionView(false)}
+          progress={decryptionProgress}
+          decryptedFiles={decryptedFiles}
+        />
       </div>
     </div>
   );
