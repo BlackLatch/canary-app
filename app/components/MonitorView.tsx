@@ -46,18 +46,20 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
   // Load emergency contacts from localStorage for current account
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storageKey = getStorageKey();
-      if (!storageKey) {
+      const currentAddress = getCurrentAddress();
+      if (!currentAddress) {
         console.log('No wallet connected, cannot load emergency contacts');
         setEmergencyContacts([]);
         return;
       }
 
+      const storageKey = `canary-emergency-contacts-${currentAddress.toLowerCase()}`;
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         try {
           const contacts = JSON.parse(saved);
           setEmergencyContacts(contacts);
+          console.log(`Loaded ${contacts.length} emergency contacts for ${currentAddress}`);
         } catch (error) {
           console.error('Failed to load emergency contacts:', error);
         }
@@ -65,17 +67,19 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
         setEmergencyContacts([]);
       }
     }
-  }, [getCurrentAddress()]);
+  }, [address, burnerWallet.address]);
 
   // Save contacts to localStorage whenever they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storageKey = getStorageKey();
-      if (!storageKey) return;
+      const currentAddress = getCurrentAddress();
+      if (!currentAddress) return;
 
+      const storageKey = `canary-emergency-contacts-${currentAddress.toLowerCase()}`;
       localStorage.setItem(storageKey, JSON.stringify(emergencyContacts));
+      console.log(`Saved ${emergencyContacts.length} emergency contacts for ${currentAddress}`);
     }
-  }, [emergencyContacts]);
+  }, [emergencyContacts, address, burnerWallet.address]);
 
   const addContact = () => {
     const trimmedAddress = newAddress.trim();
@@ -106,7 +110,16 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
       addedAt: Date.now(),
     };
 
-    setEmergencyContacts(prev => [...prev, newContact]);
+    const updatedContacts = [...emergencyContacts, newContact];
+    setEmergencyContacts(updatedContacts);
+
+    // Explicitly save to localStorage immediately
+    const currentAddress = getCurrentAddress();
+    if (currentAddress && typeof window !== 'undefined') {
+      const storageKey = `canary-emergency-contacts-${currentAddress.toLowerCase()}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedContacts));
+      console.log(`✅ Saved contact "${newContact.label}" to localStorage`);
+    }
 
     // Reset form
     setNewAddress('');
@@ -121,7 +134,17 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
     if (!contact) return;
 
     if (confirm(`Remove ${contact.label} from emergency contacts?`)) {
-      setEmergencyContacts(prev => prev.filter(c => c.id !== contactId));
+      const updatedContacts = emergencyContacts.filter(c => c.id !== contactId);
+      setEmergencyContacts(updatedContacts);
+
+      // Explicitly save to localStorage immediately
+      const currentAddress = getCurrentAddress();
+      if (currentAddress && typeof window !== 'undefined') {
+        const storageKey = `canary-emergency-contacts-${currentAddress.toLowerCase()}`;
+        localStorage.setItem(storageKey, JSON.stringify(updatedContacts));
+        console.log(`✅ Removed contact "${contact.label}" from localStorage`);
+      }
+
       toast.success(`Removed ${contact.label}`);
     }
   };
