@@ -4514,11 +4514,12 @@ const Home = () => {
                                               const fullyExpired =
                                                 graceRemainingMs <= 0;
 
-                                              // Show VIEW RELEASE for expired/released documents
+                                              // Show VIEW RELEASE for expired/released documents (but NOT permanently disabled)
                                               const isReleasedOrExpired =
-                                                dossier.isReleased === true ||
+                                                (dossier.isReleased === true ||
                                                 (!dossier.isActive &&
-                                                  fullyExpired);
+                                                  fullyExpired)) &&
+                                                dossier.isPermanentlyDisabled !== true;
 
                                               return (
                                                 <button
