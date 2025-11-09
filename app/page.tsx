@@ -4577,10 +4577,7 @@ const Home = () => {
                                                 <button
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setSelectedDocument(
-                                                      dossier,
-                                                    );
-                                                    setDocumentDetailView(true);
+                                                    openDocumentDetail(dossier);
                                                   }}
                                                   className={`w-full py-2.5 px-3 text-sm font-medium border rounded-lg transition-all uppercase tracking-wider ${
                                                     isReleasedOrExpired
