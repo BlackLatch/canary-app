@@ -2060,8 +2060,8 @@ const Home = () => {
   // Check if there's a user param in URL (viewing someone's dossiers while logged out)
   const hasUserParam = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('user');
 
-  // Show sign-in page if not signed in AND not viewing someone's dossiers
-  if (!signedIn && !hasUserParam) {
+  // Show sign-in page if not signed in (always require login first)
+  if (!signedIn) {
     return (
       <div className={theme}>
         <Toaster position="top-right" />
