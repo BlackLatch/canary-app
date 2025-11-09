@@ -21,6 +21,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return 'light'; // SSR default
   });
 
+  const [hydrated, setHydrated] = useState(false);
+
+  // Mark as hydrated after first render
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   // Apply theme to document whenever it changes
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
@@ -32,6 +39,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
   };
+
+  // Don't render until hydrated to prevent theme mismatch flash
+  if (!hydrated) {
+    return null;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
