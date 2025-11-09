@@ -275,16 +275,11 @@ html, body {
 }
 
 .status-released .status-dot {
-  background: #FF6B6B;
-  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
-}
-
-.status-released-manual .status-dot {
   background: #dc2626;
   box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
 }
 
-.status-released-manual span {
+.status-released span {
   color: #dc2626;
 }
 

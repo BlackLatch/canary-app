@@ -3424,7 +3424,7 @@ const Home = () => {
                                           if (
                                             selectedDocument.isReleased === true
                                           )
-                                            return "MANUALLY RELEASED";
+                                            return "RELEASED";
                                           if (!selectedDocument.isActive)
                                             return "PAUSED";
 
@@ -4310,7 +4310,7 @@ const Home = () => {
                                         timeDisplay = "Permanently Disabled";
                                         timeColor = "text-red-500";
                                       } else if (dossier.isReleased === true) {
-                                        timeDisplay = "RELEASED";
+                                        timeDisplay = "MANUALLY RELEASED";
                                         timeColor = "text-red-600";
                                       } else if (!dossier.isActive) {
                                         timeDisplay = "Paused";
@@ -4398,9 +4398,9 @@ const Home = () => {
 
                                               <div
                                                 className={`status-indicator flex-shrink-0 ${(() => {
-                                                  // Manual release takes priority
+                                                  // Manual release or time-based release both use same red styling
                                                   if (dossier.isReleased === true)
-                                                    return "status-released-manual";
+                                                    return "status-released";
 
                                                   if (!dossier.isActive)
                                                     return "status-inactive";
@@ -4432,7 +4432,7 @@ const Home = () => {
                                                   {(() => {
                                                     // Manual release takes priority
                                                     if (dossier.isReleased === true)
-                                                      return "MANUALLY RELEASED";
+                                                      return "RELEASED";
 
                                                     if (!dossier.isActive)
                                                       return "INACTIVE";
