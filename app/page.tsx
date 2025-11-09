@@ -238,10 +238,9 @@ const Home = () => {
   const openDocumentDetail = (document: DossierWithStatus) => {
     setSelectedDocument(document);
     setDocumentDetailView(true);
-    // Update URL without navigating
-    const currentAddress = getCurrentAddress();
-    if (currentAddress) {
-      const url = `/?user=${currentAddress}&id=${document.id.toString()}`;
+    // Update URL without navigating - use viewingUserAddress to maintain context
+    if (viewingUserAddress) {
+      const url = `/?user=${viewingUserAddress}&id=${document.id.toString()}`;
       window.history.pushState({}, '', url);
     }
   };
@@ -249,10 +248,9 @@ const Home = () => {
   const closeDocumentDetail = () => {
     setSelectedDocument(null);
     setDocumentDetailView(false);
-    // Reset URL to dossiers view (with user param)
-    const currentAddress = getCurrentAddress();
-    if (currentAddress) {
-      window.history.pushState({}, '', `/?user=${currentAddress}`);
+    // Reset URL to dossiers view (with user param) - maintain viewingUserAddress
+    if (viewingUserAddress) {
+      window.history.pushState({}, '', `/?user=${viewingUserAddress}`);
     }
   };
 
