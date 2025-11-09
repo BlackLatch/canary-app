@@ -26,6 +26,7 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
   const [newAddress, setNewAddress] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [isAddingContact, setIsAddingContact] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   // Wallet hooks
   const { address } = useAccount();
@@ -45,11 +46,14 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
 
   // Load emergency contacts from localStorage for current account
   useEffect(() => {
+    setHasLoaded(false); // Reset load flag when wallet changes
+
     if (typeof window !== 'undefined') {
       const currentAddress = getCurrentAddress();
       if (!currentAddress) {
         console.log('No wallet connected, cannot load emergency contacts');
         setEmergencyContacts([]);
+        setHasLoaded(true);
         return;
       }
 
@@ -59,18 +63,23 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
         try {
           const contacts = JSON.parse(saved);
           setEmergencyContacts(contacts);
-          console.log(`Loaded ${contacts.length} emergency contacts for ${currentAddress}`);
+          console.log(`✅ Loaded ${contacts.length} emergency contacts for ${currentAddress}`);
         } catch (error) {
           console.error('Failed to load emergency contacts:', error);
+          setEmergencyContacts([]);
         }
       } else {
+        console.log(`No saved contacts found for ${currentAddress}`);
         setEmergencyContacts([]);
       }
+      setHasLoaded(true);
     }
   }, [address, burnerWallet.address]);
 
-  // Save contacts to localStorage whenever they change
+  // Save contacts to localStorage whenever they change (but only after initial load)
   useEffect(() => {
+    if (!hasLoaded) return; // Don't save until we've loaded from localStorage first
+
     if (typeof window !== 'undefined') {
       const currentAddress = getCurrentAddress();
       if (!currentAddress) return;
@@ -79,7 +88,7 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
       localStorage.setItem(storageKey, JSON.stringify(emergencyContacts));
       console.log(`Saved ${emergencyContacts.length} emergency contacts for ${currentAddress}`);
     }
-  }, [emergencyContacts, address, burnerWallet.address]);
+  }, [emergencyContacts, hasLoaded]);
 
   const addContact = () => {
     const trimmedAddress = newAddress.trim();
