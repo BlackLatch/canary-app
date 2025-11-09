@@ -4117,13 +4117,15 @@ const Home = () => {
                                     {
                                       userDossiers.filter(
                                         (d) =>
-                                          showInactiveDocuments || d.isActive || !isViewingOwnDossiers(),
+                                          (d.isPermanentlyDisabled !== true) &&
+                                          (showInactiveDocuments || d.isActive || !isViewingOwnDossiers()),
                                       ).length
                                     }{" "}
                                     DOSSIER
                                     {userDossiers.filter(
                                       (d) =>
-                                        showInactiveDocuments || d.isActive || !isViewingOwnDossiers(),
+                                        (d.isPermanentlyDisabled !== true) &&
+                                        (showInactiveDocuments || d.isActive || !isViewingOwnDossiers()),
                                     ).length !== 1
                                       ? "S"
                                       : ""}
@@ -4231,9 +4233,11 @@ const Home = () => {
                                   {userDossiers
                                     .filter(
                                       (dossier) =>
-                                        showInactiveDocuments ||
+                                        // Hide permanently disabled by default
+                                        (dossier.isPermanentlyDisabled !== true) &&
+                                        (showInactiveDocuments ||
                                         dossier.isActive ||
-                                        !isViewingOwnDossiers(), // Show all dossiers when viewing others
+                                        !isViewingOwnDossiers()), // Show all dossiers when viewing others
                                     )
                                     .map((dossier, index) => {
                                       const lastCheckInMs =
