@@ -3382,15 +3382,17 @@ const Home = () => {
                           <div
                             className={`border rounded-lg px-6 py-5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                           >
-                            <div className={`pb-4 ${theme === "light" ? "" : ""}`}>
-                              <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
-                                {selectedDocument.name.replace(
-                                  "Encrypted file: ",
-                                  "",
-                                )}
-                              </h1>
+                            <div className="grid grid-cols-[1fr_auto] gap-6 items-start pb-4">
+                              {/* Left Column: Title and Metadata */}
+                              <div className="min-w-0">
+                                <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
+                                  {selectedDocument.name.replace(
+                                    "Encrypted file: ",
+                                    "",
+                                  )}
+                                </h1>
 
-                              <div className="flex items-center gap-3 mb-3">
+                                <div className="flex items-center gap-3 mb-2">
                                     <div
                                       className={`status-indicator text-xs ${(() => {
                                         if (
@@ -3465,48 +3467,6 @@ const Home = () => {
                                     >
                                       Dossier #{selectedDocument.id.toString()}
                                     </span>
-                                    {/* Release Visibility Badge */}
-                                    <div
-                                      className={`inline-flex items-center gap-1.5 px-3 py-1 font-medium text-xs rounded border ${
-                                        selectedDocument.recipients &&
-                                        selectedDocument.recipients.length > 1
-                                          ? theme === "light"
-                                            ? "bg-black text-white border-black"
-                                            : "bg-white text-gray-900 border-white"
-                                          : theme === "light"
-                                            ? "bg-white text-gray-700 border-gray-300"
-                                            : "bg-black/20 text-gray-300 border-gray-600"
-                                      }`}
-                                    >
-                                      <svg
-                                        className="w-3 h-3"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        {selectedDocument.recipients &&
-                                        selectedDocument.recipients.length >
-                                          1 ? (
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                          />
-                                        ) : (
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                          />
-                                        )}
-                                      </svg>
-                                      {selectedDocument.recipients &&
-                                      selectedDocument.recipients.length > 1
-                                        ? "Private"
-                                        : "Public"}
-                                    </div>
                                   </div>
 
                                   {/* Owner Information */}
@@ -3515,14 +3475,14 @@ const Home = () => {
                                       <span className="font-medium uppercase">Owner:</span>
                                       <button
                                         onClick={() => copyOwnerAddress(viewingUserAddress)}
-                                        className={`flex items-center gap-1.5 font-mono transition-colors group ${
+                                        className={`flex items-center gap-1.5 font-mono transition-colors group truncate ${
                                           theme === 'light'
                                             ? 'text-gray-900 hover:text-blue-600'
                                             : 'text-gray-100 hover:text-blue-400'
                                         }`}
                                         title="Click to copy owner address"
                                       >
-                                        <span>{viewingUserAddress}</span>
+                                        <span className="truncate">{viewingUserAddress}</span>
                                         {copiedOwner ? (
                                           <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                                         ) : (
@@ -3531,6 +3491,49 @@ const Home = () => {
                                       </button>
                                     </div>
                                   )}
+                              </div>
+
+                              {/* Right Column: Privacy Badge */}
+                              <div
+                                className={`inline-flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-lg border transition-colors whitespace-nowrap ${
+                                  selectedDocument.recipients &&
+                                  selectedDocument.recipients.length > 1
+                                    ? theme === "light"
+                                      ? "bg-black text-white border-black"
+                                      : "bg-white text-gray-900 border-white"
+                                    : theme === "light"
+                                      ? "bg-white text-gray-700 border-gray-300"
+                                      : "bg-black/20 text-gray-300 border-gray-600"
+                                }`}
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  {selectedDocument.recipients &&
+                                  selectedDocument.recipients.length > 1 ? (
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                    />
+                                  ) : (
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  )}
+                                </svg>
+                                {selectedDocument.recipients &&
+                                selectedDocument.recipients.length > 1
+                                  ? "Private"
+                                  : "Public"}
+                              </div>
                             </div>
                           </div>
 
