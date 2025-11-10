@@ -3735,41 +3735,110 @@ const Home = () => {
 
                             {/* Check if user owns this dossier */}
                             {!isViewingOwnDossiers() ? (
-                              /* Viewing Mode Indicator */
-                              <div
-                                className={`p-4 border rounded-lg text-center ${
-                                  theme === "light"
-                                    ? "bg-blue-50 border-blue-200"
-                                    : "bg-blue-900/20 border-blue-800"
-                                }`}
-                              >
-                                <div className="flex items-center justify-center gap-2 mb-2">
-                                  <svg
-                                    className={`w-5 h-5 ${theme === "light" ? "text-blue-600" : "text-blue-400"}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                    />
-                                  </svg>
-                                  <span className={`font-medium ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}>
-                                    VIEWING MODE
-                                  </span>
+                              /* Viewing Mode - with VIEW RELEASE if user has access */
+                              <div className="space-y-3">
+                                {/* Viewing Mode Indicator */}
+                                <div
+                                  className={`p-4 border rounded-lg text-center ${
+                                    theme === "light"
+                                      ? "bg-blue-50 border-blue-200"
+                                      : "bg-blue-900/20 border-blue-800"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-center gap-2 mb-2">
+                                    <svg
+                                      className={`w-5 h-5 ${theme === "light" ? "text-blue-600" : "text-blue-400"}`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                      />
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                      />
+                                    </svg>
+                                    <span className={`font-medium ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}>
+                                      VIEWING MODE
+                                    </span>
+                                  </div>
+                                  <p className={`text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}>
+                                    You are viewing another user's dossier.
+                                  </p>
                                 </div>
-                                <p className={`text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}>
-                                  You are viewing another user's dossier. Actions are not available.
-                                </p>
+
+                                {/* View Release Button - Show if user has decrypt access */}
+                                {(() => {
+                                  const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                  const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                  const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                  const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                  const isTimeExpired = remainingMs <= 0;
+
+                                  const isDecryptable = (isTimeExpired || selectedDocument.isReleased === true) &&
+                                                       selectedDocument.encryptedFileHashes.length > 0;
+
+                                  if (!isDecryptable) return null;
+
+                                  // Check if user has access
+                                  const isPrivate = selectedDocument.recipients && selectedDocument.recipients.length > 1;
+                                  const currentAddress = getCurrentAddress();
+
+                                  let hasAccess = false;
+                                  if (isPrivate) {
+                                    // For private dossiers, check if user is a recipient
+                                    if (currentAddress) {
+                                      hasAccess = selectedDocument.recipients?.some(
+                                        (recipient) => recipient.toLowerCase() === currentAddress.toLowerCase()
+                                      ) ?? false;
+                                    }
+                                  } else {
+                                    // Public dossiers - anyone can access
+                                    hasAccess = true;
+                                  }
+
+                                  console.log('🔍 Main page VIEW RELEASE check:', {
+                                    isDecryptable,
+                                    isPrivate,
+                                    currentAddress,
+                                    recipients: selectedDocument.recipients,
+                                    hasAccess,
+                                  });
+
+                                  if (!hasAccess) return null;
+
+                                  return (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const owner = viewingUserAddress || getCurrentAddress();
+                                        if (owner) {
+                                          router.push(`/release?user=${owner}&id=${selectedDocument.id.toString()}`);
+                                        }
+                                      }}
+                                      className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                                        theme === "light"
+                                          ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                                          : "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <span>VIEW RELEASE</span>
+                                      </div>
+                                    </button>
+                                  );
+                                })()}
                               </div>
                             ) : (
                               <div className="space-y-3">
