@@ -322,7 +322,6 @@ export default function DossierDetailView({
                         onClick={(e) => {
                           e.stopPropagation();
                           navigator.clipboard.writeText(hash);
-                          toast.success('Hash copied to clipboard');
                         }}
                         className={`ml-2 p-1 rounded text-xs ${
                           theme === 'light'
@@ -364,7 +363,6 @@ export default function DossierDetailView({
                       onClick={(e) => {
                         e.stopPropagation();
                         navigator.clipboard.writeText(recipient);
-                        toast.success('Address copied to clipboard');
                       }}
                       className={`ml-2 p-1 rounded text-xs ${
                         theme === 'light'

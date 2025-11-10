@@ -4132,9 +4132,6 @@ const Home = () => {
                                           navigator.clipboard.writeText(
                                             recipient,
                                           );
-                                          toast.success(
-                                            "Address copied to clipboard",
-                                          );
                                         }}
                                         className={`ml-2 p-1 rounded text-xs ${
                                           theme === "light"
