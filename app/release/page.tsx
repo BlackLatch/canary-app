@@ -426,16 +426,62 @@ function ReleaseDetailContent() {
           <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
             <div className="max-w-7xl mx-auto px-6 py-8">
               {!showDecryptionView ? (
-                <DossierDetailView
-                  dossier={dossier}
-                  owner={user}
-                  theme={theme}
-                  currentTime={currentTime}
-                  isOwner={isOwner}
-                  currentUserAddress={currentAddress}
-                  onBack={() => router.push('/')}
-                  onDecrypt={handleDecrypt}
-                />
+                /* Ready to Decrypt Screen */
+                <div className="max-w-2xl mx-auto">
+                  {/* Back Button */}
+                  <button
+                    onClick={() => router.push('/')}
+                    className={`flex items-center gap-2 mb-6 text-sm transition-colors ${
+                      theme === 'light'
+                        ? 'text-gray-600 hover:text-gray-900'
+                        : 'text-gray-400 hover:text-gray-100'
+                    }`}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Dossiers
+                  </button>
+
+                  <div className={`border rounded-lg p-8 ${
+                    theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'
+                  }`}>
+                    <h1 className={`text-2xl font-semibold mb-4 ${
+                      theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                    }`}>
+                      {dossier.name.replace('Encrypted file: ', '')}
+                    </h1>
+
+                    <div className={`mb-6 pb-6 border-b ${
+                      theme === 'light' ? 'border-gray-200' : 'border-gray-600'
+                    }`}>
+                      <p className={`text-sm mb-2 ${
+                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        This dossier has been released and is ready to decrypt.
+                      </p>
+                      <p className={`text-sm ${
+                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        Files: <span className="font-medium">{dossier.encryptedFileHashes.length - 1}</span>
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleDecrypt}
+                      className={`w-full py-3 px-4 text-base font-medium border rounded-lg transition-all ${
+                        theme === 'light'
+                          ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900'
+                          : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        <span>DOWNLOAD & DECRYPT FILES</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <DecryptionView
                   isOpen={true}
