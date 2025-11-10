@@ -113,7 +113,20 @@ export default function DossierDetailView({
     // Check if dossier is expired/released and has files
     const isDecryptable = (isTimeExpired || dossier.isReleased === true) && dossier.encryptedFileHashes.length > 0;
 
-    if (!isDecryptable) return false;
+    console.log('🔍 canDecrypt check:', {
+      isTimeExpired,
+      isReleased: dossier.isReleased,
+      hasFiles: dossier.encryptedFileHashes.length > 0,
+      isDecryptable,
+      currentUserAddress,
+      recipients: dossier.recipients,
+      isOwner,
+    });
+
+    if (!isDecryptable) {
+      console.log('❌ Not decryptable - dossier not expired/released or no files');
+      return false;
+    }
 
     // If it's a private dossier (has recipients beyond just the owner)
     const isPrivate = dossier.recipients && dossier.recipients.length > 1;
@@ -121,12 +134,18 @@ export default function DossierDetailView({
     if (isPrivate && currentUserAddress) {
       // Check if current user is in the recipients list
       const userIsRecipient = dossier.recipients?.some(
-        (recipient) => recipient.toLowerCase() === currentUserAddress.toLowerCase()
+        (recipient) => {
+          const match = recipient.toLowerCase() === currentUserAddress.toLowerCase();
+          console.log(`  Checking recipient ${recipient} vs ${currentUserAddress}: ${match}`);
+          return match;
+        }
       );
+      console.log(`✅ Private dossier - user is recipient: ${userIsRecipient}`);
       return userIsRecipient;
     }
 
     // For public dossiers, anyone can decrypt
+    console.log('✅ Public dossier - anyone can decrypt');
     return true;
   })();
 
