@@ -170,10 +170,10 @@ export default function DecryptionView({
           </p>
           <button
             onClick={() => downloadFile(file)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg border font-medium transition-colors ${
               theme === 'light'
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                : 'bg-white text-gray-900 border-white hover:bg-gray-100'
             }`}
           >
             Download File
@@ -193,14 +193,14 @@ export default function DecryptionView({
     : "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
 
   const containerClasses = inline
-    ? `w-full flex flex-col border rounded-lg ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-gray-700'}`
-    : `w-full h-full flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`;
+    ? `w-full flex flex-col border rounded-lg ${theme === 'light' ? 'bg-white border-gray-300' : 'bg-black border-gray-600'}`
+    : `w-full h-full flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`;
 
   const content = (
     <div className={containerClasses}>
         {/* Header */}
         <div className={`flex items-center justify-between px-6 py-4 border-b ${
-          theme === 'light' ? 'border-gray-200' : 'border-gray-700'
+          theme === 'light' ? 'border-gray-300' : 'border-gray-600'
         }`}>
           <h2 className={`text-xl font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
             {progress.stage === 'complete' ? 'Decrypted Files' : 'Decrypting Files...'}
@@ -209,10 +209,10 @@ export default function DecryptionView({
             {progress.stage === 'complete' && decryptedFiles.length > 1 && (
               <button
                 onClick={downloadAllFiles}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium transition-colors ${
                   theme === 'light'
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                    : 'bg-white text-gray-900 border-white hover:bg-gray-100'
                 }`}
               >
                 <Download className="w-4 h-4" />
@@ -221,10 +221,10 @@ export default function DecryptionView({
             )}
             <button
               onClick={onClose}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-full transition-colors ${
                 theme === 'light'
                   ? 'hover:bg-gray-100 text-gray-600'
-                  : 'hover:bg-gray-800 text-gray-400'
+                  : 'hover:bg-white/10 text-gray-400'
               }`}
               aria-label="Close"
             >
@@ -235,9 +235,9 @@ export default function DecryptionView({
 
         {/* Progress Section */}
         {progress.stage !== 'complete' && progress.stage !== 'error' && (
-          <div className={`px-6 py-4 border-b ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+          <div className={`px-6 py-4 border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <div className="flex items-center gap-3 mb-2">
-              <Loader2 className={`w-5 h-5 animate-spin ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`} />
+              <Loader2 className={`w-5 h-5 animate-spin ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`} />
               <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
                 {progress.stage === 'fetching' ? 'Fetching from IPFS...' : 'Decrypting...'}
                 {progress.currentFileName && ` ${progress.currentFileName}`}
@@ -249,7 +249,7 @@ export default function DecryptionView({
                   theme === 'light' ? 'bg-gray-200' : 'bg-gray-700'
                 }`}>
                   <div
-                    className="h-full bg-blue-600 transition-all duration-300"
+                    className={`h-full transition-all duration-300 ${theme === 'light' ? 'bg-gray-900' : 'bg-white'}`}
                     style={{ width: `${progressPercentage}%` }}
                   />
                 </div>
@@ -263,7 +263,7 @@ export default function DecryptionView({
 
         {/* Error Section */}
         {progress.stage === 'error' && (
-          <div className={`px-6 py-4 border-b ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+          <div className={`px-6 py-4 border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-500" />
               <span className="text-sm font-medium text-red-500">
@@ -278,10 +278,10 @@ export default function DecryptionView({
           {/* File List Sidebar */}
           {decryptedFiles.length > 0 && (
             <div className={`w-80 border-r overflow-y-auto ${
-              theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-700 bg-gray-800'
+              theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black'
             }`}>
               <div className="p-4">
-                <h3 className={`text-sm font-semibold mb-3 ${
+                <h3 className={`text-sm font-semibold mb-3 uppercase tracking-wide ${
                   theme === 'light' ? 'text-gray-700' : 'text-gray-300'
                 }`}>
                   Files ({decryptedFiles.length})
@@ -291,19 +291,19 @@ export default function DecryptionView({
                     <button
                       key={index}
                       onClick={() => setSelectedFile(file)}
-                      className={`w-full p-3 rounded-lg text-left transition-colors ${
+                      className={`w-full p-3 rounded-lg text-left transition-all ${
                         selectedFile === file
                           ? theme === 'light'
-                            ? 'bg-blue-100 border-blue-300'
-                            : 'bg-blue-900/30 border-blue-700'
+                            ? 'bg-gray-100 border-gray-900'
+                            : 'bg-white/5 border-white'
                           : theme === 'light'
-                            ? 'bg-white hover:bg-gray-100 border-gray-200'
-                            : 'bg-gray-900 hover:bg-gray-800 border-gray-700'
+                            ? 'bg-white hover:bg-gray-50 border-gray-300'
+                            : 'bg-black hover:bg-white/5 border-gray-600'
                       } border`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={selectedFile === file
-                          ? 'text-blue-600'
+                          ? theme === 'light' ? 'text-gray-900' : 'text-white'
                           : theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                         }>
                           {getFileIcon(file.metadata.type)}
@@ -337,10 +337,10 @@ export default function DecryptionView({
                             e.stopPropagation();
                             downloadFile(file);
                           }}
-                          className={`p-1 rounded transition-colors ${
+                          className={`p-1.5 rounded transition-colors ${
                             theme === 'light'
                               ? 'hover:bg-gray-200 text-gray-600'
-                              : 'hover:bg-gray-700 text-gray-400'
+                              : 'hover:bg-white/10 text-gray-400'
                           }`}
                           title="Download file"
                         >
@@ -360,7 +360,7 @@ export default function DecryptionView({
               <div className="h-full flex flex-col">
                 {/* File Info Header */}
                 <div className={`px-6 py-4 border-b ${
-                  theme === 'light' ? 'border-gray-200' : 'border-gray-700'
+                  theme === 'light' ? 'border-gray-300' : 'border-gray-600'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -389,10 +389,10 @@ export default function DecryptionView({
                     </div>
                     <button
                       onClick={() => downloadFile(selectedFile)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium transition-colors ${
                         theme === 'light'
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                          ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                          : 'bg-white text-gray-900 border-white hover:bg-gray-100'
                       }`}
                     >
                       <Download className="w-4 h-4" />
@@ -426,7 +426,7 @@ export default function DecryptionView({
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <Loader2 className={`w-16 h-16 animate-spin mx-auto mb-4 ${
-                    theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                    theme === 'light' ? 'text-gray-900' : 'text-gray-100'
                   }`} />
                   <h3 className={`text-xl font-semibold mb-2 ${
                     theme === 'light' ? 'text-gray-900' : 'text-gray-100'
