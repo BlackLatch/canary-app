@@ -4106,9 +4106,20 @@ const Home = () => {
                                   </p>
                                 </div>
                               )}
-                              {/* Check In Button - Disabled if released */}
-                              {selectedDocument.isActive &&
-                                selectedDocument.isReleased !== true && (
+                              {/* Check In Button - Hidden if released or expired */}
+                              {(() => {
+                                // Check if dossier is expired
+                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                const isTimeExpired = remainingMs <= 0;
+                                const isExpiredOrReleased = isTimeExpired || selectedDocument.isReleased === true || selectedDocument.isDecryptable;
+
+                                // Don't show CHECK IN if expired/released
+                                if (isExpiredOrReleased) return null;
+
+                                return selectedDocument.isActive && selectedDocument.isReleased !== true && (
                                   <button
                                     onClick={async (e) => {
                                       e.stopPropagation();
@@ -4124,7 +4135,8 @@ const Home = () => {
                                       ? "CHECKING IN..."
                                       : "CHECK IN"}
                                   </button>
-                                )}
+                                );
+                              })()}
 
                               {/* Decrypt Button */}
                               {(() => {
@@ -4189,10 +4201,21 @@ const Home = () => {
                               })()}
 
 
-                              {/* Pause/Resume Button - Hidden if released or permanently disabled */}
-                              {selectedDocument.isPermanentlyDisabled !==
-                                true &&
-                                selectedDocument.isReleased !== true && (
+                              {/* Pause/Resume Button - Hidden if released, permanently disabled, or expired */}
+                              {(() => {
+                                // Check if dossier is expired
+                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                const isTimeExpired = remainingMs <= 0;
+                                const isExpiredOrReleased = isTimeExpired || selectedDocument.isReleased === true || selectedDocument.isDecryptable;
+
+                                // Don't show PAUSE/RESUME if expired/released
+                                if (isExpiredOrReleased) return null;
+
+                                return selectedDocument.isPermanentlyDisabled !== true &&
+                                  selectedDocument.isReleased !== true && (
                                   <button
                                     onClick={async (e) => {
                                       e.stopPropagation();
@@ -4259,12 +4282,24 @@ const Home = () => {
                                       </span>
                                     </div>
                                   </button>
-                                )}
+                                );
+                              })()}
 
-                              {/* Release Now Button - Hidden if already released or permanently disabled */}
-                              {selectedDocument.isPermanentlyDisabled !==
-                                true &&
-                                selectedDocument.isReleased !== true && (
+                              {/* Release Now Button - Hidden if already released, permanently disabled, or expired */}
+                              {(() => {
+                                // Check if dossier is expired
+                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                const isTimeExpired = remainingMs <= 0;
+                                const isExpiredOrReleased = isTimeExpired || selectedDocument.isReleased === true || selectedDocument.isDecryptable;
+
+                                // Don't show RELEASE NOW if expired/released
+                                if (isExpiredOrReleased) return null;
+
+                                return selectedDocument.isPermanentlyDisabled !== true &&
+                                  selectedDocument.isReleased !== true && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -4295,12 +4330,24 @@ const Home = () => {
                                       <span>RELEASE NOW</span>
                                     </div>
                                   </button>
-                                )}
+                                );
+                              })()}
 
-                              {/* Permanently Disable Button - Hidden if already disabled or released */}
-                              {selectedDocument.isPermanentlyDisabled !==
-                                true &&
-                                selectedDocument.isReleased !== true && (
+                              {/* Permanently Disable Button - Hidden if already disabled, released, or expired */}
+                              {(() => {
+                                // Check if dossier is expired
+                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                const isTimeExpired = remainingMs <= 0;
+                                const isExpiredOrReleased = isTimeExpired || selectedDocument.isReleased === true || selectedDocument.isDecryptable;
+
+                                // Don't show PERMANENTLY DISABLE if expired/released
+                                if (isExpiredOrReleased) return null;
+
+                                return selectedDocument.isPermanentlyDisabled !== true &&
+                                  selectedDocument.isReleased !== true && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -4331,7 +4378,8 @@ const Home = () => {
                                       <span>PERMANENTLY DISABLE</span>
                                     </div>
                                   </button>
-                                )}
+                                );
+                              })()}
                             </div>
                             )}
                           </div>
