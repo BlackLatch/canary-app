@@ -24,6 +24,7 @@ import {
   createDossierManifest,
   encryptAndCommitDossierManifest,
   CommitResult,
+  tacoService,
 } from "./lib/taco";
 import { useTheme } from "./lib/theme-context";
 import MediaRecorder from "./components/MediaRecorder";
@@ -33,6 +34,7 @@ import SettingsView from "./components/SettingsView";
 import MonitorView from "./components/MonitorView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
 import BurnAccountWarningModal from "./components/BurnAccountWarningModal";
+import DecryptionView from "./components/DecryptionView";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -60,6 +62,24 @@ import { useNetworkGuard } from "./lib/hooks/useNetworkGuard";
 // Extended dossier interface with accurate decryptable status
 interface DossierWithStatus extends Dossier {
   isDecryptable: boolean;
+}
+
+// Decryption types
+interface DecryptedFile {
+  data: Uint8Array;
+  metadata: {
+    name: string;
+    type: string;
+    size: number;
+  };
+}
+
+interface DecryptionProgress {
+  stage: 'fetching' | 'decrypting' | 'complete' | 'error';
+  currentFile: number;
+  totalFiles: number;
+  currentFileName?: string;
+  error?: string;
 }
 
 // Component that uses useSearchParams
@@ -216,6 +236,16 @@ const Home = () => {
   const [showEditSchedule, setShowEditSchedule] = useState(false);
   const [showAddFiles, setShowAddFiles] = useState(false);
   const [newCheckInInterval, setNewCheckInInterval] = useState("");
+
+  // Decryption state
+  const [showDecryptionView, setShowDecryptionView] = useState(false);
+  const [decryptingDossier, setDecryptingDossier] = useState<DossierWithStatus | null>(null);
+  const [decryptionProgress, setDecryptionProgress] = useState<DecryptionProgress>({
+    stage: 'fetching',
+    currentFile: 0,
+    totalFiles: 0,
+  });
+  const [decryptedFiles, setDecryptedFiles] = useState<DecryptedFile[]>([]);
   const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
   const [showAUPForEncrypt, setShowAUPForEncrypt] = useState(false);
   const [hasAcceptedAUP, setHasAcceptedAUP] = useState(false);
@@ -1292,6 +1322,161 @@ const Home = () => {
     } catch (error) {
       console.error("❌ Failed to load dossiers:", error);
       setIsLoadingDossiers(false);
+    }
+  };
+
+  const handleDecrypt = async (dossier: DossierWithStatus) => {
+    const user = viewingUserAddress || getCurrentAddress();
+    if (!dossier || !user || dossier.id === null) return;
+
+    try {
+      console.log('🔓 Attempting decryption for dossier:', dossier.id.toString());
+
+      if (dossier.encryptedFileHashes.length === 0) {
+        toast.error('No encrypted files found in this dossier.');
+        return;
+      }
+
+      const fileHashes = dossier.encryptedFileHashes;
+
+      console.log(
+        dossier.isReleased
+          ? '🔓 Decrypting released dossier (deadman switch triggered)...'
+          : '🔓 Attempting to decrypt dossier...'
+      );
+      console.log(`📋 Total files to decrypt: ${fileHashes.length} (1 manifest + ${fileHashes.length - 1} files)`);
+
+      // Open decryption view and initialize progress
+      setDecryptingDossier(dossier);
+      setShowDecryptionView(true);
+      setDecryptedFiles([]);
+      setDecryptionProgress({
+        stage: 'fetching',
+        currentFile: 0,
+        totalFiles: fileHashes.length,
+      });
+
+      // Initialize TACo
+      console.log(`🔧 Initializing TACo...`);
+      await tacoService.initialize();
+      console.log(`✅ TACo initialized`);
+
+      const { ThresholdMessageKit } = await import('@nucypher/taco');
+
+      // Helper function to fetch and decrypt a file
+      const fetchAndDecrypt = async (fileHash: string, description: string, fileName?: string) => {
+        const ipfsHash = fileHash.replace('ipfs://', '');
+        const ipfsGateways = [
+          `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+          `https://ipfs.io/ipfs/${ipfsHash}`,
+          `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
+        ];
+
+        console.log(`📥 Fetching ${description} from IPFS...`);
+        setDecryptionProgress(prev => ({
+          ...prev,
+          stage: 'fetching',
+          currentFileName: fileName,
+        }));
+
+        let retrievedData: Uint8Array | null = null;
+
+        for (const gateway of ipfsGateways) {
+          try {
+            const response = await fetch(gateway);
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              retrievedData = new Uint8Array(arrayBuffer);
+              console.log(`✅ Retrieved ${description} (${retrievedData.length} bytes)`);
+              break;
+            }
+          } catch (error) {
+            console.log(`❌ Gateway failed:`, gateway);
+          }
+        }
+
+        if (!retrievedData) {
+          throw new Error(`Failed to retrieve ${description} from IPFS`);
+        }
+
+        // Reconstruct and decrypt
+        console.log(`🔓 Decrypting ${description}...`);
+        setDecryptionProgress(prev => ({
+          ...prev,
+          stage: 'decrypting',
+          currentFileName: fileName,
+        }));
+
+        const messageKit = ThresholdMessageKit.fromBytes(retrievedData);
+        const decryptedData = await tacoService.decryptFile(messageKit);
+        console.log(`✅ ${description} decrypted (${decryptedData.length} bytes)`);
+
+        return decryptedData;
+      };
+
+      // Step 1: Decrypt manifest (first file)
+      console.log(`📋 Step 1/${fileHashes.length}: Decrypting manifest...`);
+      setDecryptionProgress({
+        stage: 'fetching',
+        currentFile: 1,
+        totalFiles: fileHashes.length,
+        currentFileName: 'Manifest',
+      });
+
+      const manifestData = await fetchAndDecrypt(fileHashes[0], 'manifest', 'Manifest');
+      const manifestJson = new TextDecoder().decode(manifestData);
+      const manifest = JSON.parse(manifestJson);
+      console.log(`✅ Manifest loaded:`, manifest);
+
+      // Step 2: Decrypt all user files
+      const decryptedFilesList: DecryptedFile[] = [];
+
+      for (let i = 1; i < fileHashes.length; i++) {
+        const fileMetadata = manifest.files[i - 1];
+        const fileNum = i;
+        const totalFiles = fileHashes.length - 1;
+
+        console.log(`📄 Step ${i + 1}/${fileHashes.length}: Decrypting ${fileMetadata.name}...`);
+        setDecryptionProgress({
+          stage: 'fetching',
+          currentFile: i + 1,
+          totalFiles: fileHashes.length,
+          currentFileName: fileMetadata.name,
+        });
+
+        const decryptedData = await fetchAndDecrypt(
+          fileHashes[i],
+          `file ${fileNum}/${totalFiles} (${fileMetadata.name})`,
+          fileMetadata.name
+        );
+
+        const decryptedFile: DecryptedFile = {
+          data: decryptedData,
+          metadata: fileMetadata,
+        };
+
+        decryptedFilesList.push(decryptedFile);
+        setDecryptedFiles(prev => [...prev, decryptedFile]);
+      }
+
+      // Step 3: Complete
+      console.log(`✅ All files decrypted! ${decryptedFilesList.length} files ready.`);
+      setDecryptionProgress({
+        stage: 'complete',
+        currentFile: fileHashes.length,
+        totalFiles: fileHashes.length,
+      });
+
+      toast.success(`All ${decryptedFilesList.length} files decrypted successfully!`);
+    } catch (error) {
+      console.error('❌ Decryption failed:', error);
+      setDecryptionProgress({
+        stage: 'error',
+        currentFile: 0,
+        totalFiles: 0,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      toast.error(`Failed to decrypt: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -3810,9 +3995,8 @@ const Home = () => {
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        const owner = viewingUserAddress || getCurrentAddress();
-                                        if (owner) {
-                                          router.push(`/release?user=${owner}&id=${selectedDocument.id.toString()}`);
+                                        if (selectedDocument) {
+                                          handleDecrypt(selectedDocument);
                                         }
                                       }}
                                       className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
@@ -3926,12 +4110,10 @@ const Home = () => {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      // Navigate to dedicated dossier view page
-                                      const owner = viewingUserAddress || getCurrentAddress();
-                                      if (owner) {
-                                        router.push(`/release?user=${owner}&id=${selectedDocument.id.toString()}`);
+                                      if (selectedDocument) {
+                                        handleDecrypt(selectedDocument);
                                       } else {
-                                        toast.error('Unable to view dossier: No wallet address found');
+                                        toast.error('Unable to view dossier: No dossier selected');
                                       }
                                     }}
                                     className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
@@ -7317,7 +7499,7 @@ const Home = () => {
       )}
 
       {/* AUP Modal - Only shown when triggered from encryption step */}
-      <AcceptableUsePolicy 
+      <AcceptableUsePolicy
         theme={theme}
         shouldCheck={showAUPForEncrypt}
         skipDemoStep={true}
@@ -7337,6 +7519,26 @@ const Home = () => {
           setShowAUPForEncrypt(false);
         }}
       />
+
+      {/* Decryption Modal */}
+      {showDecryptionView && decryptingDossier && (
+        <DecryptionView
+          isOpen={showDecryptionView}
+          onClose={() => {
+            setShowDecryptionView(false);
+            setDecryptingDossier(null);
+            setDecryptedFiles([]);
+            setDecryptionProgress({
+              stage: 'fetching',
+              currentFile: 0,
+              totalFiles: 0,
+            });
+          }}
+          progress={decryptionProgress}
+          decryptedFiles={decryptedFiles}
+          inline={false}
+        />
+      )}
     </div>
   );
 };
