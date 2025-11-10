@@ -1325,17 +1325,32 @@ const Home = () => {
     }
   };
 
-  const handleDecrypt = async (dossier: DossierWithStatus) => {
+  // Opens the decryption view for a dossier
+  const handleDecrypt = (dossier: DossierWithStatus) => {
+    if (dossier.encryptedFileHashes.length === 0) {
+      toast.error('No encrypted files found in this dossier.');
+      return;
+    }
+
+    // Open decryption view with initial state (shows button)
+    setDecryptingDossier(dossier);
+    setShowDecryptionView(true);
+    setDecryptedFiles([]);
+    setDecryptionProgress({
+      stage: 'fetching',
+      currentFile: 0,
+      totalFiles: 0, // 0 indicates initial state - shows button
+    });
+  };
+
+  // Performs the actual decryption process
+  const startDecryption = async () => {
+    const dossier = decryptingDossier;
     const user = viewingUserAddress || getCurrentAddress();
     if (!dossier || !user || dossier.id === null) return;
 
     try {
       console.log('🔓 Attempting decryption for dossier:', dossier.id.toString());
-
-      if (dossier.encryptedFileHashes.length === 0) {
-        toast.error('No encrypted files found in this dossier.');
-        return;
-      }
 
       const fileHashes = dossier.encryptedFileHashes;
 
@@ -1346,10 +1361,7 @@ const Home = () => {
       );
       console.log(`📋 Total files to decrypt: ${fileHashes.length} (1 manifest + ${fileHashes.length - 1} files)`);
 
-      // Open decryption view and initialize progress
-      setDecryptingDossier(dossier);
-      setShowDecryptionView(true);
-      setDecryptedFiles([]);
+      // Update progress to start decryption
       setDecryptionProgress({
         stage: 'fetching',
         currentFile: 0,
@@ -2964,7 +2976,34 @@ const Home = () => {
           </header>
 
           <div className="flex-1 overflow-auto">
-            {currentView === "history" ? (
+            {showDecryptionView && decryptingDossier ? (
+              // Decryption View - Inline
+              <div
+                className={`flex-1 overflow-auto ${theme === "light" ? "bg-white" : "bg-black"}`}
+              >
+                <div className="max-w-7xl mx-auto px-6 py-8">
+                  <DecryptionView
+                    isOpen={true}
+                    onClose={() => {
+                      setShowDecryptionView(false);
+                      setDecryptingDossier(null);
+                      setDecryptedFiles([]);
+                      setDecryptionProgress({
+                        stage: 'fetching',
+                        currentFile: 0,
+                        totalFiles: 0,
+                      });
+                    }}
+                    progress={decryptionProgress}
+                    decryptedFiles={decryptedFiles}
+                    inline={true}
+                    dossierName={decryptingDossier.name.replace('Encrypted file: ', '')}
+                    fileCount={decryptingDossier.encryptedFileHashes.length - 1}
+                    onStartDecrypt={startDecryption}
+                  />
+                </div>
+              </div>
+            ) : currentView === "history" ? (
               // Check-in History View
               <div
                 className={`flex-1 overflow-auto ${theme === "light" ? "bg-white" : "bg-black"}`}
@@ -7519,26 +7558,6 @@ const Home = () => {
           setShowAUPForEncrypt(false);
         }}
       />
-
-      {/* Decryption Modal */}
-      {showDecryptionView && decryptingDossier && (
-        <DecryptionView
-          isOpen={showDecryptionView}
-          onClose={() => {
-            setShowDecryptionView(false);
-            setDecryptingDossier(null);
-            setDecryptedFiles([]);
-            setDecryptionProgress({
-              stage: 'fetching',
-              currentFile: 0,
-              totalFiles: 0,
-            });
-          }}
-          progress={decryptionProgress}
-          decryptedFiles={decryptedFiles}
-          inline={false}
-        />
-      )}
     </div>
   );
 };
