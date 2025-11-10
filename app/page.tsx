@@ -6,6 +6,7 @@ import {
   Shield,
   Download,
   Copy,
+  CheckCircle,
   AlertCircle,
   Github,
   Sun,
@@ -203,6 +204,7 @@ const Home = () => {
   const [selectedDocument, setSelectedDocument] =
     useState<DossierWithStatus | null>(null);
   const [documentDetailView, setDocumentDetailView] = useState(false);
+  const [copiedOwner, setCopiedOwner] = useState(false);
   const [showMediaRecorder, setShowMediaRecorder] = useState(false);
   const [mediaRecorderType, setMediaRecorderType] = useState<'voice' | 'video'>('voice');
   const [showDisableConfirm, setShowDisableConfirm] = useState<bigint | null>(
@@ -252,6 +254,17 @@ const Home = () => {
     if (viewingUserAddress) {
       window.history.pushState({}, '', `/?user=${viewingUserAddress}`);
     }
+  };
+
+  // Copy owner address to clipboard
+  const copyOwnerAddress = (owner: Address) => {
+    navigator.clipboard.writeText(owner).then(() => {
+      setCopiedOwner(true);
+      toast.success('Owner address copied!');
+      setTimeout(() => setCopiedOwner(false), 2000);
+    }).catch(() => {
+      toast.error('Failed to copy address');
+    });
   };
 
   // Check if viewing own dossiers (used to show/hide action buttons)
@@ -3380,7 +3393,7 @@ const Home = () => {
                                       "",
                                     )}
                                   </h1>
-                                  <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-4 mb-3">
                                     <div
                                       className={`status-indicator text-xs ${(() => {
                                         if (
@@ -3498,6 +3511,28 @@ const Home = () => {
                                         : "Public"}
                                     </div>
                                   </div>
+                                  {/* Owner Information */}
+                                  {viewingUserAddress && (
+                                    <div className={`flex items-start gap-2 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                                      <span className="text-xs font-medium uppercase">Owner:</span>
+                                      <button
+                                        onClick={() => copyOwnerAddress(viewingUserAddress)}
+                                        className={`flex items-center gap-2 font-mono text-sm transition-colors group ${
+                                          theme === 'light'
+                                            ? 'text-gray-900 hover:text-blue-600'
+                                            : 'text-gray-100 hover:text-blue-400'
+                                        }`}
+                                        title="Click to copy owner address"
+                                      >
+                                        <span>{viewingUserAddress}</span>
+                                        {copiedOwner ? (
+                                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                        ) : (
+                                          <Copy className="w-4 h-4 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
