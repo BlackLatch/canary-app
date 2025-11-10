@@ -490,22 +490,21 @@ export default function DossierDetailView({
                 </>
               )}
 
-              {/* View Release Button - Available to anyone who can decrypt */}
+              {/* Decrypt Button - Available to anyone who can decrypt */}
               {canDecrypt && onDecrypt && (
                 <button
                   onClick={onDecrypt}
                   className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
                     theme === 'light'
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
+                      ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900'
+                      : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                     </svg>
-                    <span>VIEW RELEASE</span>
+                    <span>DOWNLOAD & DECRYPT FILES</span>
                   </div>
                 </button>
               )}

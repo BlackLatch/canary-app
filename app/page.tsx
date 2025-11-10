@@ -3817,8 +3817,8 @@ const Home = () => {
                                       }}
                                       className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
                                         theme === "light"
-                                          ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
-                                          : "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                                          ? "bg-gray-900 text-white hover:bg-gray-800 border-gray-900"
+                                          : "bg-white text-gray-900 hover:bg-gray-100 border-white"
                                       }`}
                                     >
                                       <div className="flex items-center justify-center gap-2">
