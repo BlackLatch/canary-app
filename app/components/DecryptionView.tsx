@@ -240,7 +240,7 @@ export default function DecryptionView({
         </div>
 
         {/* Progress Section */}
-        {progress.stage !== 'complete' && progress.stage !== 'error' && (
+        {progress.stage !== 'complete' && progress.stage !== 'error' && progress.totalFiles > 0 && (
           <div className={`px-6 py-4 border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
             <div className="flex items-center gap-3 mb-2">
               <Loader2 className={`w-5 h-5 animate-spin ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`} />
