@@ -344,7 +344,50 @@ export default function DossierDetailView({
           <div className="space-y-6">
             <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
               <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
+
               <div className="space-y-3">
+              {/* Viewing Mode Indicator - Show when not owner */}
+              {!isOwner && (
+                <div
+                  className={`p-4 border rounded-lg text-center ${
+                    theme === 'light'
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-blue-900/20 border-blue-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <svg
+                      className={`w-5 h-5 ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    <span className={`font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                      VIEWING MODE
+                    </span>
+                  </div>
+                  <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                    You are viewing another user's dossier.
+                  </p>
+                </div>
+              )}
+
+              {/* Owner-only actions */}
+              {isOwner && (
+                <>
                 {/* Released Message */}
                 {dossier.isReleased === true && (
                   <div
@@ -379,26 +422,6 @@ export default function DossierDetailView({
                   </button>
                 )}
 
-                {/* View Dossier Button */}
-                {canDecrypt && onDecrypt && (
-                  <button
-                    onClick={onDecrypt}
-                    className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                      theme === 'light'
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <span>VIEW DOSSIER</span>
-                    </div>
-                  </button>
-                )}
-
                 {/* Pause/Resume Button */}
                 {canPauseResume && onPauseResume && (
                   <button
@@ -424,6 +447,28 @@ export default function DossierDetailView({
                     </div>
                   </button>
                 )}
+                </>
+              )}
+
+              {/* View Dossier Button - Available to anyone who can decrypt */}
+              {canDecrypt && onDecrypt && (
+                <button
+                  onClick={onDecrypt}
+                  className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                    theme === 'light'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>VIEW DOSSIER</span>
+                  </div>
+                </button>
+              )}
               </div>
             </div>
           </div>
