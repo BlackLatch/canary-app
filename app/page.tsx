@@ -2859,12 +2859,28 @@ const Home = () => {
                     </button>
                     <button
                       onClick={() => {
-                        setCurrentView("documents");
-                        // Update URL to include user param when viewing dossiers
+                        // Close any open decryption view
+                        setShowDecryptionView(false);
+                        setDecryptingDossier(null);
+                        setDecryptedFiles([]);
+                        setDecryptionProgress({
+                          stage: 'fetching',
+                          currentFile: 0,
+                          totalFiles: 0,
+                        });
+
+                        // Reset to viewing current user's dossiers
+                        setViewingUserAddress(null);
+
+                        // Fetch current user's dossiers
                         const currentAddress = getCurrentAddress();
                         if (currentAddress) {
+                          fetchUserDossiers(currentAddress as Address);
                           window.history.pushState({}, '', `/?user=${currentAddress}`);
                         }
+
+                        // Switch to documents view
+                        setCurrentView("documents");
                       }}
                       className={`nav-link ${
                         currentView === "documents" ? "nav-link-active" : ""
