@@ -3804,14 +3804,6 @@ const Home = () => {
                                     hasAccess = true;
                                   }
 
-                                  console.log('🔍 Main page VIEW RELEASE check:', {
-                                    isDecryptable,
-                                    isPrivate,
-                                    currentAddress,
-                                    recipients: selectedDocument.recipients,
-                                    hasAccess,
-                                  });
-
                                   if (!hasAccess) return null;
 
                                   return (

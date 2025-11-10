@@ -113,20 +113,7 @@ export default function DossierDetailView({
     // Check if dossier is expired/released and has files
     const isDecryptable = (isTimeExpired || dossier.isReleased === true) && dossier.encryptedFileHashes.length > 0;
 
-    console.log('🔍 canDecrypt check:', {
-      isTimeExpired,
-      isReleased: dossier.isReleased,
-      hasFiles: dossier.encryptedFileHashes.length > 0,
-      isDecryptable,
-      currentUserAddress,
-      recipients: dossier.recipients,
-      isOwner,
-    });
-
-    if (!isDecryptable) {
-      console.log('❌ Not decryptable - dossier not expired/released or no files');
-      return false;
-    }
+    if (!isDecryptable) return false;
 
     // If it's a private dossier (has recipients beyond just the owner)
     const isPrivate = dossier.recipients && dossier.recipients.length > 1;
@@ -134,18 +121,12 @@ export default function DossierDetailView({
     if (isPrivate && currentUserAddress) {
       // Check if current user is in the recipients list
       const userIsRecipient = dossier.recipients?.some(
-        (recipient) => {
-          const match = recipient.toLowerCase() === currentUserAddress.toLowerCase();
-          console.log(`  Checking recipient ${recipient} vs ${currentUserAddress}: ${match}`);
-          return match;
-        }
+        (recipient) => recipient.toLowerCase() === currentUserAddress.toLowerCase()
       );
-      console.log(`✅ Private dossier - user is recipient: ${userIsRecipient}`);
       return userIsRecipient;
     }
 
     // For public dossiers, anyone can decrypt
-    console.log('✅ Public dossier - anyone can decrypt');
     return true;
   })();
 
@@ -472,31 +453,24 @@ export default function DossierDetailView({
               )}
 
               {/* View Release Button - Available to anyone who can decrypt */}
-              {(() => {
-                console.log('🎯 VIEW RELEASE button render check:', {
-                  canDecrypt,
-                  hasOnDecrypt: !!onDecrypt,
-                  willShow: canDecrypt && onDecrypt,
-                });
-                return canDecrypt && onDecrypt ? (
-                  <button
-                    onClick={onDecrypt}
-                    className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                      theme === 'light'
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <span>VIEW RELEASE</span>
-                    </div>
-                  </button>
-                ) : null;
-              })()}
+              {canDecrypt && onDecrypt && (
+                <button
+                  onClick={onDecrypt}
+                  className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                    theme === 'light'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>VIEW RELEASE</span>
+                  </div>
+                </button>
+              )}
               </div>
             </div>
           </div>
