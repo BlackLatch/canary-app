@@ -28,6 +28,9 @@ interface DecryptionViewProps {
   progress: DecryptionProgress;
   decryptedFiles: DecryptedFile[];
   inline?: boolean; // New prop to control inline vs modal rendering
+  dossierName?: string; // Name of the dossier being decrypted
+  fileCount?: number; // Number of files in the dossier
+  onStartDecrypt?: () => void; // Callback to start decryption
 }
 
 export default function DecryptionView({
@@ -36,6 +39,9 @@ export default function DecryptionView({
   progress,
   decryptedFiles,
   inline = false,
+  dossierName,
+  fileCount,
+  onStartDecrypt,
 }: DecryptionViewProps) {
   const { theme } = useTheme();
   const [selectedFile, setSelectedFile] = useState<DecryptedFile | null>(null);
@@ -356,7 +362,51 @@ export default function DecryptionView({
 
           {/* Preview Area */}
           <div className="flex-1 overflow-auto">
-            {progress.stage === 'complete' && selectedFile ? (
+            {progress.totalFiles === 0 && onStartDecrypt ? (
+              /* Initial Ready to Decrypt State */
+              <div className="h-full flex items-center justify-center p-6">
+                <div className="max-w-md w-full text-center">
+                  <h1 className={`text-2xl font-semibold mb-4 ${
+                    theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                  }`}>
+                    {dossierName || 'Dossier'}
+                  </h1>
+
+                  <div className={`mb-6 pb-6 border-b ${
+                    theme === 'light' ? 'border-gray-200' : 'border-gray-600'
+                  }`}>
+                    <p className={`text-sm mb-2 ${
+                      theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                    }`}>
+                      This dossier has been released and is ready to decrypt.
+                    </p>
+                    {fileCount !== undefined && (
+                      <p className={`text-sm ${
+                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        Files: <span className="font-medium">{fileCount}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={onStartDecrypt}
+                    className={`w-full py-3 px-4 text-base font-medium border rounded-lg transition-all ${
+                      theme === 'light'
+                        ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900'
+                        : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                      <span>DOWNLOAD & DECRYPT FILES</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            ) : progress.stage === 'complete' && selectedFile ? (
               <div className="h-full flex flex-col">
                 {/* File Info Header */}
                 <div className={`px-6 py-4 border-b ${
