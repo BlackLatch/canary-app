@@ -10,6 +10,7 @@ import { Sun, Moon, Shield, ArrowLeft, Settings } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAccount } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
+import { useBurnerWallet } from '@/app/lib/burner-wallet-context';
 import DossierDetailView from '@/app/components/DossierDetailView';
 import DecryptionView from '@/app/components/DecryptionView';
 import Link from 'next/link';
@@ -50,6 +51,12 @@ function ReleaseDetailContent() {
   const { theme, toggleTheme } = useTheme();
   const { address: connectedAddress } = useAccount();
   const { authenticated, login } = usePrivy();
+  const burnerWallet = useBurnerWallet();
+
+  // Helper to get current address (prioritize burner wallet)
+  const getCurrentAddress = () => {
+    return burnerWallet.address || connectedAddress || null;
+  };
 
   const [dossier, setDossier] = useState<Dossier | null>(null);
   const [loading, setLoading] = useState(true);
@@ -293,7 +300,8 @@ function ReleaseDetailContent() {
     );
   }
 
-  const isOwner = !!(connectedAddress && connectedAddress.toLowerCase() === user.toLowerCase());
+  const currentAddress = getCurrentAddress();
+  const isOwner = !!(currentAddress && currentAddress.toLowerCase() === user.toLowerCase());
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
@@ -376,12 +384,12 @@ function ReleaseDetailContent() {
                 </button>
 
                 {/* Authentication Status */}
-                {authenticated && connectedAddress ? (
+                {authenticated && currentAddress ? (
                   <div className="flex items-center gap-2">
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                        {`${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`}
+                        {`${currentAddress.slice(0, 6)}...${currentAddress.slice(-4)}`}
                       </span>
                     </div>
                   </div>
@@ -413,7 +421,7 @@ function ReleaseDetailContent() {
                 theme={theme}
                 currentTime={currentTime}
                 isOwner={isOwner}
-                currentUserAddress={connectedAddress}
+                currentUserAddress={currentAddress}
                 onBack={() => router.push('/')}
                 onDecrypt={handleDecrypt}
               />
