@@ -6,6 +6,7 @@ import { useTheme } from '@/app/lib/theme-context';
 import { useAccount, useDisconnect } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import PublicReleasesView from '@/app/components/PublicReleasesView';
+import DemoDisclaimer from '@/app/components/DemoDisclaimer';
 import Link from 'next/link';
 
 export default function PublicReleasesPage() {
@@ -13,6 +14,7 @@ export default function PublicReleasesPage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { authenticated, user, logout } = usePrivy();
+  const [showDemoDisclaimer, setShowDemoDisclaimer] = useState(false);
   const [authMode, setAuthMode] = useState<'standard' | 'advanced'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('canary-auth-mode') as 'standard' | 'advanced') || 'standard';
@@ -45,11 +47,12 @@ export default function PublicReleasesPage() {
             <span className={`text-xs font-medium tracking-wider uppercase ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
               FOR DEMONSTRATION PURPOSES ONLY
             </span>
-            <span
-              className={`text-xs ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}
+            <button
+              onClick={() => setShowDemoDisclaimer(true)}
+              className={`text-xs hover:underline ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}
             >
               [learn more]
-            </span>
+            </button>
           </div>
         </div>
       </div>
@@ -256,5 +259,14 @@ export default function PublicReleasesPage() {
     </div>
   );
 
-  return pageContent;
+  return (
+    <>
+      {pageContent}
+      <DemoDisclaimer
+        theme={theme}
+        forceShow={showDemoDisclaimer}
+        onClose={() => setShowDemoDisclaimer(false)}
+      />
+    </>
+  );
 }

@@ -13,6 +13,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useBurnerWallet } from '@/app/lib/burner-wallet-context';
 import DossierDetailView from '@/app/components/DossierDetailView';
 import DecryptionView from '@/app/components/DecryptionView';
+import DemoDisclaimer from '@/app/components/DemoDisclaimer';
 import Link from 'next/link';
 
 interface DecryptedFile {
@@ -61,6 +62,9 @@ function ReleaseDetailContent() {
   const [dossier, setDossier] = useState<Dossier | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Demo disclaimer state
+  const [showDemoDisclaimer, setShowDemoDisclaimer] = useState(false);
 
   // Decryption state
   const [showDecryptionView, setShowDecryptionView] = useState(false);
@@ -314,6 +318,12 @@ function ReleaseDetailContent() {
             <span className={`text-xs font-medium tracking-wider uppercase ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
               FOR DEMONSTRATION PURPOSES ONLY
             </span>
+            <button
+              onClick={() => setShowDemoDisclaimer(true)}
+              className={`text-xs hover:underline ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}
+            >
+              [learn more]
+            </button>
           </div>
         </div>
       </div>
@@ -442,6 +452,13 @@ function ReleaseDetailContent() {
           </div>
         </div>
       </div>
+
+      {/* Demo Disclaimer Modal */}
+      <DemoDisclaimer
+        theme={theme}
+        forceShow={showDemoDisclaimer}
+        onClose={() => setShowDemoDisclaimer(false)}
+      />
     </div>
   );
 }

@@ -339,6 +339,46 @@ export default function DossierDetailView({
               })}
             </div>
           </div>
+
+          {/* Recipients List */}
+          <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+            <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">
+              Recipients
+            </h3>
+            <div className="space-y-2">
+              {dossier.recipients.map((recipient, index) => (
+                <div
+                  key={index}
+                  className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className={`text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        Recipient #{index + 1}
+                      </div>
+                      <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'} break-all`}>
+                        {recipient}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(recipient);
+                        toast.success('Address copied to clipboard');
+                      }}
+                      className={`ml-2 p-1 rounded text-xs ${
+                        theme === 'light'
+                          ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                          : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
+                      }`}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Action Panel - Hidden for permanently disabled dossiers */}
