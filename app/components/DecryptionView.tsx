@@ -473,7 +473,7 @@ export default function DecryptionView({
                 </div>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center">
+              <div className="h-full flex items-center justify-center p-12">
                 <div className="text-center">
                   <Loader2 className={`w-16 h-16 animate-spin mx-auto mb-4 ${
                     theme === 'light' ? 'text-gray-900' : 'text-gray-100'
