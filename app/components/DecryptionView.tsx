@@ -209,7 +209,11 @@ export default function DecryptionView({
           theme === 'light' ? 'border-gray-300' : 'border-gray-600'
         }`}>
           <h2 className={`text-xl font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-            {progress.stage === 'complete' ? 'Decrypted Files' : 'Decrypting Files...'}
+            {progress.totalFiles === 0 && onStartDecrypt
+              ? (dossierName || 'Dossier')
+              : progress.stage === 'complete'
+                ? 'Decrypted Files'
+                : 'Decrypting Files...'}
           </h2>
           <div className="flex items-center gap-2">
             {progress.stage === 'complete' && decryptedFiles.length > 1 && (
