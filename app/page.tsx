@@ -7318,7 +7318,7 @@ const Home = () => {
           </div>
         </>
       )}
-      
+
       {/* AUP Modal - Only shown when triggered from encryption step */}
       <AcceptableUsePolicy 
         theme={theme}

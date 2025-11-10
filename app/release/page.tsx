@@ -415,27 +415,32 @@ function ReleaseDetailContent() {
         <div className="flex-1 overflow-auto">
           <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
             <div className="max-w-7xl mx-auto px-6 py-8">
-              <DossierDetailView
-                dossier={dossier}
-                owner={user}
-                theme={theme}
-                currentTime={currentTime}
-                isOwner={isOwner}
-                currentUserAddress={currentAddress}
-                onBack={() => router.push('/')}
-                onDecrypt={handleDecrypt}
-              />
+              {!showDecryptionView ? (
+                <DossierDetailView
+                  dossier={dossier}
+                  owner={user}
+                  theme={theme}
+                  currentTime={currentTime}
+                  isOwner={isOwner}
+                  currentUserAddress={currentAddress}
+                  onBack={() => router.push('/')}
+                  onDecrypt={handleDecrypt}
+                />
+              ) : (
+                <DecryptionView
+                  isOpen={true}
+                  onClose={() => {
+                    setShowDecryptionView(false);
+                    setDecryptedFiles([]);
+                  }}
+                  progress={decryptionProgress}
+                  decryptedFiles={decryptedFiles}
+                  inline={true}
+                />
+              )}
             </div>
           </div>
         </div>
-
-        {/* Decryption Modal */}
-        <DecryptionView
-          isOpen={showDecryptionView}
-          onClose={() => setShowDecryptionView(false)}
-          progress={decryptionProgress}
-          decryptedFiles={decryptedFiles}
-        />
       </div>
     </div>
   );

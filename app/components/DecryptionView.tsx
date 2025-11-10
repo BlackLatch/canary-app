@@ -27,6 +27,7 @@ interface DecryptionViewProps {
   onClose: () => void;
   progress: DecryptionProgress;
   decryptedFiles: DecryptedFile[];
+  inline?: boolean; // New prop to control inline vs modal rendering
 }
 
 export default function DecryptionView({
@@ -34,6 +35,7 @@ export default function DecryptionView({
   onClose,
   progress,
   decryptedFiles,
+  inline = false,
 }: DecryptionViewProps) {
   const { theme } = useTheme();
   const [selectedFile, setSelectedFile] = useState<DecryptedFile | null>(null);
@@ -185,9 +187,17 @@ export default function DecryptionView({
     ? Math.round((progress.currentFile / progress.totalFiles) * 100)
     : 0;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className={`w-full h-full flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`}>
+  // Wrapper classes differ based on inline vs modal mode
+  const wrapperClasses = inline
+    ? "" // No wrapper needed for inline mode
+    : "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+
+  const containerClasses = inline
+    ? `w-full flex flex-col border rounded-lg ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-gray-700'}`
+    : `w-full h-full flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}`;
+
+  const content = (
+    <div className={containerClasses}>
         {/* Header */}
         <div className={`flex items-center justify-between px-6 py-4 border-b ${
           theme === 'light' ? 'border-gray-200' : 'border-gray-700'
@@ -433,7 +443,17 @@ export default function DecryptionView({
             )}
           </div>
         </div>
-      </div>
+    </div>
+  );
+
+  // Return content wrapped appropriately based on mode
+  if (inline) {
+    return content;
+  }
+
+  return (
+    <div className={wrapperClasses}>
+      {content}
     </div>
   );
 }
