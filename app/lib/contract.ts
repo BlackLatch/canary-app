@@ -1751,11 +1751,12 @@ export class ContractService {
   ): Promise<{ dossierId: bigint; txHash: string }> {
     try {
       console.log('📝 Creating V3 dossier on-chain...');
-      console.log('Guardians:', guardians);
-      console.log('Guardian Threshold:', guardianThreshold);
 
       const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
       const guardianThresholdBigInt = BigInt(guardianThreshold);
+
+      // Use higher gas limit for dossiers with guardians (requires more storage operations)
+      const gasLimit = guardians.length > 0 ? 1000000 : 500000;
 
       let hash: string;
 
@@ -1766,7 +1767,6 @@ export class ContractService {
 
         // Connect to Status Network Sepolia RPC
         const rpcUrl = 'https://public.sepolia.rpc.status.network';
-        console.log('🔗 Connecting to Status Network Sepolia RPC');
         const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
         const signer = burnerWallet.connect(provider);
 
@@ -1777,27 +1777,7 @@ export class ContractService {
           signer
         );
 
-        // Get current gas prices for Status Network (should be 0)
-        const feeData = await provider.getFeeData();
-        console.log('🔍 Current fee data:', {
-          gasPrice: feeData.gasPrice?.toString(),
-          maxFeePerGas: feeData.maxFeePerGas?.toString(),
-          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString()
-        });
-
-        // Status Network is gasless - use the network's gas price (should be 0)
-        const gasPrice = feeData.gasPrice || ethers.BigNumber.from(0);
-        const maxPriorityFee = feeData.maxPriorityFeePerGas || ethers.BigNumber.from(0);
-        const maxFeePerGas = feeData.maxFeePerGas || ethers.BigNumber.from(0);
-
-        console.log('💰 Using gas settings (gasless):', {
-          gasPrice: gasPrice.toString(),
-          maxPriorityFeePerGas: maxPriorityFee.toString(),
-          maxFeePerGas: maxFeePerGas.toString()
-        });
-
         // Send transaction - Status Network is gasless (EIP-1559)
-        // Only use maxFeePerGas and maxPriorityFeePerGas (not gasPrice for EIP-1559)
         const tx = await contract.createDossier(
           name,
           description,
@@ -1807,13 +1787,11 @@ export class ContractService {
           guardians,
           guardianThresholdBigInt,
           {
-            gasLimit: 500000,
-            maxFeePerGas: 0,
-            maxPriorityFeePerGas: 0,
+            gasLimit: gasLimit,
+            maxFeePerGas: ethers.BigNumber.from(0),
+            maxPriorityFeePerGas: ethers.BigNumber.from(0),
           }
         );
-
-        console.log('✅ Transaction sent with EIP-1559 gasless settings');
 
         console.log('⏳ Waiting for burner wallet transaction confirmation...');
         const receipt = await tx.wait();
@@ -1825,14 +1803,14 @@ export class ContractService {
           abi: CANARY_DOSSIER_ABI,
           functionName: 'createDossier',
           args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes, guardians, guardianThresholdBigInt],
-          gas: BigInt(500000),
+          gas: BigInt(gasLimit),
         });
 
         console.log('⏳ Waiting for transaction confirmation...');
         await waitForTransactionReceipt(config, { hash });
       }
-      
-      // Get the dossier ID by reading from the V2 contract
+
+      // Get the dossier ID by reading from the V3 contract
       let userAddress: Address;
       if (burnerWallet) {
         userAddress = burnerWallet.address as Address;

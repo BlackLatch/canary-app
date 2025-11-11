@@ -347,11 +347,13 @@ const Home = () => {
         return name.trim().length > 0 && description.trim().length > 0;
       case 2: // VISIBILITY - requires release mode selection (no default)
         return releaseMode !== "" && (releaseMode === "public" || (releaseMode === "contacts" && emergencyContacts.some(c => c.trim().length > 0)));
-      case 3: // SCHEDULE - requires check-in interval selection (no default)
+      case 3: // GUARDIANS - optional, always considered "completed"
+        return true; // Optional step, always allow progression
+      case 4: // SCHEDULE - requires check-in interval selection (no default)
         return checkInInterval !== "" && (checkInInterval !== "custom" || customInterval.trim().length > 0);
-      case 4: // ENCRYPT - requires at least one file
+      case 5: // ENCRYPT - requires at least one file
         return uploadedFiles.length > 0 || uploadedFile !== null;
-      case 5: // FINALIZE - this step is never "completed" until submission
+      case 6: // FINALIZE - this step is never "completed" until submission
         return false;
       default:
         return false;
@@ -894,12 +896,6 @@ const Home = () => {
           const thresholdToUse = enableGuardians && guardiansToUse.length > 0
             ? guardianThreshold
             : 0;
-
-          console.log('Guardian configuration:', {
-            enabled: enableGuardians,
-            guardians: guardiansToUse,
-            threshold: thresholdToUse
-          });
 
           result = await ContractService.createDossier(
             dossierName,
@@ -5135,7 +5131,7 @@ const Home = () => {
                           <div className="flex items-center justify-between">
                             {/* Step indicators with labels */}
                             <div className="flex items-center gap-3">
-                              {[1, 2, 3, 4, 5].map((step, index) => (
+                              {[1, 2, 3, 4, 5, 6].map((step, index) => (
                                 <React.Fragment key={step}>
                                   <div
                                     className={`flex items-center gap-2 cursor-pointer`}
@@ -5179,13 +5175,15 @@ const Home = () => {
                                         : step === 2
                                           ? "VISIBILITY"
                                           : step === 3
-                                            ? "SCHEDULE"
+                                            ? "GUARDIANS"
                                             : step === 4
-                                              ? "ENCRYPT"
-                                              : "FINALIZE"}
+                                              ? "SCHEDULE"
+                                              : step === 5
+                                                ? "ENCRYPT"
+                                                : "FINALIZE"}
                                     </span>
                                   </div>
-                                  {index < 4 && (
+                                  {index < 5 && (
                                     <div
                                       className={`h-px w-8 ${
                                         theme === "light"
