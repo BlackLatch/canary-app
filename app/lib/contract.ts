@@ -4,15 +4,15 @@ import type { Address } from 'viem';
 import { config } from './web3'; // Use the main wagmi config
 import { ensureCorrectNetwork } from './network-switch';
 
-// DossierV2 Contract - deployed with enhanced features
+// DossierV3 Contract - deployed with guardian system and enhanced features
 // IMPORTANT: This contract is primarily deployed on Status Network Sepolia (gasless)
 // Polygon Amoy is also supported for backward compatibility
 // Default: Status Network Sepolia (Chain ID 1660990954)
-export const CANARY_DOSSIER_ADDRESS: Address = (process.env.NEXT_PUBLIC_CANARY_DOSSIER_STATUS_ADDRESS as Address) || '0x671f15e4bAF8aB59FA4439b5866E1Ed048ca79e0';
+export const CANARY_DOSSIER_ADDRESS: Address = (process.env.NEXT_PUBLIC_CANARY_DOSSIER_STATUS_ADDRESS as Address) || '0x1e42d08E70cB4b91A3F01069521fa0be9F9e176f';
 
-// Import the DossierV2 ABI
-import dossierV2ABI from './dossierV2.abi.json';
-export const CANARY_DOSSIER_ABI = dossierV2ABI as any;
+// Import the DossierV3 ABI
+import dossierV3ABI from './dossierV3.abi.json';
+export const CANARY_DOSSIER_ABI = dossierV3ABI as any;
 
 // Legacy V1 ABI (removed) - keeping structure for reference
 const LEGACY_V1_ABI = [
@@ -215,14 +215,17 @@ const LEGACY_V1_ABI = [
 export interface Dossier {
   id: bigint;
   name: string;
-  description?: string; // Optional - not in deployed contract yet
+  description: string;
   isActive: boolean;
-  isPermanentlyDisabled?: boolean; // Optional - not in deployed contract yet
-  isReleased?: boolean; // Optional - not in deployed contract yet
+  isPermanentlyDisabled: boolean;
+  isReleased: boolean;
   checkInInterval: bigint;
   lastCheckIn: bigint;
   encryptedFileHashes: string[];
   recipients: Address[];
+  guardians: Address[];
+  guardianThreshold: bigint;
+  guardianConfirmationCount: bigint;
 }
 
 // Network validation helper
@@ -498,231 +501,6 @@ export class ContractService {
     }
   }
 
-  /**
-   * Create a new dossier on-chain with comprehensive debugging
-   */
-  static async createDossier(
-    name: string,
-    description: string,
-    checkInIntervalMinutes: number,
-    recipients: Address[],
-    encryptedFileHashes: string[]
-  ): Promise<{ dossierId: bigint; txHash: string }> {
-    try {
-      console.log('📝 Creating dossier on-chain...');
-      console.log('Name:', name);
-      console.log('Check-in interval:', checkInIntervalMinutes, 'minutes');
-      console.log('Recipients:', recipients);
-      console.log('File hashes:', encryptedFileHashes);
-
-      // COMPREHENSIVE PARAMETER DEBUGGING
-      console.log('🔍 Running comprehensive parameter validation...');
-      const debugResult = await this.debugCreateDossierParams(name, checkInIntervalMinutes, recipients, encryptedFileHashes);
-      
-      if (!debugResult.isValid) {
-        console.error('❌ Parameter validation failed:');
-        debugResult.errors.forEach(error => console.error('   -', error));
-        throw new Error(`Parameter validation failed: ${debugResult.errors.join(', ')}`);
-      }
-      
-      console.log('✅ All parameters validated successfully');
-      console.log('📊 Final parameters to be sent to contract:');
-      console.log('   - Name:', debugResult.processedParams.name);
-      console.log('   - Interval (seconds):', debugResult.processedParams.checkInIntervalSeconds);
-      console.log('   - Recipients:', debugResult.processedParams.recipients);
-      console.log('   - File hashes:', debugResult.processedParams.encryptedFileHashes);
-      
-      // Test contract connection
-      const isConnected = await this.testContractConnection();
-      if (!isConnected) {
-        throw new Error('Contract is not accessible. Please check the contract address and network.');
-      }
-
-      // Get the current account (already validated in debug function)
-      const account = await getAccount(config);
-      if (!account.address) {
-        throw new Error('Wallet disconnected during transaction');
-      }
-      const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
-      
-      console.log('✅ Pre-flight validation passed!');
-
-      // COMPREHENSIVE CONTRACT BUG DIAGNOSIS FOR CREATE DOSSIER
-      console.log('🔍🐛 RUNNING CREATE DOSSIER BUG DIAGNOSIS...');
-      const bugDiagnosis = await this.diagnoseContractBugs(account.address);
-      console.log('📊 Create dossier bug diagnosis:', bugDiagnosis);
-      
-      if (bugDiagnosis.hasBugs) {
-        console.error('🐛💥 CONTRACT BUGS DETECTED BEFORE CREATE:');
-        bugDiagnosis.bugReports.forEach(bug => console.error(`   ${bug}`));
-        
-        // Check if the bugs would prevent creating new dossiers
-        if (bugDiagnosis.bugReports.some(bug => bug.includes('ID ASSIGNMENT'))) {
-          console.error('⚠️ ID assignment bugs detected - this may affect dossier creation');
-        }
-      }
-      
-      // Check user's current dossier state for ID conflicts
-      const currentCount = bugDiagnosis.contractState.totalDossiers;
-      const nextExpectedId = currentCount; // Contract uses count as next ID
-      console.log(`🔍 Current dossier count: ${currentCount}, next expected ID: ${nextExpectedId}`);
-      
-      // Check if there would be ID conflicts
-      const existingIds = bugDiagnosis.contractState.dossierIds || [];
-      console.log(`📋 Existing dossier IDs: [${existingIds.join(', ')}]`);
-      
-      if (existingIds.includes(nextExpectedId.toString())) {
-        throw new Error(`ID CONFLICT: Next dossier would get ID ${nextExpectedId} but that ID already exists!`);
-      }
-      
-      // Check dossier count limit
-      const constants = await this.getConstants();
-      if (currentCount >= Number(constants.maxDossiers)) {
-        throw new Error(`DOSSIER LIMIT REACHED: User has ${currentCount}/${constants.maxDossiers} dossiers`);
-      }
-      
-      console.log(`✅ Create dossier diagnosis passed: Ready to create dossier #${nextExpectedId}`);
-
-      // VERIFY WALLET PROVIDER USAGE
-      console.log('🔍 Verifying wallet provider usage...');
-      const providerVerification = await this.verifyWalletProvider();
-      if (!providerVerification.usingWalletProvider || !providerVerification.networkMatch) {
-        throw new Error(`Wallet provider issue: ${JSON.stringify(providerVerification)}`);
-      }
-      console.log('✅ Confirmed using wallet provider correctly');
-
-      // ADDITIONAL CONTRACT ACCESSIBILITY TEST
-      console.log('🧪 Testing contract read operations before write...');
-      try {
-        // Test a simple read operation to ensure contract is fully accessible
-        const testConstants = await this.getConstants();
-        console.log('✅ Contract read test passed:', {
-          minInterval: testConstants.minInterval.toString(),
-          maxInterval: testConstants.maxInterval.toString()
-        });
-        
-        // Test getting user dossier count
-        const userDossierIds = await this.getUserDossierIds(account.address);
-        console.log('✅ User dossier count test passed:', userDossierIds.length);
-        
-      } catch (readError) {
-        console.error('❌ Contract read test failed:', readError);
-        throw new Error(`Contract is not accessible for reads: ${readError}`);
-      }
-
-      // TRANSACTION PREPARATION
-      console.log('📞 Calling createDossier with args:', {
-        name,
-        checkInIntervalSeconds: checkInIntervalSeconds.toString(),
-        recipients,
-        encryptedFileHashes
-      });
-
-      let hash: `0x${string}` | undefined;
-
-      // Try transaction through wallet provider (no hardcoded RPC)
-      console.log('🚀 Attempting transaction using wallet provider...');
-      console.log('📡 Using wagmi config - all operations go through connected wallet');
-      try {
-        // Add explicit gas limit to avoid estimation issues
-        hash = await writeContract(config, {
-          address: CANARY_DOSSIER_ADDRESS,
-          abi: CANARY_DOSSIER_ABI,
-          functionName: 'createDossier',
-          args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
-          gas: BigInt(500000), // Explicit gas limit
-        });
-
-        console.log('✅ Transaction submitted via wallet provider:', hash);
-
-      } catch (defaultError) {
-        console.warn('⚠️ Transaction failed:', defaultError);
-        
-        // More specific error handling
-        const errorString = String(defaultError);
-        console.log('🔍 Error analysis:', errorString);
-        
-        if (errorString.includes('Internal JSON-RPC error')) {
-          // Try with even higher gas limit
-          console.log('🔄 Retrying with higher gas limit...');
-          try {
-            hash = await writeContract(config, {
-              address: CANARY_DOSSIER_ADDRESS,
-              abi: CANARY_DOSSIER_ABI,
-              functionName: 'createDossier',
-              args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
-              gas: BigInt(800000), // Higher gas limit
-            });
-            console.log('✅ Transaction submitted with higher gas:', hash);
-          } catch (retryError) {
-            console.error('❌ Even higher gas failed:', retryError);
-            throw new Error('Transaction failed with gas issues. The contract may be reverting. Check console for details.');
-          }
-        } else if (errorString.includes('user rejected')) {
-          throw new Error('Transaction was rejected by user');
-        } else if (errorString.includes('insufficient funds')) {
-          throw new Error('Insufficient funds for transaction');
-        } else {
-          throw new Error('Network connection issue. Please check your wallet connection and try again.');
-        }
-      }
-      
-      // Ensure hash was assigned
-      if (!hash) {
-        throw new Error('Transaction failed: No transaction hash received');
-      }
-      
-      console.log('⏳ Waiting for transaction confirmation...');
-      const receipt = await waitForTransactionReceipt(config, { hash });
-      
-      console.log('📄 Transaction receipt:', receipt);
-      
-      // Get the dossier ID by reading from the contract
-      let dossierId: bigint = BigInt(0);
-      try {
-        const dossierIds = await readContract(config, {
-          address: CANARY_DOSSIER_ADDRESS,
-          abi: CANARY_DOSSIER_ABI,
-          functionName: 'getUserDossierIds',
-          args: [account.address],
-        });
-        
-        const ids = dossierIds as bigint[];
-        if (ids.length > 0) {
-          dossierId = ids[ids.length - 1]; // Get the last (newest) dossier ID
-        }
-      } catch (readError) {
-        console.warn('Failed to read dossier ID from contract:', readError);
-      }
-      
-      console.log('✅ Dossier created successfully!');
-      console.log('Dossier ID:', dossierId.toString());
-      console.log('Transaction hash:', hash);
-      
-      return { dossierId, txHash: hash };
-      
-    } catch (error) {
-      console.error('❌ Failed to create dossier:', error);
-      
-      // Try to provide more specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('user rejected') || error.message.includes('User rejected')) {
-          throw new Error('Transaction was rejected by user');
-        } else if (error.message.includes('insufficient funds')) {
-          throw new Error('Insufficient funds for transaction');
-        } else if (error.message.includes('Invalid check-in interval')) {
-          throw new Error('Check-in interval must be between 1 hour and 30 days');
-        } else if (error.message.includes('Max dossiers reached')) {
-          throw new Error('Maximum number of dossiers reached for this account');
-        } else if (error.message.includes('Internal JSON-RPC error')) {
-          throw new Error('MetaMask connection issue. Please try refreshing the page and reconnecting your wallet.');
-        }
-      }
-      
-      throw error;
-    }
-  }
-  
   /**
    * Check in for a specific dossier
    */
@@ -1349,7 +1127,7 @@ export class ContractService {
         chainId: statusSepolia.id, // Always read from Status Network Sepolia
       });
 
-      // V2 has all the latest fields
+      // V3 includes guardian fields
       const dossier = result as any;
       return {
         id: dossier.id,
@@ -1361,7 +1139,10 @@ export class ContractService {
         checkInInterval: dossier.checkInInterval,
         lastCheckIn: dossier.lastCheckIn,
         encryptedFileHashes: dossier.encryptedFileHashes,
-        recipients: dossier.recipients
+        recipients: dossier.recipients,
+        guardians: dossier.guardians || [],
+        guardianThreshold: dossier.guardianThreshold || BigInt(0),
+        guardianConfirmationCount: dossier.guardianConfirmationCount || BigInt(0)
       } as Dossier;
 
     } catch (error) {
@@ -1952,11 +1733,11 @@ export class ContractService {
   }
 
   /**
-   * DossierV2 Functions - New Enhanced Features
+   * DossierV3 Functions - Guardian System and Enhanced Features
    */
-  
+
   /**
-   * Create a new dossier with enhanced features (description, update capabilities)
+   * Create a new dossier with V3 features (guardians, description, update capabilities)
    */
   static async createDossier(
     name: string,
@@ -1964,12 +1745,17 @@ export class ContractService {
     checkInIntervalMinutes: number,
     recipients: Address[],
     encryptedFileHashes: string[],
-    burnerWallet?: any
+    burnerWallet?: any,
+    guardians: Address[] = [],
+    guardianThreshold: number = 0
   ): Promise<{ dossierId: bigint; txHash: string }> {
     try {
-      console.log('📝 Creating V2 dossier on-chain...');
+      console.log('📝 Creating V3 dossier on-chain...');
+      console.log('Guardians:', guardians);
+      console.log('Guardian Threshold:', guardianThreshold);
 
       const checkInIntervalSeconds = BigInt(checkInIntervalMinutes * 60);
+      const guardianThresholdBigInt = BigInt(guardianThreshold);
 
       let hash: string;
 
@@ -2018,6 +1804,8 @@ export class ContractService {
           checkInIntervalSeconds,
           recipients,
           encryptedFileHashes,
+          guardians,
+          guardianThresholdBigInt,
           {
             gasLimit: 500000,
             maxFeePerGas: 0,
@@ -2031,12 +1819,12 @@ export class ContractService {
         const receipt = await tx.wait();
         hash = receipt.transactionHash;
       } else {
-        // Use V2 contract with wagmi
+        // Use V3 contract with wagmi
         hash = await writeContract(config, {
           address: CANARY_DOSSIER_ADDRESS,
           abi: CANARY_DOSSIER_ABI,
           functionName: 'createDossier',
-          args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes],
+          args: [name, description, checkInIntervalSeconds, recipients, encryptedFileHashes, guardians, guardianThresholdBigInt],
           gas: BigInt(500000),
         });
 
@@ -2068,23 +1856,23 @@ export class ContractService {
           dossierId = ids[ids.length - 1]; // Get the last (newest) dossier ID
         }
       } catch (readError) {
-        console.warn('Failed to read dossier ID from V2 contract:', readError);
+        console.warn('Failed to read dossier ID from V3 contract:', readError);
       }
       
-      console.log('✅ V2 Dossier created successfully!');
+      console.log('✅ V3 Dossier created successfully!');
       console.log('Dossier ID:', dossierId.toString());
       console.log('Transaction hash:', hash);
-      
+
       return { dossierId, txHash: hash };
-      
+
     } catch (error) {
-      console.error('❌ Failed to create V2 dossier:', error);
+      console.error('❌ Failed to create V3 dossier:', error);
       throw error;
     }
   }
   
   /**
-   * Update check-in interval for an existing dossier (V2 only)
+   * Update check-in interval for an existing dossier (V3)
    */
   static async updateCheckInInterval(dossierId: bigint, newIntervalMinutes: number): Promise<string> {
     try {
@@ -2093,7 +1881,7 @@ export class ContractService {
       
       const newIntervalSeconds = BigInt(newIntervalMinutes * 60);
       
-      // Use V2 contract
+      // Use V3 contract
       const hash = await writeContract(config, {
         address: CANARY_DOSSIER_ADDRESS,
         abi: CANARY_DOSSIER_ABI,
@@ -2114,14 +1902,14 @@ export class ContractService {
   }
 
   /**
-   * Add a file hash to an existing dossier (V2 only)
+   * Add a file hash to an existing dossier (V3)
    */
   static async addFileHash(dossierId: bigint, fileHash: string): Promise<string> {
     try {
       console.log('📎 Adding file hash to dossier:', dossierId.toString());
       console.log('File hash:', fileHash);
       
-      // Use V2 contract
+      // Use V3 contract
       const hash = await writeContract(config, {
         address: CANARY_DOSSIER_ADDRESS,
         abi: CANARY_DOSSIER_ABI,
@@ -2142,14 +1930,14 @@ export class ContractService {
   }
 
   /**
-   * Add multiple file hashes to an existing dossier (V2 only)
+   * Add multiple file hashes to an existing dossier (V3)
    */
   static async addMultipleFileHashes(dossierId: bigint, fileHashes: string[]): Promise<string> {
     try {
       console.log('📎 Adding multiple file hashes to dossier:', dossierId.toString());
       console.log('File hashes:', fileHashes);
       
-      // Use V2 contract
+      // Use V3 contract
       const hash = await writeContract(config, {
         address: CANARY_DOSSIER_ADDRESS,
         abi: CANARY_DOSSIER_ABI,
