@@ -24,27 +24,27 @@ html, body {
   min-height: 100vh;
 }
 
-:root {
+:root, :root.light {
   /* System font stacks for optimal performance */
   --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-  
+
   /* Legacy variables for compatibility */
   --font-playfair: var(--font-heading);
   --font-crimson: var(--font-system);
-  
-  /* Refined E-Reader Futurism Color Palette */
+
+  /* Refined E-Reader Futurism Color Palette - Light Mode */
   --color-paper: #fafaf9;
   --color-paper-warm: #f3f3f0;
   --color-paper-neutral: #e8e8e3;
-  --color-ink: #000000;
+  --color-ink: #000000 !important;
   --color-ink-light: #1f1f1f;
   --color-ink-lighter: #4b5563;
   --color-accent-mauve: #8b7d9b;
   --color-accent-blue: #6b7c95;
   --color-accent-green: #7a8471;
-  
+
   /* Precise Spacing Scale */
   --space-unit: 8px;
   --space-2: calc(var(--space-unit) * 2);
@@ -89,7 +89,7 @@ html, body {
   font-weight: 600;
   font-size: 1.25rem;
   line-height: 1.4;
-  color: var(--color-ink);
+  color: var(--color-ink) !important;
   letter-spacing: -0.01em;
   margin-bottom: var(--space-3);
 }
@@ -99,7 +99,7 @@ html, body {
   font-weight: 700;
   font-size: 1.75rem;
   line-height: 1.3;
-  color: var(--color-ink);
+  color: var(--color-ink) !important;
   letter-spacing: -0.02em;
   margin-bottom: var(--space-4);
 }
@@ -121,7 +121,7 @@ html, body {
   font-weight: 500;
   font-size: 1.125rem;
   line-height: 1.4;
-  color: var(--color-ink);
+  color: var(--color-ink) !important;
   letter-spacing: 0.01em;
   margin-bottom: var(--space-3);
 }
