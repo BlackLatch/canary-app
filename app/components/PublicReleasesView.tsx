@@ -164,7 +164,7 @@ export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
         {/* Page Header */}
         <div className="spacing-section">
           <div className="mb-12 border-b border-gray-300 dark:border-gray-700 pb-8">
-            <h1 className="editorial-header-large text-gray-900 dark:text-gray-100 mb-3">
+            <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
               PUBLIC RELEASES
             </h1>
             <p className="editorial-body text-gray-600 dark:text-gray-400">

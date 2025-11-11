@@ -60,7 +60,7 @@ export default function VerifyReleaseModal({
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-5 flex items-center justify-between">
-          <h2 className="editorial-header text-gray-900 dark:text-gray-100">
+          <h2 className="editorial-header text-black dark:text-gray-100">
             VERIFY RELEASE
           </h2>
           <button

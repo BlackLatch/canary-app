@@ -221,7 +221,7 @@ export default function DossierDetailView({
           {/* Timing Information */}
           <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="editorial-header text-gray-900 dark:text-gray-100">Timing & Schedule</h3>
+              <h3 className="editorial-header text-black dark:text-gray-100">Timing & Schedule</h3>
               {canEditSchedule && onEditSchedule && (
                 <button
                   onClick={() => {
@@ -263,7 +263,7 @@ export default function DossierDetailView({
           {/* File Information */}
           <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="editorial-header text-gray-900 dark:text-gray-100">Encrypted Files</h3>
+              <h3 className="editorial-header text-black dark:text-gray-100">Encrypted Files</h3>
               {canAddFiles && onAddFiles && (
                 <button
                   onClick={onAddFiles}
@@ -341,7 +341,7 @@ export default function DossierDetailView({
 
           {/* Recipients List */}
           <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-            <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">
+            <h3 className="editorial-header text-black dark:text-gray-100 mb-4">
               Recipients
             </h3>
             <div className="space-y-2">
@@ -383,7 +383,7 @@ export default function DossierDetailView({
         {dossier.isPermanentlyDisabled !== true && (
           <div className="space-y-6">
             <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-              <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
+              <h3 className="editorial-header text-black dark:text-gray-100 mb-4">Actions</h3>
 
               <div className="space-y-3">
               {/* Viewing Mode Indicator - Show when not owner */}

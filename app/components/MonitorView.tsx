@@ -187,7 +187,7 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <h1 className="editorial-header-large text-gray-900 dark:text-gray-100">
+            <h1 className="editorial-header-large text-black dark:text-gray-100">
               EMERGENCY CONTACTS
             </h1>
           </div>

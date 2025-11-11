@@ -117,7 +117,7 @@ export default function ReleaseCard({
       </div>
 
       {/* Title */}
-      <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3 line-clamp-2">
+      <h3 className="editorial-header text-black dark:text-gray-100 mb-3 line-clamp-2">
         {dossier.name || 'Untitled Dossier'}
       </h3>
 

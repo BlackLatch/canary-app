@@ -2322,7 +2322,7 @@ const Home = () => {
                 {/* Title and Subtitle */}
                 <div className="mb-12">
                   <h1
-                    className={`editorial-header-large text-center mb-4 ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
+                    className={`editorial-header-large text-center mb-4 ${theme === "light" ? "text-black" : "text-gray-100"}`}
                   >
                     Canary Testnet Demo
                   </h1>
@@ -3529,7 +3529,7 @@ const Home = () => {
                             />
                           </svg>
                         </div>
-                        <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-3">
+                        <h3 className="editorial-header text-black dark:text-gray-100 mb-3">
                           Connect to Begin
                         </h3>
                         <p className="editorial-body text-gray-600 dark:text-gray-400 mb-6">
@@ -3782,7 +3782,7 @@ const Home = () => {
                             className={`border rounded-lg px-6 py-5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                           >
                             <div className="flex justify-between items-center mb-4">
-                              <h3 className="editorial-header text-gray-900 dark:text-gray-100">
+                              <h3 className="editorial-header text-black dark:text-gray-100">
                                 Timing & Schedule
                               </h3>
                               {selectedDocument.isActive &&
@@ -3863,7 +3863,7 @@ const Home = () => {
                             className={`border rounded-lg px-6 py-5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                           >
                             <div className="flex justify-between items-center mb-4">
-                              <h3 className="editorial-header text-gray-900 dark:text-gray-100">
+                              <h3 className="editorial-header text-black dark:text-gray-100">
                                 Encrypted Files
                               </h3>
                               {selectedDocument.isActive &&
@@ -3969,7 +3969,7 @@ const Home = () => {
                           <div
                             className={`border rounded-lg px-6 py-5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                           >
-                            <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">
+                            <h3 className="editorial-header text-black dark:text-gray-100 mb-4">
                               Actions
                             </h3>
 
@@ -4388,7 +4388,7 @@ const Home = () => {
                           <div
                             className={`border rounded-lg px-6 py-5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                           >
-                            <h3 className="editorial-header text-gray-900 dark:text-gray-100 mb-4">
+                            <h3 className="editorial-header text-black dark:text-gray-100 mb-4">
                               Recipients
                             </h3>
                             <div className="space-y-2">
