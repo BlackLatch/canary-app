@@ -101,7 +101,7 @@ html, body {
   line-height: 1.3;
   color: var(--color-ink) !important;
   letter-spacing: -0.02em;
-  margin-bottom: var(--space-4);
+  margin-bottom: 0;
 }
 
 @media (min-width: 768px) {
@@ -342,7 +342,7 @@ html, body {
   font-size: 0.875rem;
   text-decoration: none;
   color: var(--color-ink-lighter);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-2);
   border-bottom: 2px solid transparent;
   transition: all 0.2s ease-in-out;
   text-transform: uppercase;

@@ -228,6 +228,11 @@ export interface Dossier {
   guardianConfirmationCount: bigint;
 }
 
+export interface DossierReference {
+  owner: Address;
+  dossierId: bigint;
+}
+
 // Network validation helper
 export const isOnStatusNetwork = (chainId: number | undefined): boolean => {
   return chainId === statusSepolia.id;
@@ -1175,7 +1180,47 @@ export class ContractService {
       throw error;
     }
   }
-  
+
+  /**
+   * Get all dossiers where an address is a guardian
+   */
+  static async getDossiersWhereGuardian(guardianAddress: Address): Promise<DossierReference[]> {
+    try {
+      const result = await readContract(config, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        functionName: 'getDossiersWhereGuardian',
+        args: [guardianAddress],
+        chainId: statusSepolia.id,
+      });
+
+      return result as DossierReference[];
+    } catch (error) {
+      console.error('Failed to get guardian dossiers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all dossiers where an address is a private recipient
+   */
+  static async getDossiersWhereRecipient(recipientAddress: Address): Promise<DossierReference[]> {
+    try {
+      const result = await readContract(config, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        functionName: 'getDossiersWhereRecipient',
+        args: [recipientAddress],
+        chainId: statusSepolia.id,
+      });
+
+      return result as DossierReference[];
+    } catch (error) {
+      console.error('Failed to get recipient dossiers:', error);
+      throw error;
+    }
+  }
+
   /**
    * Check if dossier should stay encrypted
    */

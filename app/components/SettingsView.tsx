@@ -976,15 +976,30 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                           </p>
                         </div>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={debugMode}
-                        onChange={(e) => {
-                          setDebugMode(e.target.checked);
-                          saveSetting('canary-debug-mode', e.target.checked);
+                      {/* Toggle Switch */}
+                      <button
+                        onClick={() => {
+                          const newValue = !debugMode;
+                          setDebugMode(newValue);
+                          saveSetting('canary-debug-mode', newValue);
                         }}
-                        className="mt-1 rounded"
-                      />
+                        className={`relative inline-flex h-7 w-14 items-center rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                          debugMode
+                            ? 'bg-green-600 focus:ring-green-500'
+                            : theme === 'light'
+                              ? 'bg-gray-300 focus:ring-gray-400'
+                              : 'bg-gray-600 focus:ring-gray-500'
+                        }`}
+                        role="switch"
+                        aria-checked={debugMode}
+                        aria-label="Toggle debug mode"
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-lg bg-white transition-transform ${
+                            debugMode ? 'translate-x-8' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
                     </div>
                   </div>
 

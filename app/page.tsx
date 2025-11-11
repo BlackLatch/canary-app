@@ -15,6 +15,8 @@ import {
   Video,
   Settings,
   FileText,
+  Heart,
+  FolderLock,
 } from "lucide-react";
 import {
   commitEncryptedFileToPinata,
@@ -32,9 +34,11 @@ import NoDocumentsPlaceholder from "./components/NoDocumentsPlaceholder";
 import AcceptableUsePolicy, { checkAUPSigned } from "./components/AcceptableUsePolicy";
 import SettingsView from "./components/SettingsView";
 import MonitorView from "./components/MonitorView";
+import GuardView from "./components/GuardView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
 import BurnAccountWarningModal from "./components/BurnAccountWarningModal";
 import DecryptionView from "./components/DecryptionView";
+import SystemControlModal from "./components/SystemControlModal";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -217,13 +221,14 @@ const Home = () => {
   const [releaseMode, setReleaseMode] = useState<"public" | "contacts" | "">(
     "",
   );
-  const [currentView, setCurrentView] = useState<"checkin" | "documents" | "monitor" | "settings">(
+  const [currentView, setCurrentView] = useState<"checkin" | "documents" | "monitor" | "guard" | "settings">(
     "checkin",
   );
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
   const [dummyMasterSwitch, setDummyMasterSwitch] = useState(true); // Dummy UI state for master switch
+  const [showSystemControlModal, setShowSystemControlModal] = useState(false);
   const [selectedDocument, setSelectedDocument] =
     useState<DossierWithStatus | null>(null);
   const [documentDetailView, setDocumentDetailView] = useState(false);
@@ -347,8 +352,14 @@ const Home = () => {
         return name.trim().length > 0 && description.trim().length > 0;
       case 2: // VISIBILITY - requires release mode selection (no default)
         return releaseMode !== "" && (releaseMode === "public" || (releaseMode === "contacts" && emergencyContacts.some(c => c.trim().length > 0)));
-      case 3: // GUARDIANS - optional, always considered "completed"
-        return true; // Optional step, always allow progression
+      case 3: // GUARDIANS - complete if user has made a choice
+        // Complete if guardians are enabled with at least one valid address
+        if (enableGuardians) {
+          return guardianAddresses.some(addr => addr.trim().length > 0);
+        }
+        // If guardians are disabled, step is complete (user chose not to use them)
+        // But we don't show checkmark until user has visited step 3
+        return currentStep > 3;
       case 4: // SCHEDULE - requires check-in interval selection (no default)
         return checkInInterval !== "" && (checkInInterval !== "custom" || customInterval.trim().length > 0);
       case 5: // ENCRYPT - requires at least one file
@@ -2846,7 +2857,7 @@ const Home = () => {
             <div className="max-w-7xl mx-auto px-6 py-3">
               <div className="flex items-center justify-between h-10">
                 {/* Left: Logo and Text */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <img
                     src="/solo-canary.png"
                     alt="Canary"
@@ -2863,9 +2874,9 @@ const Home = () => {
                 </div>
 
                 {/* Right: Navigation and Wallet Status */}
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-5">
                   {/* Main Navigation */}
-                  <nav className="flex items-center gap-6 h-full">
+                  <nav className="flex items-center gap-4 h-full">
                     <button
                       onClick={() => setCurrentView("checkin")}
                       className={`nav-link ${
@@ -2913,6 +2924,14 @@ const Home = () => {
                     >
                       MONITOR
                     </button>
+                    <button
+                      onClick={() => setCurrentView("guard")}
+                      className={`nav-link ${
+                        currentView === "guard" ? "nav-link-active" : ""
+                      }`}
+                    >
+                      GUARD
+                    </button>
                     <a href="/feed" className="nav-link">
                       PUBLIC RELEASES
                     </a>
@@ -2935,7 +2954,7 @@ const Home = () => {
                   </nav>
 
                   {/* Wallet Status and Theme Toggle */}
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4">
                     {/* Theme Toggle */}
                     <button
                       onClick={toggleTheme}
@@ -3210,9 +3229,12 @@ const Home = () => {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h1 className="editorial-header-large text-black dark:text-gray-100">
-                          CHECK IN
-                        </h1>
+                        <div className="flex items-center gap-3 mb-0">
+                          <Heart className="w-8 h-8 text-[#e53e3e] flex-shrink-0" />
+                          <h1 className="editorial-header-large text-black dark:text-gray-100 mb-0" style={{ lineHeight: '1' }}>
+                            CHECK IN
+                          </h1>
+                        </div>
                       </div>
                       {/* Share Status Button - Prominent in upper right */}
                       <button
@@ -3314,17 +3336,15 @@ const Home = () => {
                           </span>
                           {/* Toggle Switch */}
                           <button
-                            onClick={() =>
-                              setDummyMasterSwitch(!dummyMasterSwitch)
-                            }
-                            className={`relative w-14 h-7 rounded-full transition-colors duration-200 ${
+                            onClick={() => setShowSystemControlModal(true)}
+                            className={`relative w-14 h-7 rounded-lg transition-colors duration-200 ${
                               dummyMasterSwitch
                                 ? "bg-green-600"
                                 : "bg-gray-300 dark:bg-gray-700"
                             }`}
                           >
                             <span
-                              className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
+                              className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-lg shadow-md transform transition-transform duration-200 ${
                                 dummyMasterSwitch
                                   ? "translate-x-7"
                                   : "translate-x-0"
@@ -3593,6 +3613,28 @@ const Home = () => {
                   setCurrentView("documents");
                   // Update URL to reflect the address
                   window.history.pushState({}, '', `/?user=${address}`);
+                }}
+              />
+            ) : currentView === "guard" ? (
+              // Guard View
+              <GuardView
+                onBack={() => setCurrentView("checkin")}
+                onViewDossier={(owner: Address, dossierId: bigint) => {
+                  // Find the dossier and open detail view
+                  const findAndOpenDossier = async () => {
+                    try {
+                      const dossier = await ContractService.getDossier(owner, dossierId);
+                      const shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(owner, dossierId);
+                      openDocumentDetail({
+                        ...dossier,
+                        isDecryptable: !shouldStayEncrypted
+                      });
+                    } catch (error) {
+                      console.error('Failed to load dossier:', error);
+                      toast.error('Failed to load dossier details');
+                    }
+                  };
+                  findAndOpenDossier();
                 }}
               />
             ) : (
@@ -4495,10 +4537,13 @@ const Home = () => {
                           </>
                         ) : (
                           <>
-                            <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
-                              DOSSIERS
-                            </h1>
-                            <p className="editorial-body dark:text-gray-400">
+                            <div className="flex items-center gap-3 mb-0">
+                              <FolderLock className="w-8 h-8 text-[#e53e3e] flex-shrink-0" />
+                              <h1 className="editorial-header-large text-black dark:text-gray-100 mb-0" style={{ lineHeight: '1' }}>
+                                DOSSIERS
+                              </h1>
+                            </div>
+                            <p className="editorial-body dark:text-gray-400 mt-3">
                               Create and manage encrypted dossiers with conditional release triggers
                             </p>
                           </>
@@ -7934,6 +7979,28 @@ const Home = () => {
           setShowAUPForEncrypt(false);
         }}
       />
+
+      {/* System Control Modal */}
+      {showSystemControlModal && (
+        <SystemControlModal
+          isEnabled={dummyMasterSwitch}
+          activeDossierCount={
+            userDossiers.filter(d => d.isActive && !d.isPermanentlyDisabled && !d.isReleased).length
+          }
+          onConfirm={() => {
+            setDummyMasterSwitch(!dummyMasterSwitch);
+            setShowSystemControlModal(false);
+            toast.success(
+              dummyMasterSwitch
+                ? 'All dossiers paused successfully'
+                : 'All dossiers resumed successfully'
+            );
+          }}
+          onCancel={() => {
+            setShowSystemControlModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

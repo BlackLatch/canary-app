@@ -301,7 +301,7 @@ export default function DossierDetailView({
                 return (
                   <div
                     key={index}
-                    className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
+                    className={`p-3 border rounded ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -364,7 +364,7 @@ export default function DossierDetailView({
               {dossier.recipients.map((recipient, index) => (
                 <div
                   key={index}
-                  className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
+                  className={`p-3 border rounded ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -407,7 +407,7 @@ export default function DossierDetailView({
                 {dossier.guardians.map((guardian, index) => (
                   <div
                     key={index}
-                    className={`p-3 border rounded ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
+                    className={`p-3 border rounded ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
