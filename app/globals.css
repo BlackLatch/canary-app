@@ -38,7 +38,7 @@ html, body {
   --color-paper: #fafaf9;
   --color-paper-warm: #f3f3f0;
   --color-paper-neutral: #e8e8e3;
-  --color-ink: #000000 !important;
+  --color-ink: #000000;
   --color-ink-light: #1f1f1f;
   --color-ink-lighter: #4b5563;
   --color-accent-mauve: #8b7d9b;
