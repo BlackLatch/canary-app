@@ -211,6 +211,9 @@ const Home = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [emergencyContacts, setEmergencyContacts] = useState<string[]>([""]);
+  const [guardianAddresses, setGuardianAddresses] = useState<string[]>([""]);
+  const [guardianThreshold, setGuardianThreshold] = useState<number>(1);
+  const [enableGuardians, setEnableGuardians] = useState<boolean>(false);
   const [releaseMode, setReleaseMode] = useState<"public" | "contacts" | "">(
     "",
   );
@@ -258,7 +261,7 @@ const Home = () => {
 
   // Check AUP status when entering encryption step (but don't auto-show popup)
   useEffect(() => {
-    if (currentStep === 4 && showCreateForm) {
+    if (currentStep === 5 && showCreateForm) {
       const identifier = getCurrentAddress() || user?.email?.address || user?.id;
       const isSigned = checkAUPSigned(identifier);
       setHasAcceptedAUP(isSigned);
@@ -882,6 +885,22 @@ const Home = () => {
           console.log(
             "📝 Creating dossier...",
           );
+
+          // Prepare guardian parameters
+          const guardiansToUse = enableGuardians
+            ? guardianAddresses.filter(addr => addr && addr.trim() !== '')
+            : [];
+
+          const thresholdToUse = enableGuardians && guardiansToUse.length > 0
+            ? guardianThreshold
+            : 0;
+
+          console.log('Guardian configuration:', {
+            enabled: enableGuardians,
+            guardians: guardiansToUse,
+            threshold: thresholdToUse
+          });
+
           result = await ContractService.createDossier(
             dossierName,
             description || "",
@@ -889,6 +908,8 @@ const Home = () => {
             recipients,
             fileHashes,
             burnerWalletInstance,
+            guardiansToUse,
+            thresholdToUse
           );
           toast.success("Dossier created successfully");
         }
@@ -5716,8 +5737,214 @@ const Home = () => {
                               </div>
                             )}
 
-                            {/* Step 3: Check-in Schedule */}
+                            {/* Step 3: Guardian Protection (Optional) */}
                             {currentStep === 3 && (
+                              <div className="space-y-6">
+                                <div className="text-center">
+                                  <h3
+                                    className={`editorial-header text-2xl font-bold mb-2 ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
+                                  >
+                                    Guardian Protection
+                                  </h3>
+                                  <p
+                                    className={`editorial-body text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
+                                  >
+                                    Step 3 of 6 (Optional)
+                                  </p>
+                                </div>
+
+                                <div className="text-center">
+                                  <p
+                                    className={`editorial-body mb-6 ${theme === "light" ? "text-gray-700" : "text-gray-300"}`}
+                                  >
+                                    Add trusted guardians who must approve release before decryption
+                                  </p>
+                                </div>
+
+                                {/* Info Box */}
+                                <div
+                                  className={`p-6 border rounded-lg ${
+                                    theme === "light"
+                                      ? "border-blue-200 bg-blue-50"
+                                      : "border-blue-800 bg-blue-900/10"
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <svg
+                                      className={`w-5 h-5 mt-0.5 flex-shrink-0 ${theme === "light" ? "text-blue-600" : "text-blue-400"}`}
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                    <div>
+                                      <h4 className={`font-semibold mb-2 ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}>
+                                        What are Guardians?
+                                      </h4>
+                                      <p className={`text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}>
+                                        Guardians add an extra layer of security. They must confirm that a release is legitimate before anyone can decrypt the dossier. This is different from emergency contacts (recipients), who receive access to decrypt the data once released and approved.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Enable Guardian Toggle */}
+                                <div
+                                  className={`p-6 border rounded-lg ${
+                                    theme === "light"
+                                      ? "border-gray-300 bg-white"
+                                      : "border-gray-600 bg-black/40"
+                                  }`}
+                                >
+                                  <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={enableGuardians}
+                                      onChange={(e) => setEnableGuardians(e.target.checked)}
+                                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <div>
+                                      <div className={`font-semibold ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}>
+                                        Enable Guardian Protection
+                                      </div>
+                                      <div className={`text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}>
+                                        Require guardian approval before dossier can be decrypted
+                                      </div>
+                                    </div>
+                                  </label>
+                                </div>
+
+                                {/* Guardian Configuration (shown when enabled) */}
+                                {enableGuardians && (
+                                  <div
+                                    className={`p-6 border rounded-lg space-y-6 ${
+                                      theme === "light"
+                                        ? "border-gray-300 bg-gray-50"
+                                        : "border-gray-600 bg-black/40"
+                                    }`}
+                                  >
+                                    {/* Guardian Addresses */}
+                                    <div>
+                                      <h5
+                                        className={`font-semibold mb-3 ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
+                                      >
+                                        Guardian Addresses
+                                      </h5>
+                                      <p
+                                        className={`text-sm mb-4 ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
+                                      >
+                                        Add Ethereum addresses of trusted guardians (maximum 20)
+                                      </p>
+                                      <div className="space-y-3">
+                                        {guardianAddresses.map((guardian, index) => (
+                                          <div key={index} className="flex gap-2">
+                                            <input
+                                              type="text"
+                                              placeholder="Ethereum address (0x...)"
+                                              value={guardian}
+                                              onChange={(e) => {
+                                                const newGuardians = [...guardianAddresses];
+                                                newGuardians[index] = e.target.value;
+                                                setGuardianAddresses(newGuardians);
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter" && guardian.trim() !== "" && index === guardianAddresses.length - 1) {
+                                                  setGuardianAddresses([...guardianAddresses, ""]);
+                                                }
+                                              }}
+                                              className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
+                                              style={{
+                                                borderColor: theme === "light" ? "#e5e7eb" : "#4b5563",
+                                                backgroundColor: theme === "light" ? "#ffffff" : "#000000",
+                                                color: theme === "light" ? "#111827" : "#f3f4f6",
+                                              }}
+                                            />
+                                            {guardianAddresses.length > 1 && (
+                                              <button
+                                                onClick={() => {
+                                                  const newGuardians = guardianAddresses.filter((_, i) => i !== index);
+                                                  setGuardianAddresses(newGuardians);
+                                                  // Adjust threshold if it exceeds new guardian count
+                                                  if (guardianThreshold > newGuardians.filter(g => g.trim() !== "").length) {
+                                                    setGuardianThreshold(Math.max(1, newGuardians.filter(g => g.trim() !== "").length));
+                                                  }
+                                                }}
+                                                className={`px-3 py-2 border rounded-lg text-sm transition-colors ${
+                                                  theme === "light"
+                                                    ? "border-gray-300 text-gray-700 hover:bg-gray-100"
+                                                    : "border-gray-600 text-gray-300 hover:bg-white/5"
+                                                }`}
+                                              >
+                                                Remove
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                        <button
+                                          onClick={() => setGuardianAddresses([...guardianAddresses, ""])}
+                                          disabled={guardianAddresses.length >= 20}
+                                          className={`px-3 py-2 border rounded-lg text-sm transition-colors ${
+                                            guardianAddresses.length >= 20
+                                              ? "opacity-50 cursor-not-allowed"
+                                              : theme === "light"
+                                                ? "border-gray-300 text-gray-700 hover:bg-gray-100"
+                                                : "border-gray-600 text-gray-300 hover:bg-white/5"
+                                          }`}
+                                        >
+                                          + Add another guardian
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Guardian Threshold */}
+                                    <div>
+                                      <h5
+                                        className={`font-semibold mb-3 ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
+                                      >
+                                        Approval Threshold
+                                      </h5>
+                                      <p
+                                        className={`text-sm mb-4 ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
+                                      >
+                                        Number of guardians required to approve release
+                                      </p>
+                                      <div className="space-y-4">
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max={Math.max(1, guardianAddresses.filter(g => g.trim() !== "").length)}
+                                          value={guardianThreshold}
+                                          onChange={(e) => {
+                                            const value = parseInt(e.target.value) || 1;
+                                            const maxGuardians = guardianAddresses.filter(g => g.trim() !== "").length;
+                                            setGuardianThreshold(Math.min(Math.max(1, value), Math.max(1, maxGuardians)));
+                                          }}
+                                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                                            theme === "light"
+                                              ? "border-gray-300 bg-white text-gray-900 focus:ring-gray-400"
+                                              : "border-gray-600 bg-black text-white focus:ring-gray-600"
+                                          }`}
+                                        />
+                                        <div
+                                          className={`text-sm p-3 rounded-lg ${
+                                            theme === "light"
+                                              ? "bg-gray-100 text-gray-700"
+                                              : "bg-black/40 text-gray-300"
+                                          }`}
+                                        >
+                                          <strong>{guardianThreshold}</strong> of{" "}
+                                          <strong>{guardianAddresses.filter(g => g.trim() !== "").length}</strong>{" "}
+                                          guardian{guardianAddresses.filter(g => g.trim() !== "").length !== 1 ? "s" : ""} must confirm release
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Step 4: Check-in Schedule */}
+                            {currentStep === 4 && (
                               <div className="space-y-6">
                                 <div className="text-center">
                                   <h3
@@ -5728,7 +5955,7 @@ const Home = () => {
                                   <p
                                     className={`editorial-body text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
                                   >
-                                    Step 3 of 5
+                                    Step 4 of 6
                                   </p>
                                 </div>
 
@@ -6018,8 +6245,8 @@ const Home = () => {
                               </div>
                             )}
 
-                            {/* Step 4: File Encryption */}
-                            {currentStep === 4 && (
+                            {/* Step 5: File Encryption */}
+                            {currentStep === 5 && (
                               <div className="space-y-6">
                                 <div className="text-center">
                                   <h3
@@ -6030,7 +6257,7 @@ const Home = () => {
                                   <p
                                     className={`editorial-body text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
                                   >
-                                    Step 4 of 5
+                                    Step 5 of 6
                                   </p>
                                 </div>
                                 
@@ -6369,8 +6596,8 @@ const Home = () => {
                               </div>
                             )}
 
-                            {/* Step 5: Finalize */}
-                            {currentStep === 5 && (
+                            {/* Step 6: Finalize */}
+                            {currentStep === 6 && (
                               <div className="space-y-6">
                                 <div className="text-center">
                                   <h3
@@ -6381,7 +6608,7 @@ const Home = () => {
                                   <p
                                     className={`editorial-body text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
                                   >
-                                    Step 5 of 5
+                                    Step 6 of 6
                                   </p>
                                 </div>
 
@@ -6461,6 +6688,26 @@ const Home = () => {
                                                 className="editorial-body text-sm text-primary font-semibold monospace-accent"
                                               >
                                                 • {contact}
+                                              </div>
+                                            ))}
+                                        </div>
+                                      )}
+                                      {enableGuardians && guardianAddresses.filter(g => g.trim()).length > 0 && (
+                                        <div className="pt-3 border-t border-gray-300 dark:border-gray-600">
+                                          <div className="editorial-label-small spacing-tiny text-black dark:text-gray-300 mb-2">
+                                            Guardian Protection
+                                          </div>
+                                          <div className="editorial-body text-sm text-primary font-semibold mb-2">
+                                            {guardianThreshold} of {guardianAddresses.filter(g => g.trim()).length} guardian{guardianAddresses.filter(g => g.trim()).length !== 1 ? 's' : ''} required
+                                          </div>
+                                          {guardianAddresses
+                                            .filter((g) => g.trim())
+                                            .map((guardian, index) => (
+                                              <div
+                                                key={index}
+                                                className="editorial-body text-sm text-primary font-semibold monospace-accent"
+                                              >
+                                                • {guardian}
                                               </div>
                                             ))}
                                         </div>
@@ -6645,7 +6892,7 @@ const Home = () => {
                           </div>
 
                           {/* Navigation */}
-                          {currentStep < 5 && !dossierManifest && (
+                          {currentStep < 6 && !dossierManifest && (
                             <div
                               className={`flex justify-between pt-6 mt-6 border-t ${theme === "light" ? "border-gray-200" : "border-gray-700"}`}
                             >
@@ -6670,7 +6917,7 @@ const Home = () => {
                                     toast.error("Please enter a document name");
                                     return;
                                   }
-                                  if (currentStep === 4) {
+                                  if (currentStep === 5) {
                                     if (!hasAcceptedAUP) {
                                       toast.error("Please accept the Terms & Policies first");
                                       return;
@@ -6697,15 +6944,52 @@ const Home = () => {
                                     );
                                     return;
                                   }
-                                  // Validate step 3 - must select a check-in interval
-                                  if (currentStep === 3 && !checkInInterval) {
+                                  // Validate step 3 - guardian protection (optional)
+                                  if (currentStep === 3 && enableGuardians) {
+                                    const filteredGuardians = guardianAddresses.filter(g => g.trim() !== "");
+
+                                    // Check if guardians are enabled but no addresses provided
+                                    if (filteredGuardians.length === 0) {
+                                      toast.error("Please add at least one guardian address or disable guardian protection");
+                                      return;
+                                    }
+
+                                    // Validate address format
+                                    const addressRegex = /^0x[a-fA-F0-9]{40}$/;
+                                    const invalidAddress = filteredGuardians.find(addr => !addressRegex.test(addr));
+                                    if (invalidAddress) {
+                                      toast.error(`Invalid guardian address format: ${invalidAddress.substring(0, 10)}...`);
+                                      return;
+                                    }
+
+                                    // Check for duplicates
+                                    const uniqueGuardians = new Set(filteredGuardians.map(g => g.toLowerCase()));
+                                    if (uniqueGuardians.size !== filteredGuardians.length) {
+                                      toast.error("Duplicate guardian addresses found");
+                                      return;
+                                    }
+
+                                    // Check max guardians
+                                    if (filteredGuardians.length > 20) {
+                                      toast.error("Maximum 20 guardians allowed");
+                                      return;
+                                    }
+
+                                    // Validate threshold
+                                    if (guardianThreshold < 1 || guardianThreshold > filteredGuardians.length) {
+                                      toast.error(`Threshold must be between 1 and ${filteredGuardians.length}`);
+                                      return;
+                                    }
+                                  }
+                                  // Validate step 4 - must select a check-in interval
+                                  if (currentStep === 4 && !checkInInterval) {
                                     toast.error(
                                       "Please select a check-in schedule",
                                     );
                                     return;
                                   }
                                   if (
-                                    currentStep === 3 &&
+                                    currentStep === 4 &&
                                     checkInInterval === "custom" &&
                                     !customInterval
                                   ) {
@@ -6714,7 +6998,7 @@ const Home = () => {
                                     );
                                     return;
                                   }
-                                  setCurrentStep(Math.min(5, currentStep + 1));
+                                  setCurrentStep(Math.min(6, currentStep + 1));
                                 }}
                                 className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                                   theme === "light"
@@ -6722,7 +7006,7 @@ const Home = () => {
                                     : "bg-white text-gray-900 border-white hover:bg-gray-100 hover:text-white"
                                 }`}
                               >
-                                {currentStep === 4 ? "Finalize" : "Next"}
+                                {currentStep === 5 ? "Finalize" : "Next"}
                               </button>
                             </div>
                           )}
