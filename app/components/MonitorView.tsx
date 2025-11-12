@@ -8,6 +8,7 @@ import { Address, isAddress } from 'viem';
 import { useAccount } from 'wagmi';
 import { useBurnerWallet } from '../lib/burner-wallet-context';
 import { ContractService, type Dossier, type DossierReference } from '../lib/contract';
+import { ensureCorrectNetwork } from '../lib/network-switch';
 
 interface MonitorViewProps {
   onBack: () => void;
@@ -110,6 +111,21 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
       }
 
       setIsLoadingRecipientDossiers(true);
+
+      // For web3 external wallets (not burner), ensure correct network before loading
+      if (!burnerWallet.isConnected && address) {
+        console.log('🔗 Checking network for web3 wallet...');
+        const networkOk = await ensureCorrectNetwork();
+        if (!networkOk) {
+          console.log('❌ Network switch failed or cancelled');
+          toast.error('Please switch to Status Network Sepolia to view recipient dossiers');
+          setRecipientDossiers([]);
+          setIsLoadingRecipientDossiers(false);
+          return;
+        }
+        console.log('✅ Network check passed');
+      }
+
       try {
         console.log('📋 Loading dossiers where user is a private recipient...');
 

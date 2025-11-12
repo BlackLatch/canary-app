@@ -2598,68 +2598,78 @@ const Home = () => {
               />
 
               {/* Modal Content */}
-              <div className={`relative z-10 w-full max-w-md mx-6 p-6 rounded-2xl ${
+              <div className={`relative z-10 w-full max-w-md mx-6 rounded-lg border ${
                 theme === 'light'
-                  ? 'bg-white border border-gray-300'
-                  : 'bg-gray-900 border border-gray-700'
+                  ? 'bg-white border-gray-300'
+                  : 'bg-gray-900 border-gray-700'
               }`}>
-                <h2 className={`text-lg font-semibold mb-4 ${
-                  theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                {/* Header */}
+                <div className={`px-6 py-4 border-b ${
+                  theme === 'light' ? 'border-gray-300' : 'border-gray-700'
                 }`}>
-                  Enter your private key to import:
-                </h2>
-
-                {/* Warning Message */}
-                <div className={`mb-4 p-3 rounded-lg border ${
-                  theme === 'light'
-                    ? 'bg-yellow-50 border-yellow-300 text-yellow-800'
-                    : 'bg-yellow-900/20 border-yellow-700 text-yellow-300'
-                }`}>
-                  <div className="flex items-start gap-2">
-                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <div className="text-sm">
-                      <p className="font-semibold mb-1">SECURITY WARNING:</p>
-                      <ul className="space-y-1">
-                        <li>• Never share your private key with anyone</li>
-                        <li>• Make sure no one is watching your screen</li>
-                        <li>• This will replace any existing anonymous account</li>
-                      </ul>
-                    </div>
-                  </div>
+                  <h2 className={`text-lg font-semibold ${
+                    theme === 'light' ? 'text-gray-900' : 'text-gray-100'
+                  }`}>
+                    Enter your private key to import:
+                  </h2>
                 </div>
 
-                {/* Input Field */}
-                <input
-                  type="password"
-                  value={importKeyValue}
-                  onChange={(e) => setImportKeyValue(e.target.value)}
-                  placeholder="Enter your private key (0x...)"
-                  className={`w-full px-4 py-3 rounded-lg border font-mono text-sm ${
+                {/* Content */}
+                <div className="px-6 py-5">
+                  {/* Warning Message */}
+                  <div className={`mb-5 p-4 rounded-lg border ${
                     theme === 'light'
-                      ? 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-[#e53e3e] focus:ring-1 focus:ring-[#e53e3e]'
-                      : 'bg-black/50 border-gray-700 text-gray-100 placeholder-gray-500 focus:border-[#e53e3e] focus:ring-1 focus:ring-[#e53e3e]'
-                  } focus:outline-none transition-colors`}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleConfirmImportKey();
-                    }
-                  }}
-                />
+                      ? 'bg-gray-50 border-gray-300'
+                      : 'bg-gray-800/50 border-gray-700'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#e53e3e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div className={`text-sm ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                        <p className="font-semibold mb-2">SECURITY WARNING:</p>
+                        <ul className="space-y-1.5">
+                          <li>• Never share your private key with anyone</li>
+                          <li>• Make sure no one is watching your screen</li>
+                          <li>• This will replace any existing anonymous account</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Input Field */}
+                  <input
+                    type="password"
+                    value={importKeyValue}
+                    onChange={(e) => setImportKeyValue(e.target.value)}
+                    placeholder="Enter your private key (0x...)"
+                    className={`w-full px-4 py-3 rounded-lg border font-mono text-sm ${
+                      theme === 'light'
+                        ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900 focus:ring-1 focus:ring-gray-900'
+                        : 'bg-black border-gray-700 text-gray-100 placeholder-gray-500 focus:border-gray-100 focus:ring-1 focus:ring-gray-100'
+                    } focus:outline-none transition-colors`}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleConfirmImportKey();
+                      }
+                    }}
+                  />
+                </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 mt-6">
+                <div className={`px-6 py-4 border-t flex gap-3 ${
+                  theme === 'light' ? 'border-gray-300' : 'border-gray-700'
+                }`}>
                   <button
                     onClick={() => {
                       setShowImportKeyModal(false);
                       setImportKeyValue("");
                     }}
-                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
                       theme === 'light'
                         ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
                     }`}
                   >
                     Cancel
@@ -2667,10 +2677,10 @@ const Home = () => {
                   <button
                     onClick={handleConfirmImportKey}
                     disabled={!importKeyValue.trim()}
-                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       theme === 'light'
                         ? 'bg-gray-900 text-white hover:bg-black disabled:hover:bg-gray-900'
-                        : 'bg-white text-black hover:bg-gray-100 disabled:hover:bg-white'
+                        : 'bg-gray-100 text-black hover:bg-white disabled:hover:bg-gray-100'
                     }`}
                   >
                     OK
