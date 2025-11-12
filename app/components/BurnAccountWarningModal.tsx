@@ -17,7 +17,7 @@ export default function BurnAccountWarningModal({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className={`
-        ${theme === 'light' ? 'bg-white' : 'bg-gray-900'}
+        ${theme === 'light' ? 'bg-white' : 'bg-black'}
         border ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}
         rounded-lg max-w-lg w-full
       `}>
@@ -36,7 +36,7 @@ export default function BurnAccountWarningModal({
         <div className="px-6 py-5">
           <div className={`
             p-4 rounded-lg mb-5 border
-            ${theme === 'light' ? 'bg-gray-50 border-gray-300' : 'bg-gray-800/50 border-gray-700'}
+            ${theme === 'light' ? 'bg-gray-50 border-gray-300' : 'bg-white/5 border-gray-700'}
           `}>
             <p className={`
               text-base font-semibold
@@ -75,7 +75,7 @@ export default function BurnAccountWarningModal({
 
           <div className={`
             p-4 rounded-lg border
-            ${theme === 'light' ? 'bg-gray-50 border-gray-300' : 'bg-gray-800/50 border-gray-700'}
+            ${theme === 'light' ? 'bg-gray-50 border-gray-300' : 'bg-white/5 border-gray-700'}
           `}>
             <p className={`
               text-sm
@@ -97,7 +97,7 @@ export default function BurnAccountWarningModal({
               flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors
               ${theme === 'light'
                 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}
+                : 'bg-white/10 text-gray-200 hover:bg-white/20'}
             `}
           >
             Cancel

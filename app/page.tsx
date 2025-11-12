@@ -2601,7 +2601,7 @@ const Home = () => {
               <div className={`relative z-10 w-full max-w-md mx-6 rounded-lg border ${
                 theme === 'light'
                   ? 'bg-white border-gray-300'
-                  : 'bg-gray-900 border-gray-700'
+                  : 'bg-black border-gray-700'
               }`}>
                 {/* Header */}
                 <div className={`px-6 py-4 border-b ${
@@ -2620,7 +2620,7 @@ const Home = () => {
                   <div className={`mb-5 p-4 rounded-lg border ${
                     theme === 'light'
                       ? 'bg-gray-50 border-gray-300'
-                      : 'bg-gray-800/50 border-gray-700'
+                      : 'bg-white/5 border-gray-700'
                   }`}>
                     <div className="flex items-start gap-3">
                       <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#e53e3e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2669,7 +2669,7 @@ const Home = () => {
                     className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
                       theme === 'light'
                         ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                        : 'bg-white/10 text-gray-200 hover:bg-white/20'
                     }`}
                   >
                     Cancel
