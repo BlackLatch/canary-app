@@ -288,6 +288,15 @@ html, body {
   box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
 }
 
+.status-expired .status-dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+.status-expired span {
+  color: #dc2626;
+}
+
 /* Progress System */
 .progress-rail {
   height: 2px;

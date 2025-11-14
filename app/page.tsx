@@ -281,22 +281,26 @@ const Home = () => {
   }, [currentStep, showCreateForm, address, user]);
 
   // Dossier detail navigation
-  const openDocumentDetail = async (document: DossierWithStatus) => {
+  const openDocumentDetail = async (document: DossierWithStatus, ownerAddress?: Address) => {
     setSelectedDocument(document);
     setDocumentDetailView(true);
-    // Update URL without navigating - use viewingUserAddress to maintain context
-    if (viewingUserAddress) {
-      const url = `/?user=${viewingUserAddress}&id=${document.id.toString()}`;
+
+    // Use provided owner address or fall back to viewingUserAddress
+    const effectiveOwner = ownerAddress || viewingUserAddress;
+
+    // Update URL without navigating - use owner address to maintain context
+    if (effectiveOwner) {
+      const url = `/?user=${effectiveOwner}&id=${document.id.toString()}`;
       window.history.pushState({}, '', url);
     }
 
     // Load guardian confirmations if guardians exist
-    if (document.guardians && document.guardians.length > 0 && viewingUserAddress) {
+    if (document.guardians && document.guardians.length > 0 && effectiveOwner) {
       try {
         const confirmationMap = new Map<Address, boolean>();
         for (const guardian of document.guardians) {
           const hasConfirmed = await ContractService.hasGuardianConfirmed(
-            viewingUserAddress,
+            effectiveOwner,
             document.id,
             guardian as Address
           );
@@ -308,7 +312,7 @@ const Home = () => {
         const currentAddress = getCurrentAddress();
         if (currentAddress) {
           const userConfirmed = await ContractService.hasGuardianConfirmed(
-            viewingUserAddress,
+            effectiveOwner,
             document.id,
             currentAddress
           );
@@ -1800,7 +1804,12 @@ const Home = () => {
         }
 
         // Reload dossier to get updated confirmation count
-        await loadDossiers();
+        const updatedDossier = await ContractService.getDossier(owner, dossierId);
+        const shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(owner, dossierId);
+        setSelectedDocument({
+          ...updatedDossier,
+          isDecryptable: !shouldStayEncrypted
+        });
       }
 
       return txHash;
@@ -2661,22 +2670,6 @@ const Home = () => {
             />
           )}
 
-          {/* Guardian Confirm Release Modal */}
-          {showGuardianConfirmModal && selectedDocument && viewingUserAddress && (
-            <GuardianConfirmReleaseModal
-              dossierName={selectedDocument.name.replace("Encrypted file: ", "")}
-              onConfirm={async () => {
-                try {
-                  setShowGuardianConfirmModal(false);
-                  await confirmRelease(viewingUserAddress, selectedDocument.id);
-                } catch (error) {
-                  console.error('Confirm release failed:', error);
-                }
-              }}
-              onCancel={() => setShowGuardianConfirmModal(false)}
-            />
-          )}
-
           {/* Import Private Key Modal */}
           {showImportKeyModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -2918,14 +2911,31 @@ const Home = () => {
   return (
     <div className={theme}>
       <Toaster position="top-right" />
-      <DemoDisclaimer 
-        theme={theme} 
+      <DemoDisclaimer
+        theme={theme}
         forceShow={showDemoDisclaimer}
         onClose={() => setShowDemoDisclaimer(false)}
       />
       <Suspense fallback={null}>
         <HomeContent onViewChange={setCurrentView} />
       </Suspense>
+
+      {/* Guardian Confirm Release Modal - Rendered at top level for proper z-index */}
+      {showGuardianConfirmModal && selectedDocument && viewingUserAddress && (
+        <GuardianConfirmReleaseModal
+          dossierName={selectedDocument.name.replace("Encrypted file: ", "")}
+          onConfirm={async () => {
+            try {
+              setShowGuardianConfirmModal(false);
+              await confirmRelease(viewingUserAddress, selectedDocument.id);
+            } catch (error) {
+              console.error('Confirm release failed:', error);
+            }
+          }}
+          onCancel={() => setShowGuardianConfirmModal(false)}
+        />
+      )}
+
       <div
         className={`min-h-screen flex flex-col ${theme === "light" ? "bg-white" : "bg-black"}`}
       >
@@ -3725,21 +3735,34 @@ const Home = () => {
                   // Find the dossier and open detail view
                   const findAndOpenDossier = async () => {
                     try {
+                      // Switch to documents view so detail page can render
+                      setCurrentView('documents');
+
                       // Set viewing context to the dossier owner
                       setViewingUserAddress(owner);
 
                       const dossier = await ContractService.getDossier(owner, dossierId);
                       const shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(owner, dossierId);
+                      // Pass owner address explicitly to avoid race condition with state update
                       openDocumentDetail({
                         ...dossier,
                         isDecryptable: !shouldStayEncrypted
-                      });
+                      }, owner);
                     } catch (error) {
                       console.error('Failed to load dossier:', error);
                       toast.error('Failed to load dossier details');
                     }
                   };
                   findAndOpenDossier();
+                }}
+                onShowConfirmModal={(owner: Address, dossierId: bigint, dossierName: string) => {
+                  setViewingUserAddress(owner);
+                  // Set minimal document data needed for the modal
+                  setSelectedDocument({
+                    id: dossierId,
+                    name: dossierName,
+                  } as DossierWithStatus);
+                  setShowGuardianConfirmModal(true);
                 }}
               />
             ) : (
@@ -4178,7 +4201,70 @@ const Home = () => {
                                   </p>
                                 </div>
 
-                                {/* View Release Button - Show if user has decrypt access */}
+                                {/* Guardian Confirm Release Button */}
+                              {(() => {
+                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                const isTimeExpired = remainingMs <= 0;
+
+                                // Check if user is a guardian
+                                const currentAddress = getCurrentAddress();
+                                const isGuardian = currentAddress && selectedDocument.guardians?.some(
+                                  (guardian) => guardian.toLowerCase() === currentAddress.toLowerCase()
+                                );
+
+                                // Guardian can confirm if: 1) is guardian, 2) dossier expired, 3) not released yet
+                                const canConfirmRelease = isGuardian && isTimeExpired && selectedDocument.isReleased !== true;
+
+                                if (!canConfirmRelease) return null;
+
+                                if (hasConfirmedRelease) {
+                                  return (
+                                    <div
+                                      className={`p-3 border rounded-lg ${
+                                        theme === 'light'
+                                          ? 'bg-green-50 border-green-300 text-green-700'
+                                          : 'bg-green-900/30 border-green-600 text-green-400'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span className="font-medium">RELEASE CONFIRMED</span>
+                                      </div>
+                                      <p className="text-sm mt-1 opacity-90">
+                                        You have confirmed the release of this dossier
+                                      </p>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowGuardianConfirmModal(true);
+                                    }}
+                                    className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                                      theme === 'light'
+                                        ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900'
+                                        : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-center gap-2">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                      </svg>
+                                      <span>CONFIRM RELEASE</span>
+                                    </div>
+                                  </button>
+                                );
+                              })()}
+
+                                {/* View Release Button - Show if user has decrypt access and guardian threshold is met */}
                                 {(() => {
                                   const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
                                   const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
@@ -4191,9 +4277,45 @@ const Home = () => {
 
                                   if (!isDecryptable) return null;
 
+                                  // Check if user is a guardian
+                                  const currentAddress = getCurrentAddress();
+                                  const isGuardian = currentAddress && selectedDocument.guardians?.some(
+                                    (guardian) => guardian.toLowerCase() === currentAddress.toLowerCase()
+                                  );
+
+                                  // If user is guardian and can confirm (but hasn't yet), don't show VIEW RELEASE (show CONFIRM RELEASE instead)
+                                  const canConfirmRelease = isGuardian && isTimeExpired && selectedDocument.isReleased !== true && !hasConfirmedRelease;
+                                  if (canConfirmRelease) return null;
+
+                                  // For dossiers with guardians, check if threshold is met before showing VIEW RELEASE
+                                  if (selectedDocument.guardians && selectedDocument.guardians.length > 0) {
+                                    const thresholdMet = selectedDocument.guardianConfirmationCount >= selectedDocument.guardianThreshold;
+                                    if (!thresholdMet) {
+                                      // Show message that guardian approval is pending
+                                      return (
+                                        <div
+                                          className={`p-3 border rounded-lg text-center ${
+                                            theme === 'light'
+                                              ? 'bg-yellow-50 border-yellow-300 text-yellow-700'
+                                              : 'bg-yellow-900/30 border-yellow-600 text-yellow-400'
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-center gap-2 mb-1">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                            <span className="font-medium">AWAITING GUARDIAN APPROVAL</span>
+                                          </div>
+                                          <p className="text-sm opacity-90">
+                                            {selectedDocument.guardianConfirmationCount}/{selectedDocument.guardianThreshold} guardians have confirmed
+                                          </p>
+                                        </div>
+                                      );
+                                    }
+                                  }
+
                                   // Check if user has access
                                   const isPrivate = selectedDocument.recipients && selectedDocument.recipients.length > 1;
-                                  const currentAddress = getCurrentAddress();
 
                                   let hasAccess = false;
                                   if (isPrivate) {
@@ -4362,69 +4484,6 @@ const Home = () => {
                                     </div>
                                   </button>
                                 ) : null;
-                              })()}
-
-                              {/* Guardian Confirm Release Button */}
-                              {(() => {
-                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
-                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
-                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
-                                const remainingMs = intervalMs - timeSinceLastCheckIn;
-                                const isTimeExpired = remainingMs <= 0;
-
-                                // Check if user is a guardian
-                                const currentAddress = getCurrentAddress();
-                                const isGuardian = currentAddress && selectedDocument.guardians?.some(
-                                  (guardian) => guardian.toLowerCase() === currentAddress.toLowerCase()
-                                );
-
-                                // Guardian can confirm if: 1) is guardian, 2) dossier expired, 3) not released yet
-                                const canConfirmRelease = isGuardian && isTimeExpired && selectedDocument.isReleased !== true;
-
-                                if (!canConfirmRelease) return null;
-
-                                if (hasConfirmedRelease) {
-                                  return (
-                                    <div
-                                      className={`p-3 border rounded-lg ${
-                                        theme === 'light'
-                                          ? 'bg-green-50 border-green-300 text-green-700'
-                                          : 'bg-green-900/30 border-green-600 text-green-400'
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span className="font-medium">RELEASE CONFIRMED</span>
-                                      </div>
-                                      <p className="text-sm mt-1 opacity-90">
-                                        You have confirmed the release of this dossier
-                                      </p>
-                                    </div>
-                                  );
-                                }
-
-                                return (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowGuardianConfirmModal(true);
-                                    }}
-                                    className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
-                                      theme === 'light'
-                                        ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900'
-                                        : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-center gap-2">
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                      </svg>
-                                      <span>CONFIRM RELEASE</span>
-                                    </div>
-                                  </button>
-                                );
                               })()}
 
                               {/* Pause/Resume Button - Hidden if released, permanently disabled, or expired */}
@@ -4632,9 +4691,9 @@ const Home = () => {
                                           Recipient #{index + 1}
                                         </div>
                                         <div
-                                          className={`text-sm monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"} break-all`}
+                                          className={`text-sm monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
                                         >
-                                          {recipient}
+                                          {recipient.slice(0, 14)}...{recipient.slice(-8)}
                                         </div>
                                       </div>
                                       <button
@@ -4700,8 +4759,8 @@ const Home = () => {
                                               </div>
                                             )}
                                           </div>
-                                          <div className={`text-sm monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"} break-all`}>
-                                            {guardian}
+                                          <div className={`text-sm monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}>
+                                            {guardian.slice(0, 14)}...{guardian.slice(-8)}
                                           </div>
                                         </div>
                                         <button

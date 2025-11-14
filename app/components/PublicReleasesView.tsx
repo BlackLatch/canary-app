@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
 import { ContractService, type Dossier } from '@/app/lib/contract';
 import type { Address } from 'viem';
 
@@ -21,52 +20,32 @@ interface PublicReleasesViewProps {
 export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
   const [feedDossiers, setFeedDossiers] = useState<FeedDossier[]>([]);
   const [loading, setLoading] = useState(true);
-  const { address } = useAccount();
   const router = useRouter();
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadFeed = async () => {
       try {
         // Only show loading on very first load
         if (!hasLoadedRef.current && isMounted) {
           setLoading(true);
         }
-        
-        const dossiers: FeedDossier[] = [];
-        
+
         // Wait a minimum time to avoid flash of empty state
         const startTime = Date.now();
-        
-        // In production, this would query DossierCreated events from all users
-        // For now, we'll check the current user's dossiers
-        if (address) {
-          const dossierIds = await ContractService.getUserDossierIds(address);
-          
-          for (const dossierId of dossierIds) {
-            const dossier = await ContractService.getDossier(address, dossierId);
-            const shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(address, dossierId);
-            
-            const now = Math.floor(Date.now() / 1000);
-            const timeSinceLastCheckIn = now - Number(dossier.lastCheckIn);
-            const checkInDeadline = Number(dossier.checkInInterval) + 86400; // + grace period
-            const timeUntilUnlock = checkInDeadline - timeSinceLastCheckIn;
-            
-            // Only include dossiers that are unlocked (public)
-            const isUnlocked = !shouldStayEncrypted && dossier.isActive;
-            if (isUnlocked) {
-              dossiers.push({
-                user: address,
-                dossierId,
-                dossier,
-                isUnlocked: true,
-                timeUntilUnlock: undefined
-              });
-            }
-          }
-        }
+
+        // Get ALL public releases from ALL users (no auth required)
+        const publicReleases = await ContractService.getAllPublicReleases();
+
+        const dossiers: FeedDossier[] = publicReleases.map(release => ({
+          user: release.user,
+          dossierId: release.dossierId,
+          dossier: release.dossier,
+          isUnlocked: true,
+          timeUntilUnlock: undefined
+        }));
         
         // Ensure minimum loading time to avoid flash
         const elapsed = Date.now() - startTime;
@@ -104,7 +83,7 @@ export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [address]);
+  }, []);
 
 
   if (loading) {
@@ -128,27 +107,29 @@ export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
             </div>
           </nav>
 
-          {/* List Items Skeleton with Loading Animation */}
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className={`border rounded-lg p-6 relative overflow-hidden ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
+          {/* Gallery Grid Skeleton with Loading Animation */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className={`border rounded-lg p-5 relative overflow-hidden ${theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
                 {/* Shimmer effect */}
                 <div className={`absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent to-transparent ${theme === 'light' ? 'via-white/20' : 'via-white/5'}`}></div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${theme === 'light' ? 'bg-gray-300' : 'bg-gray-600'}`}></div>
-                    <div className="flex-1">
-                      <div className={`h-5 bg-gradient-to-r rounded w-3/4 mb-2 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
-                      <div className={`h-3 bg-gradient-to-r rounded w-1/2 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className={`h-4 bg-gradient-to-r rounded w-16 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
-                    <svg className={`w-5 h-5 animate-pulse ${theme === 'light' ? 'text-gray-300' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
+
+                {/* Badge and dot */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`h-6 bg-gradient-to-r rounded-full w-16 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${theme === 'light' ? 'bg-gray-300' : 'bg-gray-600'}`}></div>
+                </div>
+
+                {/* Title */}
+                <div className={`h-5 bg-gradient-to-r rounded w-full mb-2 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
+                <div className={`h-5 bg-gradient-to-r rounded w-2/3 mb-3 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
+
+                {/* Owner address */}
+                <div className={`h-4 bg-gradient-to-r rounded w-24 mb-3 animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
+
+                {/* Metadata */}
+                <div className={`border-t pt-3 ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
+                  <div className={`h-3 bg-gradient-to-r rounded w-full animate-pulse ${theme === 'light' ? 'from-gray-200 to-gray-300' : 'from-gray-800 to-gray-700'}`}></div>
                 </div>
               </div>
             ))}
@@ -195,12 +176,12 @@ export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
               </p>
             </div>
           ) : (
-            <div className="space-y-0">
-              {feedDossiers.map((item, index) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {feedDossiers.map((item) => {
                 const formatDate = (timestamp: bigint) => {
                   const date = new Date(Number(timestamp) * 1000);
-                  return date.toLocaleDateString('en-US', { 
-                    month: 'short', 
+                  return date.toLocaleDateString('en-US', {
+                    month: 'short',
                     day: 'numeric',
                     year: 'numeric'
                   });
@@ -211,47 +192,52 @@ export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
                     key={`${item.user}-${item.dossierId.toString()}`}
                     onClick={() => router.push(`/release?user=${item.user}&id=${item.dossierId.toString()}`)}
                     className={`
-                      flex items-center justify-between px-6 py-5 cursor-pointer transition-all
-                      border rounded-lg ${index !== 0 ? 'mt-4' : ''}
-                      ${theme === 'light' 
-                        ? 'border-gray-300 bg-white hover:bg-gray-50' 
-                        : 'border-gray-600 bg-black/40 hover:bg-white/5'}
+                      cursor-pointer transition-all rounded-lg border p-5
+                      ${theme === 'light'
+                        ? 'border-gray-300 bg-white hover:border-[#e53e3e] hover:shadow-lg'
+                        : 'border-gray-700 bg-black hover:border-[#e53e3e] hover:bg-white/5'}
                     `}
                   >
-                    {/* Left: Status indicator and title */}
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      {/* Status Dot - always green for public */}
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${theme === 'light' ? 'bg-green-500' : 'bg-green-400'}`} />
-                      
-                      {/* Title and metadata */}
-                      <div className="min-w-0 flex-1">
-                        <h3 className={`text-base font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {item.dossier.name.replace('Encrypted file: ', '') || 'Untitled Dossier'}
-                        </h3>
-                        <div className={`flex items-center gap-3 mt-1 text-sm ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-                          <span>{formatDate(item.dossier.lastCheckIn)}</span>
-                          <span>•</span>
-                          <span>{item.dossier.encryptedFileHashes.length} file{item.dossier.encryptedFileHashes.length !== 1 ? 's' : ''}</span>
-                        </div>
+                    {/* PUBLIC Badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${theme === 'light' ? 'bg-green-100 text-green-700' : 'bg-green-900/30 text-green-400'}`}>
+                        PUBLIC
                       </div>
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${theme === 'light' ? 'bg-green-500' : 'bg-green-400'}`} />
                     </div>
 
-                    {/* Right: Status */}
-                    <div className="flex items-center gap-6 ml-6">
-                      {/* Always show PUBLIC since we only show unlocked items */}
-                      <span className={`text-sm font-medium ${theme === 'light' ? 'text-green-600' : 'text-green-400'}`}>
-                        PUBLIC
-                      </span>
+                    {/* Title */}
+                    <h3 className={`text-base font-semibold mb-3 line-clamp-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                      {item.dossier.name.replace('Encrypted file: ', '') || 'Untitled Dossier'}
+                    </h3>
 
-                      {/* Arrow indicator */}
-                      <svg 
-                        className={`w-5 h-5 flex-shrink-0 ${theme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-                      </svg>
+                    {/* Description - Only show if present */}
+                    {item.dossier.description && (
+                      <p className={`text-sm mb-3 line-clamp-2 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        {item.dossier.description}
+                      </p>
+                    )}
+
+                    {/* Owner Address */}
+                    <p className={`text-xs font-mono mb-3 ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                      {item.user.slice(0, 6)}...{item.user.slice(-4)}
+                    </p>
+
+                    {/* Metadata */}
+                    <div className={`flex items-center gap-3 text-xs pt-3 border-t ${theme === 'light' ? 'text-gray-500 border-gray-200' : 'text-gray-400 border-gray-700'}`}>
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>{formatDate(item.dossier.lastCheckIn)}</span>
+                      </div>
+                      <span>•</span>
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <span>{item.dossier.encryptedFileHashes.length}</span>
+                      </div>
                     </div>
                   </div>
                 );

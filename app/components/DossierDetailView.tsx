@@ -128,6 +128,15 @@ export default function DossierDetailView({
 
     if (!isDecryptable) return false;
 
+    // Check guardian protection: if guardians exist and threshold is NOT met, cannot decrypt
+    const hasGuardians = dossier.guardians && dossier.guardians.length > 0;
+    if (hasGuardians) {
+      const thresholdMet = Number(dossier.guardianConfirmationCount) >= Number(dossier.guardianThreshold);
+      if (!thresholdMet) {
+        return false; // Cannot decrypt until guardian threshold is met
+      }
+    }
+
     // If it's a private dossier (has recipients beyond just the owner)
     const isPrivate = dossier.recipients && dossier.recipients.length > 1;
 
@@ -372,44 +381,78 @@ export default function DossierDetailView({
             </div>
           </div>
 
-          {/* Recipients List */}
-          <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-            <h3 className="editorial-header text-black dark:text-gray-100 mb-4">
-              Recipients
-            </h3>
-            <div className="space-y-2">
-              {dossier.recipients.map((recipient, index) => (
-                <div
-                  key={index}
-                  className={`p-3 border rounded ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className={`text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                        Recipient #{index + 1}
+          {/* Recipients List - Only show for private dossiers */}
+          {dossier.recipients && dossier.recipients.length > 1 ? (
+            <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+              <h3 className="editorial-header text-black dark:text-gray-100 mb-4">
+                Recipients
+              </h3>
+              <div className="space-y-2">
+                {dossier.recipients.map((recipient, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 border rounded ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className={`text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          Recipient #{index + 1}
+                        </div>
+                        <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          {recipient.slice(0, 6)}...{recipient.slice(-4)}
+                        </div>
                       </div>
-                      <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'} break-all`}>
-                        {recipient}
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(recipient);
+                        }}
+                        className={`ml-2 p-1 rounded text-xs ${
+                          theme === 'light'
+                            ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                            : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
+                        }`}
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigator.clipboard.writeText(recipient);
-                      }}
-                      className={`ml-2 p-1 rounded text-xs ${
-                        theme === 'light'
-                          ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-                          : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
-                      }`}
-                    >
-                      <Copy className="w-3 h-3" />
-                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Public Availability Message */
+            <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+              <h3 className="editorial-header text-black dark:text-gray-100 mb-4">
+                Public Availability
+              </h3>
+              <div className={`p-4 border rounded-lg ${theme === 'light' ? 'bg-blue-50 border-blue-200' : 'bg-blue-900/20 border-blue-800'}`}>
+                <div className="flex items-start gap-3">
+                  <svg
+                    className={`w-5 h-5 mt-0.5 flex-shrink-0 ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div className="flex-1">
+                    <h4 className={`font-semibold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                      Public Publication
+                    </h4>
+                    <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                      This dossier is publicly available to anyone. No specific recipients were designated, making this content accessible to the general public.
+                    </p>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Guardian Protection Section - Show if guardians exist */}
           {dossier.guardians && dossier.guardians.length > 0 && (
@@ -446,8 +489,8 @@ export default function DossierDetailView({
                               </div>
                             )}
                           </div>
-                          <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'} break-all`}>
-                            {guardian}
+                          <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                            {guardian.slice(0, 6)}...{guardian.slice(-4)}
                           </div>
                         </div>
                         <button

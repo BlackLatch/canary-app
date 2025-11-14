@@ -75,6 +75,9 @@ function ReleaseDetailContent() {
   });
   const [decryptedFiles, setDecryptedFiles] = useState<DecryptedFile[]>([]);
 
+  // Guardian confirmation state
+  const [hasConfirmedRelease, setHasConfirmedRelease] = useState(false);
+
   // Update time every second for accurate status display
   useEffect(() => {
     const interval = setInterval(() => {
@@ -94,6 +97,22 @@ function ReleaseDetailContent() {
         setLoading(true);
         const dossierData = await ContractService.getDossier(user, dossierId);
         setDossier(dossierData);
+
+        // Check if current user has confirmed release (if they're a guardian)
+        const currentAddress = getCurrentAddress();
+        if (currentAddress && dossierData.guardians && dossierData.guardians.length > 0) {
+          const isGuardian = dossierData.guardians.some(
+            (guardian: string) => guardian.toLowerCase() === currentAddress.toLowerCase()
+          );
+          if (isGuardian) {
+            try {
+              const confirmed = await ContractService.hasGuardianConfirmed(user, dossierId, currentAddress);
+              setHasConfirmedRelease(confirmed);
+            } catch (error) {
+              console.error('Failed to check guardian confirmation status:', error);
+            }
+          }
+        }
       } catch (error) {
         console.error('❌ Failed to load release:', error);
         toast.error('Failed to load dossier details');
@@ -103,7 +122,7 @@ function ReleaseDetailContent() {
     };
 
     loadRelease();
-  }, [user, dossierId]);
+  }, [user, dossierId, burnerWallet.address, connectedAddress]);
 
   const handleDecrypt = async () => {
     if (!dossier || !user || dossierId === null) return;
@@ -259,6 +278,35 @@ function ReleaseDetailContent() {
     }
   };
 
+  const handleConfirmRelease = async () => {
+    if (!user || dossierId === null || !currentAddress) {
+      toast.error('Missing required information to confirm release');
+      return;
+    }
+
+    try {
+      console.log('🔐 Confirming release as guardian...');
+      toast.loading('Confirming release...');
+
+      await ContractService.confirmRelease(user, dossierId);
+
+      toast.dismiss();
+      toast.success('Release confirmed successfully!');
+
+      // Update confirmation status
+      setHasConfirmedRelease(true);
+
+      // Reload the dossier to get updated confirmation count
+      const updatedDossier = await ContractService.getDossier(user, dossierId);
+      setDossier(updatedDossier);
+
+    } catch (error) {
+      toast.dismiss();
+      console.error('❌ Failed to confirm release:', error);
+      toast.error(`Failed to confirm release: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
@@ -306,6 +354,17 @@ function ReleaseDetailContent() {
 
   const currentAddress = getCurrentAddress();
   const isOwner = !!(currentAddress && currentAddress.toLowerCase() === user.toLowerCase());
+
+  // Debug logging for release page
+  console.log('🔍 Release page state:', {
+    user,
+    dossierId,
+    currentAddress,
+    isOwner,
+    hasConfirmedRelease,
+    dossierGuardians: dossier?.guardians,
+    dossierStatus: dossier?.isReleased ? 'released' : (dossier?.isActive ? 'active' : 'inactive'),
+  });
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
@@ -425,16 +484,31 @@ function ReleaseDetailContent() {
         <div className="flex-1 overflow-auto">
           <div className={`flex-1 overflow-auto ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
             <div className="max-w-7xl mx-auto px-6 py-8">
-              <DecryptionView
-                isOpen={true}
-                onClose={() => router.push('/')}
-                progress={decryptionProgress}
-                decryptedFiles={decryptedFiles}
-                inline={true}
-                dossierName={dossier.name.replace('Encrypted file: ', '')}
-                fileCount={dossier.encryptedFileHashes.length - 1}
-                onStartDecrypt={handleDecrypt}
-              />
+              {!showDecryptionView ? (
+                <DossierDetailView
+                  dossier={dossier}
+                  owner={user}
+                  theme={theme}
+                  currentTime={currentTime}
+                  isOwner={isOwner}
+                  currentUserAddress={currentAddress}
+                  onBack={() => router.push('/')}
+                  onDecrypt={handleDecrypt}
+                  onConfirmRelease={handleConfirmRelease}
+                  hasConfirmedRelease={hasConfirmedRelease}
+                />
+              ) : (
+                <DecryptionView
+                  isOpen={true}
+                  onClose={() => router.push('/')}
+                  progress={decryptionProgress}
+                  decryptedFiles={decryptedFiles}
+                  inline={true}
+                  dossierName={dossier.name.replace('Encrypted file: ', '')}
+                  fileCount={dossier.encryptedFileHashes.length - 1}
+                  onStartDecrypt={handleDecrypt}
+                />
+              )}
             </div>
           </div>
         </div>

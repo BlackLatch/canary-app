@@ -1,4 +1,6 @@
 import { readContract, writeContract, waitForTransactionReceipt, getAccount } from 'wagmi/actions';
+import { createPublicClient, http } from 'viem';
+import { getContractEvents } from 'viem/actions';
 import { statusSepolia } from './chains/status';
 import type { Address } from 'viem';
 import { config } from './web3'; // Use the main wagmi config
@@ -2054,6 +2056,88 @@ export class ContractService {
       
     } catch (error) {
       console.error('❌ Failed to add file hashes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all public releases from ALL users
+   * Returns dossiers that are:
+   * 1. Expired (time-based)
+   * 2. Active (not permanently disabled)
+   * 3. Guardian threshold met (or no guardians)
+   * 4. Public (not private recipients)
+   */
+  static async getAllPublicReleases(): Promise<Array<{ user: Address; dossierId: bigint; dossier: Dossier }>> {
+    try {
+      console.log('📋 Loading all public releases from blockchain...');
+
+      // Create a public client for Status Sepolia
+      const publicClient = createPublicClient({
+        chain: statusSepolia,
+        transport: http('https://public.sepolia.rpc.status.network'),
+      });
+
+      // Get all DossierCreated events from the contract
+      const events = await getContractEvents(publicClient, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        eventName: 'DossierCreated',
+        fromBlock: BigInt(0),
+      });
+
+      console.log(`Found ${events.length} total dossier creation events`);
+
+      const publicReleases: Array<{ user: Address; dossierId: bigint; dossier: Dossier }> = [];
+
+      // Check each dossier to see if it's a public release
+      for (const event of events) {
+        try {
+          const { user, dossierId } = event.args as { user: Address; dossierId: bigint };
+
+          // Load dossier details
+          const dossier = await this.getDossier(user, dossierId);
+
+          // Check if dossier is active
+          if (!dossier.isActive) {
+            continue;
+          }
+
+          // Check if dossier is time-expired
+          const shouldStayEncrypted = await this.shouldDossierStayEncrypted(user, dossierId);
+          if (shouldStayEncrypted) {
+            continue;
+          }
+
+          // Check guardian threshold (if guardians exist)
+          if (dossier.guardians && dossier.guardians.length > 0) {
+            const isThresholdMet = await this.isGuardianThresholdMet(user, dossierId);
+            if (!isThresholdMet) {
+              // Skip dossiers awaiting guardian confirmation
+              continue;
+            }
+          }
+
+          // Check if it's a public release (more than 1 recipient means private)
+          const isPublic = dossier.recipients.length === 1; // Only owner
+          if (!isPublic) {
+            continue;
+          }
+
+          // This is a public release!
+          publicReleases.push({ user, dossierId, dossier });
+
+        } catch (error) {
+          console.error(`Failed to check dossier ${event.args.dossierId}:`, error);
+          // Continue with other dossiers
+        }
+      }
+
+      console.log(`✅ Found ${publicReleases.length} public releases`);
+      return publicReleases;
+
+    } catch (error) {
+      console.error('❌ Failed to get all public releases:', error);
       throw error;
     }
   }

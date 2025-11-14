@@ -13,6 +13,7 @@ import { ensureCorrectNetwork } from '../lib/network-switch';
 interface GuardViewProps {
   onBack: () => void;
   onViewDossier: (owner: Address, dossierId: bigint) => void;
+  onShowConfirmModal: (owner: Address, dossierId: bigint, dossierName: string) => void;
 }
 
 interface GuardianDossier extends Dossier {
@@ -21,7 +22,7 @@ interface GuardianDossier extends Dossier {
   isThresholdMet?: boolean;
 }
 
-export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
+export default function GuardView({ onBack, onViewDossier, onShowConfirmModal }: GuardViewProps) {
   const { theme } = useTheme();
   const [guardianDossiers, setGuardianDossiers] = useState<GuardianDossier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +122,19 @@ export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
     loadGuardianDossiers();
   }, [address, burnerWallet.address]);
 
-  const handleDossierClick = (dossier: GuardianDossier) => {
+  const handleDossierClick = async (dossier: GuardianDossier) => {
+    // For web3 external wallets (not burner), ensure correct network before viewing
+    if (!burnerWallet.isConnected && address) {
+      console.log('🔗 Checking network before viewing guardian dossier...');
+      const networkOk = await ensureCorrectNetwork();
+      if (!networkOk) {
+        console.log('❌ Network switch failed or cancelled');
+        toast.error('Please switch to Status Network Sepolia to view this dossier');
+        return;
+      }
+      console.log('✅ Network check passed, opening dossier');
+    }
+
     onViewDossier(dossier.owner, dossier.id);
   };
 
@@ -242,11 +255,10 @@ export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
                 return (
                   <div
                     key={key}
-                    onClick={() => handleDossierClick(dossier)}
-                    className={`p-5 rounded-lg border cursor-pointer transition-all ${
+                    className={`p-5 rounded-lg border transition-all ${
                       theme === 'light'
-                        ? 'bg-white border-gray-300 hover:border-[#e53e3e] hover:shadow-md'
-                        : 'bg-black border-gray-700 hover:border-[#e53e3e] hover:bg-gray-900/50'
+                        ? 'bg-white border-gray-300'
+                        : 'bg-black border-gray-700'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -309,6 +321,38 @@ export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
                             {timeInfo.text} remaining
                           </span>
                         </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      {/* View More Button */}
+                      <button
+                        onClick={() => handleDossierClick(dossier)}
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          theme === 'light'
+                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            : 'bg-white/10 text-gray-200 hover:bg-white/20'
+                        }`}
+                      >
+                        View More...
+                      </button>
+
+                      {/* Confirm Release Button - Only show if can confirm */}
+                      {!confirmed && timeInfo.isExpired && status !== 'released' && (
+                        <button
+                          onClick={() => {
+                            onShowConfirmModal(dossier.owner, dossier.id, dossier.name);
+                          }}
+                          className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                            theme === 'light'
+                              ? 'bg-gray-900 text-white hover:bg-gray-800'
+                              : 'bg-white text-gray-900 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Shield className="w-4 h-4" />
+                          <span>Confirm Release</span>
+                        </button>
                       )}
                     </div>
                   </div>
