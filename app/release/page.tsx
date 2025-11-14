@@ -359,7 +359,7 @@ function ReleaseDetailContent() {
                   DOSSIERS
                 </Link>
                 <Link href="/?view=monitor" className="nav-link">
-                  MONITOR
+                  RECIEVE
                 </Link>
                 <Link href="/feed" className="nav-link">
                   PUBLIC RELEASES

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, CheckCircle } from 'lucide-react';
+import { Copy, CheckCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Dossier } from '@/app/lib/contract';
 import type { Address } from 'viem';
@@ -19,7 +19,10 @@ interface DossierDetailViewProps {
   onAddFiles?: () => void;
   onPauseResume?: () => Promise<void>;
   onDecrypt?: () => Promise<void>;
+  onConfirmRelease?: () => Promise<void>;
   isCheckingIn?: boolean;
+  hasConfirmedRelease?: boolean;
+  guardianConfirmations?: Map<Address, boolean>;
 }
 
 export default function DossierDetailView({
@@ -35,7 +38,9 @@ export default function DossierDetailView({
   onAddFiles,
   onPauseResume,
   onDecrypt,
+  onConfirmRelease,
   isCheckingIn = false,
+  hasConfirmedRelease = false,
 }: DossierDetailViewProps) {
   const [showEditSchedule, setShowEditSchedule] = useState(false);
   const [copiedOwner, setCopiedOwner] = useState(false);
@@ -102,6 +107,14 @@ export default function DossierDetailView({
   const canEditSchedule = isOwner && dossier.isActive && dossier.isReleased !== true;
   const canAddFiles = isOwner && dossier.isActive && dossier.isReleased !== true;
   const canPauseResume = isOwner && dossier.isPermanentlyDisabled !== true && dossier.isReleased !== true;
+
+  // Check if current user is a guardian and can confirm release
+  const isGuardian = !isOwner && currentUserAddress && dossier.guardians?.some(
+    (guardian) => guardian.toLowerCase() === currentUserAddress.toLowerCase()
+  );
+
+  // Guardian can confirm if: 1) is guardian, 2) dossier expired, 3) not released yet
+  const canConfirmRelease = isGuardian && status === 'expired' && dossier.isReleased !== true;
 
   const canDecrypt = (() => {
     const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
@@ -221,7 +234,11 @@ export default function DossierDetailView({
                 {/* Guardian Badge */}
                 {dossier.guardians && dossier.guardians.length > 0 && (
                   <div
-                    className="inline-flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-lg border transition-colors whitespace-nowrap bg-[#e53e3e] text-white border-[#e53e3e]"
+                    className={`inline-flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-lg border transition-colors whitespace-nowrap ${
+                      theme === 'light'
+                        ? 'bg-gray-900 text-white border-gray-900'
+                        : 'bg-white text-black border-white'
+                    }`}
                     title={`${dossier.guardianThreshold} of ${dossier.guardians.length} guardian${dossier.guardians.length !== 1 ? 's' : ''} required`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,37 +421,53 @@ export default function DossierDetailView({
                 {dossier.guardianConfirmationCount.toString()} of {dossier.guardianThreshold.toString()} guardians have confirmed release
               </p>
               <div className="space-y-2">
-                {dossier.guardians.map((guardian, index) => (
-                  <div
-                    key={index}
-                    className={`p-3 border rounded ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className={`text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          Guardian #{index + 1}
+                {dossier.guardians.map((guardian, index) => {
+                  const hasConfirmed = guardianConfirmations?.get(guardian as Address) || false;
+                  return (
+                    <div
+                      key={index}
+                      className={`p-3 border rounded ${theme === 'light' ? 'border-gray-300 bg-gray-50' : 'border-gray-600 bg-black/40'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={`text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                              Guardian #{index + 1}
+                            </div>
+                            {hasConfirmed ? (
+                              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <CheckCircle className="w-3 h-3" />
+                                <span className="text-xs font-medium">Confirmed</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+                                <Clock className="w-3 h-3" />
+                                <span className="text-xs font-medium">Pending</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'} break-all`}>
+                            {guardian}
+                          </div>
                         </div>
-                        <div className={`text-sm monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'} break-all`}>
-                          {guardian}
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(guardian);
+                            toast.success('Guardian address copied!');
+                          }}
+                          className={`ml-2 p-1 rounded text-xs ${
+                            theme === 'light'
+                              ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                              : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
+                          }`}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(guardian);
-                          toast.success('Guardian address copied!');
-                        }}
-                        className={`ml-2 p-1 rounded text-xs ${
-                          theme === 'light'
-                            ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-                            : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
-                        }`}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -483,6 +516,45 @@ export default function DossierDetailView({
                   <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                     You are viewing another user's dossier.
                   </p>
+                </div>
+              )}
+
+              {/* Guardian Confirm Release Button */}
+              {canConfirmRelease && onConfirmRelease && (
+                <div className="space-y-3">
+                  {hasConfirmedRelease ? (
+                    <div
+                      className={`p-3 border rounded-lg ${
+                        theme === 'light'
+                          ? 'bg-green-50 border-green-300 text-green-700'
+                          : 'bg-green-900/30 border-green-600 text-green-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-medium">RELEASE CONFIRMED</span>
+                      </div>
+                      <p className="text-sm mt-1 opacity-90">
+                        You have confirmed the release of this dossier
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={onConfirmRelease}
+                      className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                        theme === 'light'
+                          ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900'
+                          : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <span>CONFIRM RELEASE</span>
+                      </div>
+                    </button>
+                  )}
                 </div>
               )}
 

@@ -18,6 +18,7 @@ interface GuardViewProps {
 interface GuardianDossier extends Dossier {
   owner: Address;
   isDecryptable?: boolean;
+  isThresholdMet?: boolean;
 }
 
 export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
@@ -84,16 +85,23 @@ export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
             const dossier = await ContractService.getDossier(ref.owner, ref.dossierId);
             const shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(ref.owner, ref.dossierId);
 
+            // Check if guardian threshold is met (only for dossiers with guardians)
+            let isThresholdMet = false;
+            if (dossier.guardians && dossier.guardians.length > 0) {
+              isThresholdMet = await ContractService.isGuardianThresholdMet(ref.owner, ref.dossierId);
+            }
+
             dossiers.push({
               ...dossier,
               owner: ref.owner,
-              isDecryptable: !shouldStayEncrypted
+              isDecryptable: !shouldStayEncrypted,
+              isThresholdMet
             });
 
-            // Store confirmation status
+            // Check if current user has confirmed this dossier
             const key = `${ref.owner}-${ref.dossierId}`;
-            // TODO: Add hasGuardianConfirmed method to check if current user has confirmed
-            confirmationMap.set(key, false);
+            const hasUserConfirmed = await ContractService.hasGuardianConfirmed(ref.owner, ref.dossierId, currentAddress);
+            confirmationMap.set(key, hasUserConfirmed);
           } catch (error) {
             console.error(`Failed to load dossier ${ref.dossierId} for owner ${ref.owner}:`, error);
           }
@@ -219,6 +227,18 @@ export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
                 const confirmed = hasConfirmed.get(key) || false;
                 const confirmationProgress = `${dossier.guardianConfirmationCount}/${dossier.guardianThreshold}`;
 
+                // Determine status based on expiration and guardian protection
+                const hasGuardians = dossier.guardians && dossier.guardians.length > 0;
+                let status: 'active' | 'awaiting' | 'released';
+
+                if (!timeInfo.isExpired) {
+                  status = 'active';
+                } else if (hasGuardians && !dossier.isThresholdMet) {
+                  status = 'awaiting';
+                } else {
+                  status = 'released';
+                }
+
                 return (
                   <div
                     key={key}
@@ -245,11 +265,13 @@ export default function GuardView({ onBack, onViewDossier }: GuardViewProps) {
 
                       {/* Status Badge */}
                       <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        timeInfo.isExpired
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        status === 'active'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : status === 'awaiting'
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       }`}>
-                        {timeInfo.isExpired ? 'Released' : 'Active'}
+                        {status === 'active' ? 'Active' : status === 'awaiting' ? 'Awaiting Confirmation' : 'Released'}
                       </div>
                     </div>
 

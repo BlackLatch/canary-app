@@ -37,6 +37,7 @@ import MonitorView from "./components/MonitorView";
 import GuardView from "./components/GuardView";
 import DemoDisclaimer from "./components/DemoDisclaimer";
 import BurnAccountWarningModal from "./components/BurnAccountWarningModal";
+import GuardianConfirmReleaseModal from "./components/GuardianConfirmReleaseModal";
 import DecryptionView from "./components/DecryptionView";
 import SystemControlModal from "./components/SystemControlModal";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -245,6 +246,11 @@ const Home = () => {
   const [showAddFiles, setShowAddFiles] = useState(false);
   const [newCheckInInterval, setNewCheckInInterval] = useState("");
 
+  // Guardian confirmation state
+  const [guardianConfirmations, setGuardianConfirmations] = useState<Map<Address, boolean>>(new Map());
+  const [hasConfirmedRelease, setHasConfirmedRelease] = useState(false);
+  const [showGuardianConfirmModal, setShowGuardianConfirmModal] = useState(false);
+
   // Decryption state
   const [showDecryptionView, setShowDecryptionView] = useState(false);
   const [decryptingDossier, setDecryptingDossier] = useState<DossierWithStatus | null>(null);
@@ -275,13 +281,42 @@ const Home = () => {
   }, [currentStep, showCreateForm, address, user]);
 
   // Dossier detail navigation
-  const openDocumentDetail = (document: DossierWithStatus) => {
+  const openDocumentDetail = async (document: DossierWithStatus) => {
     setSelectedDocument(document);
     setDocumentDetailView(true);
     // Update URL without navigating - use viewingUserAddress to maintain context
     if (viewingUserAddress) {
       const url = `/?user=${viewingUserAddress}&id=${document.id.toString()}`;
       window.history.pushState({}, '', url);
+    }
+
+    // Load guardian confirmations if guardians exist
+    if (document.guardians && document.guardians.length > 0 && viewingUserAddress) {
+      try {
+        const confirmationMap = new Map<Address, boolean>();
+        for (const guardian of document.guardians) {
+          const hasConfirmed = await ContractService.hasGuardianConfirmed(
+            viewingUserAddress,
+            document.id,
+            guardian as Address
+          );
+          confirmationMap.set(guardian as Address, hasConfirmed);
+        }
+        setGuardianConfirmations(confirmationMap);
+
+        // Check if current user is a guardian and has confirmed
+        const currentAddress = getCurrentAddress();
+        if (currentAddress) {
+          const userConfirmed = await ContractService.hasGuardianConfirmed(
+            viewingUserAddress,
+            document.id,
+            currentAddress
+          );
+          setHasConfirmedRelease(userConfirmed);
+        }
+      } catch (error) {
+        console.error('Failed to load guardian confirmations:', error);
+      }
     }
   };
 
@@ -1735,6 +1770,47 @@ const Home = () => {
     );
   });
 
+  const confirmRelease = useNetworkGuard(async (owner: Address, dossierId: bigint) => {
+    try {
+      const txHash = await ContractService.confirmRelease(owner, dossierId);
+      toast.success('Release confirmed successfully!');
+
+      // Reload guardian confirmations
+      if (selectedDocument && selectedDocument.guardians && selectedDocument.guardians.length > 0) {
+        const confirmationMap = new Map<Address, boolean>();
+        for (const guardian of selectedDocument.guardians) {
+          const hasConfirmed = await ContractService.hasGuardianConfirmed(
+            owner,
+            dossierId,
+            guardian as Address
+          );
+          confirmationMap.set(guardian as Address, hasConfirmed);
+        }
+        setGuardianConfirmations(confirmationMap);
+
+        // Update current user's confirmation status
+        const currentAddress = getCurrentAddress();
+        if (currentAddress) {
+          const userConfirmed = await ContractService.hasGuardianConfirmed(
+            owner,
+            dossierId,
+            currentAddress
+          );
+          setHasConfirmedRelease(userConfirmed);
+        }
+
+        // Reload dossier to get updated confirmation count
+        await loadDossiers();
+      }
+
+      return txHash;
+    } catch (error) {
+      console.error('Failed to confirm release:', error);
+      toast.error('Failed to confirm release');
+      throw error;
+    }
+  });
+
   const getTimeSinceLastCheckIn = () => {
     // If connected and have dossiers, use the most recent on-chain check-in
     if (hasWalletConnection() && userDossiers.length > 0) {
@@ -2585,6 +2661,22 @@ const Home = () => {
             />
           )}
 
+          {/* Guardian Confirm Release Modal */}
+          {showGuardianConfirmModal && selectedDocument && viewingUserAddress && (
+            <GuardianConfirmReleaseModal
+              dossierName={selectedDocument.name.replace("Encrypted file: ", "")}
+              onConfirm={async () => {
+                try {
+                  setShowGuardianConfirmModal(false);
+                  await confirmRelease(viewingUserAddress, selectedDocument.id);
+                } catch (error) {
+                  console.error('Confirm release failed:', error);
+                }
+              }}
+              onCancel={() => setShowGuardianConfirmModal(false)}
+            />
+          )}
+
           {/* Import Private Key Modal */}
           {showImportKeyModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -2924,7 +3016,7 @@ const Home = () => {
                         currentView === "documents" ? "nav-link-active" : ""
                       }`}
                     >
-                      DOSSIERS
+                      MY DOSSIERS
                     </button>
                     <button
                       onClick={() => setCurrentView("monitor")}
@@ -2932,7 +3024,7 @@ const Home = () => {
                         currentView === "monitor" ? "nav-link-active" : ""
                       }`}
                     >
-                      MONITOR
+                      RECIEVE
                     </button>
                     <button
                       onClick={() => setCurrentView("guard")}
@@ -3264,8 +3356,8 @@ const Home = () => {
                         }}
                         className={`px-6 py-3 rounded-lg font-medium text-sm uppercase tracking-wider transition-all duration-200 ${
                           theme === "light"
-                            ? "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md"
-                            : "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md"
+                            ? "bg-gray-900 text-white hover:bg-black shadow-sm hover:shadow-md"
+                            : "bg-white text-black hover:bg-gray-100 shadow-sm hover:shadow-md"
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -3633,6 +3725,9 @@ const Home = () => {
                   // Find the dossier and open detail view
                   const findAndOpenDossier = async () => {
                     try {
+                      // Set viewing context to the dossier owner
+                      setViewingUserAddress(owner);
+
                       const dossier = await ContractService.getDossier(owner, dossierId);
                       const shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(owner, dossierId);
                       openDocumentDetail({
@@ -4269,6 +4364,68 @@ const Home = () => {
                                 ) : null;
                               })()}
 
+                              {/* Guardian Confirm Release Button */}
+                              {(() => {
+                                const lastCheckInMs = Number(selectedDocument.lastCheckIn) * 1000;
+                                const intervalMs = Number(selectedDocument.checkInInterval) * 1000;
+                                const timeSinceLastCheckIn = currentTime.getTime() - lastCheckInMs;
+                                const remainingMs = intervalMs - timeSinceLastCheckIn;
+                                const isTimeExpired = remainingMs <= 0;
+
+                                // Check if user is a guardian
+                                const currentAddress = getCurrentAddress();
+                                const isGuardian = currentAddress && selectedDocument.guardians?.some(
+                                  (guardian) => guardian.toLowerCase() === currentAddress.toLowerCase()
+                                );
+
+                                // Guardian can confirm if: 1) is guardian, 2) dossier expired, 3) not released yet
+                                const canConfirmRelease = isGuardian && isTimeExpired && selectedDocument.isReleased !== true;
+
+                                if (!canConfirmRelease) return null;
+
+                                if (hasConfirmedRelease) {
+                                  return (
+                                    <div
+                                      className={`p-3 border rounded-lg ${
+                                        theme === 'light'
+                                          ? 'bg-green-50 border-green-300 text-green-700'
+                                          : 'bg-green-900/30 border-green-600 text-green-400'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span className="font-medium">RELEASE CONFIRMED</span>
+                                      </div>
+                                      <p className="text-sm mt-1 opacity-90">
+                                        You have confirmed the release of this dossier
+                                      </p>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowGuardianConfirmModal(true);
+                                    }}
+                                    className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all ${
+                                      theme === 'light'
+                                        ? 'bg-gray-900 text-white hover:bg-gray-800 border-gray-900'
+                                        : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-center gap-2">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                      </svg>
+                                      <span>CONFIRM RELEASE</span>
+                                    </div>
+                                  </button>
+                                );
+                              })()}
 
                               {/* Pause/Resume Button - Hidden if released, permanently disabled, or expired */}
                               {(() => {
@@ -4501,6 +4658,73 @@ const Home = () => {
                               )}
                             </div>
                           </div>
+
+                          {/* Guardian Protection Section - Show if guardians exist */}
+                          {selectedDocument.guardians && selectedDocument.guardians.length > 0 && (
+                            <div
+                              className={`border rounded-lg px-6 py-5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
+                            >
+                              <h3 className="editorial-header text-black dark:text-gray-100 mb-2">
+                                Guardian Protection
+                              </h3>
+                              <p className={`text-sm mb-4 ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}>
+                                {selectedDocument.guardianConfirmationCount.toString()} of {selectedDocument.guardianThreshold.toString()} guardians have confirmed release
+                              </p>
+                              <div className="space-y-2">
+                                {selectedDocument.guardians.map((guardian, index) => {
+                                  const hasConfirmed = guardianConfirmations.get(guardian as Address) || false;
+                                  return (
+                                    <div
+                                      key={index}
+                                      className={`p-3 border rounded ${theme === "light" ? "border-gray-200 bg-gray-50" : "border-gray-600 bg-black/40"}`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <div className={`text-xs ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}>
+                                              Guardian #{index + 1}
+                                            </div>
+                                            {hasConfirmed ? (
+                                              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="text-xs font-medium">Confirmed</span>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="text-xs font-medium">Pending</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className={`text-sm monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"} break-all`}>
+                                            {guardian}
+                                          </div>
+                                        </div>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(guardian);
+                                            toast.success('Guardian address copied!');
+                                          }}
+                                          className={`ml-2 p-1 rounded text-xs ${
+                                            theme === "light"
+                                              ? "text-gray-500 hover:text-gray-700 hover:bg-gray-200"
+                                              : "text-gray-400 hover:text-gray-200 hover:bg-white/10"
+                                          }`}
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -4550,7 +4774,7 @@ const Home = () => {
                             <div className="flex items-center gap-3 mb-0">
                               <FolderLock className="w-8 h-8 text-[#e53e3e] flex-shrink-0" />
                               <h1 className="editorial-header-large text-black dark:text-gray-100 mb-0" style={{ lineHeight: '1' }}>
-                                DOSSIERS
+                                MY DOSSIERS
                               </h1>
                             </div>
                             <p className="editorial-body dark:text-gray-400 mt-3">

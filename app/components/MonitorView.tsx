@@ -25,6 +25,7 @@ interface EmergencyContact {
 interface RecipientDossier extends Dossier {
   owner: Address;
   isDecryptable?: boolean;
+  isThresholdMet?: boolean;
 }
 
 export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps) {
@@ -153,10 +154,17 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
             const dossier = await ContractService.getDossier(ref.owner, ref.dossierId);
             const shouldStayEncrypted = await ContractService.shouldDossierStayEncrypted(ref.owner, ref.dossierId);
 
+            // Check if guardian threshold is met (only for dossiers with guardians)
+            let isThresholdMet = false;
+            if (dossier.guardians && dossier.guardians.length > 0) {
+              isThresholdMet = await ContractService.isGuardianThresholdMet(ref.owner, ref.dossierId);
+            }
+
             dossiers.push({
               ...dossier,
               owner: ref.owner,
-              isDecryptable: !shouldStayEncrypted
+              isDecryptable: !shouldStayEncrypted,
+              isThresholdMet
             });
           } catch (error) {
             console.error(`Failed to load dossier ${ref.dossierId} for owner ${ref.owner}:`, error);
@@ -300,7 +308,7 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
             </button>
             <Eye className="w-8 h-8 text-[#e53e3e] flex-shrink-0" />
             <h1 className="editorial-header-large text-black dark:text-gray-100 mb-0" style={{ lineHeight: '1' }}>
-              MONITOR
+              RECIEVE
             </h1>
           </div>
           <p className="editorial-body text-gray-600 dark:text-gray-400">
@@ -358,6 +366,18 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
                 const timeInfo = formatTimeRemaining(dossier.lastCheckIn, dossier.checkInInterval);
                 const key = `${dossier.owner}-${dossier.id}`;
 
+                // Determine status based on expiration and guardian protection
+                const hasGuardians = dossier.guardians && dossier.guardians.length > 0;
+                let status: 'active' | 'awaiting' | 'released';
+
+                if (!timeInfo.isExpired) {
+                  status = 'active';
+                } else if (hasGuardians && !dossier.isThresholdMet) {
+                  status = 'awaiting';
+                } else {
+                  status = 'released';
+                }
+
                 return (
                   <div
                     key={key}
@@ -384,11 +404,13 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
 
                       {/* Status Badge */}
                       <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        timeInfo.isExpired
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        status === 'active'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : status === 'awaiting'
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       }`}>
-                        {timeInfo.isExpired ? 'Released' : 'Active'}
+                        {status === 'active' ? 'Active' : status === 'awaiting' ? 'Awaiting Confirmation' : 'Released'}
                       </div>
                     </div>
 

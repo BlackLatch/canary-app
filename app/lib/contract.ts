@@ -1232,15 +1232,93 @@ export class ContractService {
         functionName: 'shouldDossierStayEncrypted',
         args: [userAddress, dossierId],
       });
-      
+
       return result as boolean;
-      
+
     } catch (error) {
       console.error('❌ Failed to check encryption status:', error);
       throw error;
     }
   }
-  
+
+  /**
+   * Check if guardian threshold has been met for a dossier
+   */
+  static async isGuardianThresholdMet(ownerAddress: Address, dossierId: bigint): Promise<boolean> {
+    try {
+      const result = await readContract(config, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        functionName: 'isGuardianThresholdMet',
+        args: [ownerAddress, dossierId],
+        chainId: statusSepolia.id,
+      });
+
+      return result as boolean;
+
+    } catch (error) {
+      console.error('❌ Failed to check guardian threshold:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a specific guardian has confirmed release for a dossier
+   */
+  static async hasGuardianConfirmed(ownerAddress: Address, dossierId: bigint, guardianAddress: Address): Promise<boolean> {
+    try {
+      const result = await readContract(config, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        functionName: 'hasGuardianConfirmed',
+        args: [ownerAddress, dossierId, guardianAddress],
+        chainId: statusSepolia.id,
+      });
+
+      return result as boolean;
+
+    } catch (error) {
+      console.error('❌ Failed to check guardian confirmation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Confirm release of a dossier as a guardian
+   */
+  static async confirmRelease(ownerAddress: Address, dossierId: bigint): Promise<string> {
+    try {
+      console.log('✅ Guardian confirming release for dossier:', dossierId.toString(), 'owner:', ownerAddress);
+
+      const hash = await writeContract(config, {
+        address: CANARY_DOSSIER_ADDRESS,
+        abi: CANARY_DOSSIER_ABI,
+        functionName: 'confirmRelease',
+        args: [ownerAddress, dossierId],
+        gas: BigInt(200000),
+      });
+
+      console.log('⏳ Waiting for confirmation transaction...');
+      await waitForTransactionReceipt(config, { hash });
+
+      console.log('✅ Release confirmed! Transaction hash:', hash);
+      return hash;
+
+    } catch (error) {
+      console.error('❌ Failed to confirm release:', error);
+
+      if (error instanceof Error) {
+        if (error.message.includes('user rejected')) {
+          throw new Error('Transaction was rejected by user');
+        } else if (error.message.includes('insufficient funds')) {
+          throw new Error('Insufficient funds for gas');
+        }
+      }
+
+      throw error;
+    }
+  }
+
   /**
    * Check if user exists (has any dossiers)
    */
