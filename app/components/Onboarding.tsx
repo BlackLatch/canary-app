@@ -432,7 +432,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               onClick={() => onComplete(userChoices)}
               className="w-full px-4 py-2.5 text-base bg-yellow-400 text-slate-800 hover:bg-yellow-300 transition-all duration-200 rounded-lg flex items-center justify-center font-semibold"
             >
-              <span className="mr-2">🔒</span> Connect Web3 Wallet
+              <span className="mr-2">🔒</span> Connect Wallet
             </button>
           </div>
         </div>

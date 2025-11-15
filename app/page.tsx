@@ -2748,7 +2748,7 @@ const Home = () => {
                             <span>Connecting...</span>
                           </div>
                         ) : (
-                          "Connect Web3 Wallet"
+                          "Connect Wallet"
                         )}
                       </button>
                     </div>
