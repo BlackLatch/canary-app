@@ -2547,8 +2547,11 @@ const Home = () => {
   // Check if there's a user param in URL (viewing someone's dossiers while logged out)
   const hasUserParam = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('user');
 
-  // Show sign-in page if not signed in (always require login first)
-  if (!signedIn) {
+  // Check if user is actually authenticated (from any source)
+  const isAuthenticated = authenticated || isConnected || !!burnerWallet.address;
+
+  // Show sign-in page if not authenticated (check actual auth state, not local signedIn state)
+  if (!isAuthenticated) {
     return (
       <div className={theme}>
         <Toaster position="top-right" />
