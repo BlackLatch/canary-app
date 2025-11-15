@@ -80,17 +80,17 @@ export default function PublicReleasesPage() {
               
               {/* Right: Navigation and Wallet Status */}
               <div className="flex items-center gap-8">
-                {/* Only show navigation if authenticated */}
+                {/* Simple Back to App Link - Always visible */}
+                <Link
+                  href="/"
+                  className="nav-link"
+                >
+                  ← BACK TO APP
+                </Link>
+
+                {/* Only show wallet status if authenticated */}
                 {hasWalletConnection() && (
                   <>
-                    {/* Simple Back to App Link */}
-                    <Link
-                      href="/"
-                      className="nav-link"
-                    >
-                      ← BACK TO APP
-                    </Link>
-                    
                     {/* Wallet Status and Theme Toggle - Desktop Only */}
                     <div className="hidden md:flex items-center gap-6">
                       {/* Theme Toggle */}
