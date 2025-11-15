@@ -23,6 +23,7 @@ interface DossierDetailViewProps {
   isCheckingIn?: boolean;
   hasConfirmedRelease?: boolean;
   guardianConfirmations?: Map<Address, boolean>;
+  backButtonText?: string;
 }
 
 export default function DossierDetailView({
@@ -41,6 +42,7 @@ export default function DossierDetailView({
   onConfirmRelease,
   isCheckingIn = false,
   hasConfirmedRelease = false,
+  backButtonText = 'Back to Dossiers',
 }: DossierDetailViewProps) {
   const [showEditSchedule, setShowEditSchedule] = useState(false);
   const [copiedOwner, setCopiedOwner] = useState(false);
@@ -167,7 +169,7 @@ export default function DossierDetailView({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back to Dossiers
+          {backButtonText}
         </button>
       </div>
 
@@ -177,47 +179,16 @@ export default function DossierDetailView({
         <div className="lg:col-span-2 space-y-6">
           {/* Dossier Overview */}
           <div className={`border rounded-lg px-6 py-5 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-            <div className="grid grid-cols-[1fr_auto] gap-6 items-start pb-4">
-              {/* Left Column: Title and Metadata */}
-              <div className="min-w-0">
-                <h1 className="editorial-header-large text-black dark:text-gray-100 mb-3">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 pb-4">
+              {/* Row 1: Title (spans both columns on mobile, 1 col on desktop) */}
+              <div className="col-span-2 md:col-span-1 min-w-0">
+                <h1 className="editorial-header-large text-black dark:text-gray-100">
                   {dossier.name.replace('Encrypted file: ', '')}
                 </h1>
-
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`status-indicator text-xs ${getStatusClass()}`}>
-                    <div className="status-dot"></div>
-                    <span>{getStatusLabel()}</span>
-                  </div>
-                  <span className={`text-xs font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                    Dossier #{dossier.id.toString()}
-                  </span>
-                </div>
-
-                {/* Owner Information */}
-                <div className={`flex items-center gap-2 text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                  <span className="font-medium uppercase">Owner:</span>
-                  <button
-                    onClick={copyOwnerAddress}
-                    className={`flex items-center gap-1.5 font-mono transition-colors group truncate ${
-                      theme === 'light'
-                        ? 'text-gray-900 hover:text-blue-600'
-                        : 'text-gray-100 hover:text-blue-400'
-                    }`}
-                    title="Click to copy owner address"
-                  >
-                    <span className="truncate">{owner}</span>
-                    {copiedOwner ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    )}
-                  </button>
-                </div>
               </div>
 
-              {/* Right Column: Privacy & Guardian Badges */}
-              <div className="flex items-center gap-2">
+              {/* Row 1: Privacy Badge (aligned right) */}
+              <div className="col-span-2 md:col-span-1 flex justify-start md:justify-end items-start">
                 {/* Privacy Badge */}
                 <div
                   className={`inline-flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-lg border transition-colors whitespace-nowrap ${
@@ -239,8 +210,23 @@ export default function DossierDetailView({
                   </svg>
                   {dossier.recipients && dossier.recipients.length > 1 ? 'Private' : 'Public'}
                 </div>
+              </div>
 
-                {/* Guardian Badge */}
+              {/* Row 2: Status + Dossier ID */}
+              <div className="col-span-2 md:col-span-1">
+                <div className="flex items-center gap-3">
+                  <div className={`status-indicator text-xs ${getStatusClass()}`}>
+                    <div className="status-dot"></div>
+                    <span>{getStatusLabel()}</span>
+                  </div>
+                  <span className={`text-xs font-medium ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                    Dossier #{dossier.id.toString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 2: Guardian Badge (aligned right) */}
+              <div className="col-span-2 md:col-span-1 flex justify-start md:justify-end items-center">
                 {dossier.guardians && dossier.guardians.length > 0 && (
                   <div
                     className={`inline-flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-lg border transition-colors whitespace-nowrap ${
@@ -256,6 +242,29 @@ export default function DossierDetailView({
                     Guardian
                   </div>
                 )}
+              </div>
+
+              {/* Row 3: Owner Information */}
+              <div className="col-span-2">
+                <div className={`flex items-center gap-2 text-xs ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                  <span className="font-medium uppercase">Owner:</span>
+                  <button
+                    onClick={copyOwnerAddress}
+                    className={`flex items-center gap-1.5 font-mono transition-colors group truncate ${
+                      theme === 'light'
+                        ? 'text-gray-900 hover:text-blue-600'
+                        : 'text-gray-100 hover:text-blue-400'
+                    }`}
+                    title="Click to copy owner address"
+                  >
+                    <span className="truncate">{owner}</span>
+                    {copiedOwner ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

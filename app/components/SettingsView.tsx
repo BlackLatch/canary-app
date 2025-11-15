@@ -373,7 +373,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                               }`}>
                                 {burnerWallet.isConnected ? (
-                                  'Anonymous Account'
+                                  'Local Account'
                                 ) : isConnected && !authenticated ? (
                                   'External Web3 Wallet'
                                 ) : authenticated && wallets && wallets.length > 0 ? (
@@ -415,7 +415,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       )}
                     </div>
 
-                    {/* Anonymous Account Private Key Export */}
+                    {/* Local Account Private Key Export */}
                     {burnerWallet.isConnected && (
                       <div className={`p-4 rounded-lg border mb-6 ${
                         theme === 'light'
@@ -431,7 +431,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                         <p className={`text-sm mb-4 ${
                           theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                         }`}>
-                          Your anonymous account is stored locally in this browser. Export your private key to:
+                          Your local account is stored locally in this browser. Export your private key to:
                         </p>
                         <ul className={`text-sm mb-4 space-y-1 ${
                           theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -463,7 +463,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       </div>
                     )}
 
-                    {/* Burn Anonymous Account */}
+                    {/* Burn Local Account */}
                     {burnerWallet.isConnected && (
                       <div className={`p-4 rounded-lg border mb-6 ${
                         theme === 'light'
@@ -474,12 +474,12 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                           theme === 'light' ? 'text-gray-900' : 'text-gray-100'
                         }`}>
                           <AlertTriangle className="w-4 h-4 text-red-500" />
-                          Burn Anonymous Account
+                          Burn Local Account
                         </h3>
                         <p className={`text-sm mb-4 ${
                           theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                         }`}>
-                          Remove your anonymous account from this browser. This action:
+                          Remove your local account from this browser. This action:
                         </p>
                         <ul className={`text-sm mb-4 space-y-1 ${
                           theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -545,7 +545,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                           }`}
                         >
                           <AlertTriangle className="w-4 h-4" />
-                          Burn Anonymous Account
+                          Burn Local Account
                         </button>
                       </div>
                     )}
@@ -568,7 +568,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                           This will disconnect your wallet and you'll need to reconnect to access your dossiers.
                           {burnerWallet.isConnected && (
                             <span className="block mt-2 text-green-600 dark:text-green-400 font-medium">
-                              ✓ Your anonymous account will remain saved and can be restored later.
+                              ✓ Your local account will remain saved and can be restored later.
                             </span>
                           )}
                         </p>
@@ -1086,7 +1086,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
               // The burner wallet context will handle the cleanup and state update
             } catch (error) {
               console.error('Failed to burn wallet:', error);
-              toast.error('Failed to burn anonymous account');
+              toast.error('Failed to burn local account');
             }
           }}
           onCancel={() => {

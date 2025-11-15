@@ -414,25 +414,11 @@ class TacoService {
       // Ignore storage errors
     }
 
-    let provider: ethers.providers.Provider;
-    let signer: ethers.Signer;
-
     // IMPORTANT: TACo decrypt needs a provider connected to Polygon Amoy (where TACo infrastructure exists)
     // The contract condition will be verified against Status Network (where our Dossier contract lives)
     console.log('🔗 Creating TACo provider connected to Polygon Amoy (for TACo infrastructure)');
     const tacoProvider = new ethers.providers.JsonRpcProvider('https://rpc-amoy.polygon.technology/');
-
-    if (burnerWallet) {
-      // For burner wallet, connect to Polygon Amoy for TACo decryption
-      console.log('🔥 Using burner wallet for decryption');
-      provider = tacoProvider;
-      signer = burnerWallet.connect(tacoProvider);
-    } else {
-      // Get the ethers provider from Privy (handles embedded wallets)
-      const privyProvider = await getPrivyEthersProvider();
-      provider = tacoProvider;
-      signer = privyProvider.getSigner();
-    }
+    const provider: ethers.providers.Provider = tacoProvider;
 
     // Verify TACo provider is on Polygon Amoy (chain ID 80002)
     try {
@@ -482,6 +468,20 @@ class TacoService {
 
     if (requiresAuth) {
       console.log('🔑 Private dossier detected - creating EIP4361 auth provider for :userAddress...');
+
+      // Only get signer when auth is required
+      let signer: ethers.Signer;
+
+      if (burnerWallet) {
+        console.log('🔥 Using burner wallet for authenticated decryption');
+        signer = burnerWallet.connect(tacoProvider);
+      } else {
+        console.log('🔐 Getting wallet for authenticated decryption...');
+        // Get the ethers provider from Privy (handles embedded wallets)
+        const privyProvider = await getPrivyEthersProvider();
+        signer = privyProvider.getSigner();
+      }
+
       console.log('   Provider type:', provider?.constructor?.name);
       console.log('   Signer type:', signer?.constructor?.name);
       const signerAddress = await signer.getAddress();

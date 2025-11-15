@@ -457,7 +457,7 @@ export async function encryptFileWithDossier(
   dossierId: bigint,                             // Dossier identifier
   userAddress: string,                           // User's wallet address
   walletProvider?: any,                          // Privy or Web3 provider
-  burnerWallet?: any                             // Anonymous wallet instance
+  burnerWallet?: any                             // Local wallet instance
 ): Promise<EncryptionResult> {
   return await tacoService.encryptFile(
     file,

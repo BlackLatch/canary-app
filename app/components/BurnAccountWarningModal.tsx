@@ -42,7 +42,7 @@ export default function BurnAccountWarningModal({
               text-base font-semibold
               ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}
             `}>
-              Creating a new anonymous account will PERMANENTLY DELETE your existing anonymous account!
+              Creating a new local account will PERMANENTLY DELETE your existing local account!
             </p>
           </div>
 
@@ -50,13 +50,13 @@ export default function BurnAccountWarningModal({
             <div className="flex items-start gap-2">
               <span className={`text-sm mt-0.5 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>•</span>
               <p className={`text-sm ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                Your current anonymous account will be <strong>lost forever</strong>
+                Your current local account will be <strong>lost forever</strong>
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className={`text-sm mt-0.5 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>•</span>
               <p className={`text-sm ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                Any funds or dossiers associated with the anonymous account will be <strong>inaccessible</strong>
+                Any funds or dossiers associated with the local account will be <strong>inaccessible</strong>
               </p>
             </div>
             <div className="flex items-start gap-2">

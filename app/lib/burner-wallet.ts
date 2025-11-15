@@ -6,10 +6,10 @@ const BURNER_WALLET_KEY = 'canary-burner-wallet-private-key';
 /**
  * Burner Wallet Utilities
  *
- * Provides fully embedded anonymous wallet functionality using local storage.
+ * Provides fully embedded local wallet functionality using local storage.
  * Private keys are stored in browser local storage for session persistence.
  *
- * WARNING: This is for anonymous usage only. Users should understand that:
+ * WARNING: This is for local usage only. Users should understand that:
  * - Private keys stored in local storage can be accessed by malicious scripts
  * - Clearing browser data will permanently lose access to the wallet
  * - This is NOT recommended for storing significant value

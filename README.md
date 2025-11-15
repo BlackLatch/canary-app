@@ -44,7 +44,7 @@ No servers. No trust required. All client-side. Fully decentralized.
 - **MessageKit** - Encrypted file containers
 
 ### Key Features
-- **Burner Wallets** - Anonymous, ephemeral in-browser wallets
+- **Burner Wallets** - Local, ephemeral in-browser wallets
 - **Compound Conditions** - Contract + recipient verification for private dossiers
 - **URL-based Routing** - Shareable permalinks for dossiers
 - **Dual Auth Modes**:
@@ -108,7 +108,7 @@ canary/
 │   ├── lib/
 │   │   ├── contract.ts          # Smart contract interactions
 │   │   ├── taco.ts              # TACo encryption/decryption
-│   │   ├── burner-wallet.ts     # Anonymous wallet management
+│   │   ├── burner-wallet.ts     # Local wallet management
 │   │   ├── pinata.ts            # IPFS pinning service
 │   │   └── chains/              # Chain configurations
 │   └── components/

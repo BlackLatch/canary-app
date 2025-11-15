@@ -42,6 +42,7 @@ import BurnAccountWarningModal from "./components/BurnAccountWarningModal";
 import GuardianConfirmReleaseModal from "./components/GuardianConfirmReleaseModal";
 import DecryptionView from "./components/DecryptionView";
 import SystemControlModal from "./components/SystemControlModal";
+import { useDossierDraft } from "./hooks/useDossierDraft";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import { useConnect, useAccount, useDisconnect } from "wagmi";
@@ -115,6 +116,7 @@ const HomeContent = ({
 
 const Home = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { connectors, connect, isPending } = useConnect();
 
   // Load version info
@@ -138,9 +140,15 @@ const Home = () => {
   const { theme, toggleTheme } = useTheme();
   const burnerWallet = useBurnerWallet();
 
+  // Get current wallet address (prioritize burner wallet)
+  const currentAddress = burnerWallet.address || address || null;
+
+  // Draft persistence hook
+  const { saveDraft, loadDraft, clearDraft, hasDraft } = useDossierDraft(currentAddress);
+
   const [signedIn, setSignedIn] = useState(false);
-  const [hasExistingAnonymousAccount, setHasExistingAnonymousAccount] = useState(false);
-  const [existingAnonymousAddress, setExistingAnonymousAddress] = useState<string | null>(null);
+  const [hasExistingLocalAccount, setHasExistingLocalAccount] = useState(false);
+  const [existingLocalAddress, setExistingLocalAddress] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<"standard" | "advanced">(() => {
     // Load auth mode from localStorage, default to standard
     if (typeof window !== "undefined") {
@@ -269,6 +277,7 @@ const Home = () => {
   const [showDemoDisclaimer, setShowDemoDisclaimer] = useState(false);
   const [showImportKeyModal, setShowImportKeyModal] = useState(false);
   const [importKeyValue, setImportKeyValue] = useState("");
+  const [draftFileCount, setDraftFileCount] = useState(0); // Track file count from restored draft
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const additionalFilesInputRef = useRef<HTMLInputElement>(null);
@@ -282,6 +291,155 @@ const Home = () => {
       // Don't automatically show the popup - user must click the button
     }
   }, [currentStep, showCreateForm, address, user]);
+
+  // Draft restoration - load saved draft when wallet connects or changes
+  useEffect(() => {
+    if (!currentAddress) return; // No wallet connected, skip
+
+    const draft = loadDraft();
+    if (!draft) return; // No draft found
+
+    console.log('📄 Restoring dossier draft...');
+
+    // Restore all form state
+    navigateToStep(draft.currentStep); // Update both state and URL (draft step wins)
+    setName(draft.name);
+    setDescription(draft.description);
+    setReleaseMode(draft.releaseMode);
+    setEmergencyContacts(draft.emergencyContacts);
+    setGuardianAddresses(draft.guardianAddresses);
+    setGuardianThreshold(draft.guardianThreshold);
+    setEnableGuardians(draft.enableGuardians);
+    setCheckInInterval(draft.checkInInterval);
+    setCustomInterval(draft.customInterval);
+    setHasAcceptedAUP(draft.hasAcceptedAUP);
+    setDraftFileCount(draft.fileCount); // Remember how many files were previously selected
+
+    // Show the create form
+    setShowCreateForm(true);
+
+    console.log(`✅ Draft restored: Step ${draft.currentStep}, Files: ${draft.fileCount}`);
+  }, [currentAddress, loadDraft]); // Re-run when wallet address changes
+
+  // Initialize wizard step from URL when opening without a draft
+  useEffect(() => {
+    // Only initialize from URL when wizard first opens
+    if (!showCreateForm) return;
+
+    // If there's a draft, skip (draft restoration handles this)
+    if (hasDraft()) return;
+
+    // Check URL for step parameter
+    const urlStep = searchParams.get('step');
+    if (urlStep) {
+      const stepNumber = parseInt(urlStep, 10);
+      // If valid step number, navigate to it
+      if (stepNumber >= 1 && stepNumber <= 6) {
+        setCurrentStep(stepNumber);
+        console.log(`🔗 Initialized from URL: Step ${stepNumber}`);
+        return;
+      }
+    }
+
+    // No valid URL step and no draft - ensure we're at step 1 with URL
+    if (currentStep === 1 && !urlStep) {
+      window.history.pushState({}, '', '/?step=1');
+    }
+  }, [showCreateForm, searchParams, hasDraft, currentStep]);
+
+  // Auto-save draft when form state changes (debounced)
+  useEffect(() => {
+    // Only save if form is open and not processing
+    if (!showCreateForm || isProcessing) return;
+    if (!currentAddress) return; // No wallet to save for
+
+    // Debounce the save by 500ms to avoid excessive writes
+    const timeoutId = setTimeout(() => {
+      saveDraft({
+        currentStep,
+        name,
+        description,
+        releaseMode,
+        emergencyContacts,
+        guardianAddresses,
+        guardianThreshold,
+        enableGuardians,
+        checkInInterval,
+        customInterval,
+        fileCount: uploadedFiles.length || (uploadedFile ? 1 : 0),
+        hasAcceptedAUP,
+      });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    showCreateForm,
+    isProcessing,
+    currentAddress,
+    currentStep,
+    name,
+    description,
+    releaseMode,
+    emergencyContacts,
+    guardianAddresses,
+    guardianThreshold,
+    enableGuardians,
+    checkInInterval,
+    customInterval,
+    uploadedFiles,
+    uploadedFile,
+    hasAcceptedAUP,
+    saveDraft,
+  ]);
+
+  // Handle browser back/forward button navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      // Ignore if wizard is not open
+      if (!showCreateForm) return;
+
+      // Ignore URL changes during processing (encryption)
+      if (isProcessing) return;
+
+      // Read step from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlStep = urlParams.get('step');
+
+      if (urlStep) {
+        const stepNumber = parseInt(urlStep, 10);
+        // If valid step number, update state (URL is already updated by browser)
+        if (stepNumber >= 1 && stepNumber <= 6) {
+          setCurrentStep(stepNumber);
+          console.log(`🔙 Browser navigation to Step ${stepNumber}`);
+        }
+      } else {
+        // No step parameter in URL - wizard should be closed
+        setShowCreateForm(false);
+      }
+    };
+
+    // Listen for browser back/forward button
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [showCreateForm, isProcessing]);
+
+  // Helper function to navigate between wizard steps and update URL
+  const navigateToStep = (step: number) => {
+    // Validate step number
+    if (step < 1 || step > 6) {
+      console.warn(`Invalid step number: ${step}. Must be between 1 and 6.`);
+      return;
+    }
+
+    // Update state
+    setCurrentStep(step);
+
+    // Update URL with step parameter
+    window.history.pushState({}, '', `/?step=${step}`);
+  };
 
   // Dossier detail navigation
   const openDocumentDetail = async (document: DossierWithStatus, ownerAddress?: Address) => {
@@ -449,13 +607,13 @@ const Home = () => {
     // Clean theme setup - no mesh backgrounds
   }, []);
 
-  // Check for existing anonymous account on mount
+  // Check for existing local account on mount
   useEffect(() => {
     // Check after a small delay to ensure localStorage is ready
     const checkExistingAccount = () => {
       try {
         const hasAccount = hasBurnerWallet();
-        console.log('🔍 Checking for existing anonymous account:', hasAccount);
+        console.log('🔍 Checking for existing local account:', hasAccount);
 
         // Also log what's actually in localStorage for debugging
         if (typeof window !== 'undefined') {
@@ -466,18 +624,18 @@ const Home = () => {
           }
         }
 
-        setHasExistingAnonymousAccount(hasAccount);
+        setHasExistingLocalAccount(hasAccount);
 
         // Get the address if account exists
         if (hasAccount) {
           const address = getBurnerWalletAddress();
-          setExistingAnonymousAddress(address);
+          setExistingLocalAddress(address);
           console.log('📍 Existing account address:', address);
         }
       } catch (error) {
         console.error('❌ Error checking for existing account:', error);
-        setHasExistingAnonymousAccount(false);
-        setExistingAnonymousAddress(null);
+        setHasExistingLocalAccount(false);
+        setExistingLocalAddress(null);
       }
     };
 
@@ -1080,9 +1238,14 @@ const Home = () => {
           : `🎉 Dossier #${dossierId} created! Check-in required every ${checkInInterval} days.`;
       toast.success(successMessage, { id: processingToast });
 
+      // Clear the draft since dossier was successfully created
+      clearDraft();
+
       // Reset form and navigate back to documents view
       setShowCreateForm(false);
       setCurrentStep(1);
+      // Clear step parameter from URL
+      window.history.pushState({}, '', '/');
       setEncryptedCapsule(null);
       setAllEncryptedFiles([]);
       setDossierManifest(null);
@@ -2023,8 +2186,8 @@ const Home = () => {
 
       // Update UI state
       setSignedIn(true);
-      setHasExistingAnonymousAccount(true);
-      setExistingAnonymousAddress(burnerWallet.address);
+      setHasExistingLocalAccount(true);
+      setExistingLocalAddress(burnerWallet.address);
 
       toast.success("Private key imported successfully!");
     } catch (error) {
@@ -2033,7 +2196,7 @@ const Home = () => {
     }
   };
 
-  const handleCreateNewAnonymousAccount = async () => {
+  const handleCreateNewLocalAccount = async () => {
     // Show the custom warning modal
     setShowBurnWarningModal(true);
   };
@@ -2042,7 +2205,7 @@ const Home = () => {
     // Close the modal
     setShowBurnWarningModal(false);
 
-    console.log("Creating new anonymous account, clearing existing...");
+    console.log("Creating new local account, clearing existing...");
     setAuthModeWithPersistence("advanced");
     try {
       // Clear the existing wallet
@@ -2051,13 +2214,13 @@ const Home = () => {
       const walletInfo = await burnerWallet.connect();
       console.log("🔥 New burner wallet created:", walletInfo.address);
       setSignedIn(true);
-      toast.success("New anonymous wallet created! Your private key is saved locally.");
+      toast.success("New local wallet created! Your private key is saved locally.");
       // Update state
-      setHasExistingAnonymousAccount(true);
-      setExistingAnonymousAddress(walletInfo.address);
+      setHasExistingLocalAccount(true);
+      setExistingLocalAddress(walletInfo.address);
     } catch (error) {
       console.error("Failed to create new burner wallet:", error);
-      toast.error("Failed to create new anonymous wallet. Please try again.");
+      toast.error("Failed to create new local wallet. Please try again.");
     }
   };
 
@@ -2065,7 +2228,7 @@ const Home = () => {
     console.log("Sign in method:", method);
 
     if (method === "Burner Wallet" || method === "Restore Burner") {
-      // Anonymous burner wallet login
+      // Local burner wallet login
       console.log("Connecting burner wallet...");
       setAuthModeWithPersistence("advanced"); // Set advanced mode for burner wallet
       try {
@@ -2074,15 +2237,15 @@ const Home = () => {
         setSignedIn(true);
         toast.success(
           walletInfo.isNew
-            ? "Anonymous wallet created! Your private key is saved locally."
-            : "Welcome back! Anonymous wallet restored."
+            ? "Local wallet created! Your private key is saved locally."
+            : "Welcome back! Local wallet restored."
         );
         // Update state after connecting
-        setHasExistingAnonymousAccount(true);
-        setExistingAnonymousAddress(walletInfo.address);
+        setHasExistingLocalAccount(true);
+        setExistingLocalAddress(walletInfo.address);
       } catch (error) {
         console.error("Failed to connect burner wallet:", error);
-        toast.error("Failed to connect anonymous wallet. Please try again.");
+        toast.error("Failed to connect local wallet. Please try again.");
       }
     } else if (method === "Web3 Wallet") {
       // Use Privy's connectWallet for external wallet connections
@@ -2480,7 +2643,7 @@ const Home = () => {
                     </div>
 
                     <div className="space-y-3">
-                      {hasExistingAnonymousAccount && existingAnonymousAddress ? (
+                      {hasExistingLocalAccount && existingLocalAddress ? (
                         <div className="space-y-3">
                           {/* Restore existing account button */}
                           <button
@@ -2491,7 +2654,7 @@ const Home = () => {
                             }`}
                             onClick={() => handleSignIn("Restore Burner")}
                             disabled={burnerWallet.isLoading}
-                            title={`Restore saved account: ${existingAnonymousAddress}`}
+                            title={`Restore saved account: ${existingLocalAddress}`}
                           >
                             {burnerWallet.isLoading ? (
                               <div className="flex items-center justify-center gap-3">
@@ -2500,10 +2663,10 @@ const Home = () => {
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-3">
-                                <Jazzicon diameter={20} seed={parseInt(existingAnonymousAddress.slice(2, 10), 16)} />
+                                <Jazzicon diameter={20} seed={parseInt(existingLocalAddress.slice(2, 10), 16)} />
                                 <span>Restore Account</span>
                                 <code className="text-xs font-mono opacity-50">
-                                  {existingAnonymousAddress.slice(0, 6)}...{existingAnonymousAddress.slice(-4)}
+                                  {existingLocalAddress.slice(0, 6)}...{existingLocalAddress.slice(-4)}
                                 </code>
                               </div>
                             )}
@@ -2516,15 +2679,15 @@ const Home = () => {
                                 ? "bg-white text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:bg-gray-50"
                                 : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
                             }`}
-                            onClick={handleCreateNewAnonymousAccount}
+                            onClick={handleCreateNewLocalAccount}
                             disabled={burnerWallet.isLoading}
-                            title="Create a new anonymous account (will replace the existing one)"
+                            title="Create a new local account (will replace the existing one)"
                           >
                             <div className="flex items-center justify-center gap-2">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                               </svg>
-                              <span>Create New Anonymous Account</span>
+                              <span>Create New Local Account</span>
                             </div>
                           </button>
                         </div>
@@ -2538,7 +2701,7 @@ const Home = () => {
                             }`}
                             onClick={() => handleSignIn("Burner Wallet")}
                             disabled={burnerWallet.isLoading}
-                            title="Anonymous wallet stored locally in your browser"
+                            title="Local wallet stored locally in your browser"
                           >
                             {burnerWallet.isLoading ? (
                               <div className="flex items-center justify-center gap-3">
@@ -2546,7 +2709,7 @@ const Home = () => {
                                 <span>Connecting...</span>
                               </div>
                             ) : (
-                              "Anonymous Account"
+                              "Local Account"
                             )}
                           </button>
                         </>
@@ -2560,7 +2723,7 @@ const Home = () => {
                             : "bg-black/40 text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
                         }`}
                         onClick={handleImportPrivateKey}
-                        title="Import an anonymous account using your private key"
+                        title="Import an local account using your private key"
                       >
                         <div className="flex items-center justify-center gap-2">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2719,7 +2882,7 @@ const Home = () => {
                         <ul className="space-y-1.5">
                           <li>• Never share your private key with anyone</li>
                           <li>• Make sure no one is watching your screen</li>
-                          <li>• This will replace any existing anonymous account</li>
+                          <li>• This will replace any existing local account</li>
                         </ul>
                       </div>
                     </div>
@@ -3983,7 +4146,7 @@ const Home = () => {
                       onCreateClick={() => {
                         setCurrentView("documents");
                         setShowCreateForm(true);
-                        setCurrentStep(1);
+                        navigateToStep(1);
                       }}
                       title="NO ACTIVE DOSSIERS"
                       description="Create your first encrypted document to get started"
@@ -5739,6 +5902,8 @@ const Home = () => {
                             setShowCreateForm(false);
                             // Reset form when going back
                             setCurrentStep(1);
+                            // Clear step parameter from URL
+                            window.history.pushState({}, '', '/');
                             setEncryptedCapsule(null);
                             setAllEncryptedFiles([]);
                             setDossierManifest(null);
@@ -5785,7 +5950,7 @@ const Home = () => {
                                     onClick={() => {
                                       // Allow free navigation between all steps
                                       if (!isProcessing && !dossierManifest) {
-                                        setCurrentStep(step);
+                                        navigateToStep(step);
                                       }
                                     }}
                                   >
@@ -6941,6 +7106,32 @@ const Home = () => {
                                   </div>
                                 )}
 
+                                {/* File Re-upload Reminder (if restored from draft) */}
+                                {draftFileCount > 0 && (uploadedFiles.length === 0 && !uploadedFile) && (
+                                  <div className={`editorial-card-bordered p-6 mb-6 ${
+                                    theme === "light"
+                                      ? "bg-blue-50 border-blue-200"
+                                      : "bg-blue-900/10 border-blue-800"
+                                  }`}>
+                                    <div className="flex items-start gap-4">
+                                      <AlertCircle className="w-5 h-5 text-blue-600 mt-1" />
+                                      <div className="flex-1">
+                                        <h4 className={`editorial-label mb-2 ${
+                                          theme === "light" ? "text-gray-900" : "text-gray-100"
+                                        }`}>
+                                          Files Need to Be Re-selected
+                                        </h4>
+                                        <p className={`editorial-body ${
+                                          theme === "light" ? "text-gray-700" : "text-gray-300"
+                                        }`}>
+                                          Your draft had <strong>{draftFileCount}</strong> file{draftFileCount !== 1 ? 's' : ''} previously selected.
+                                          Please re-upload {draftFileCount === 1 ? 'it' : 'them'} to continue.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     {/* Left Column - Files List and Add Options */}
                                     <div
@@ -7543,7 +7734,7 @@ const Home = () => {
                             >
                               <button
                                 onClick={() =>
-                                  setCurrentStep(Math.max(1, currentStep - 1))
+                                  navigateToStep(Math.max(1, currentStep - 1))
                                 }
                                 disabled={currentStep === 1}
                                 className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
@@ -7643,7 +7834,7 @@ const Home = () => {
                                     );
                                     return;
                                   }
-                                  setCurrentStep(Math.min(6, currentStep + 1));
+                                  navigateToStep(Math.min(6, currentStep + 1));
                                 }}
                                 className={`px-5 py-2.5 font-medium text-sm rounded-lg border transition-colors ${
                                   theme === "light"

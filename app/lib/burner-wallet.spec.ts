@@ -1,11 +1,11 @@
 /**
- * Anonymous Account (Burner Wallet) localStorage Persistence Tests
+ * Local Account (Burner Wallet) localStorage Persistence Tests
  *
  * This test suite validates that:
- * 1. Anonymous accounts are properly saved to localStorage
+ * 1. Local accounts are properly saved to localStorage
  * 2. Accounts persist across sessions (simulated)
  * 3. The same account can be restored from localStorage
- * 4. The UI correctly shows "Restore Anonymous Account" when an account exists
+ * 4. The UI correctly shows "Restore Local Account" when an account exists
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -32,7 +32,7 @@ class MockLocalStorage {
   }
 }
 
-describe('Anonymous Account Persistence', () => {
+describe('Local Account Persistence', () => {
   const STORAGE_KEY = 'canary-burner-wallet-private-key';
   let storage: MockLocalStorage;
 
@@ -120,11 +120,11 @@ describe('Anonymous Account Persistence', () => {
   });
 
   describe('User Journey', () => {
-    it('First Visit: Create new anonymous account', () => {
+    it('First Visit: Create new local account', () => {
       // User visits for the first time
       expect(hasBurnerWallet()).toBe(false);
 
-      // User clicks "Anonymous Account"
+      // User clicks "Local Account"
       const result = getOrCreateBurnerWallet();
 
       expect(result.isNew).toBe(true);
@@ -132,10 +132,10 @@ describe('Anonymous Account Persistence', () => {
       expect(hasBurnerWallet()).toBe(true);
 
       // This is what the UI would show
-      console.log('✅ TEST PASSED: New anonymous account created');
+      console.log('✅ TEST PASSED: New local account created');
       console.log(`   Address: ${result.address}`);
-      console.log('   UI shows: "Anonymous Account" button');
-      console.log('   Toast: "Anonymous wallet created!"');
+      console.log('   UI shows: "Local Account" button');
+      console.log('   Toast: "Local wallet created!"');
     });
 
     it('Return Visit: Restore existing account', () => {
@@ -153,11 +153,11 @@ describe('Anonymous Account Persistence', () => {
       expect(secondVisit.address).toBe(originalAddress);
 
       // This is what the UI would show
-      console.log('✅ TEST PASSED: Anonymous account restored');
+      console.log('✅ TEST PASSED: Local account restored');
       console.log(`   Original: ${originalAddress}`);
       console.log(`   Restored: ${secondVisit.address}`);
-      console.log('   UI shows: "Restore Anonymous Account" button');
-      console.log('   Toast: "Welcome back! Anonymous wallet restored."');
+      console.log('   UI shows: "Restore Local Account" button');
+      console.log('   Toast: "Welcome back! Local wallet restored."');
     });
 
     it('Complete Flow: Create → Close → Restore', () => {
@@ -214,16 +214,16 @@ describe('Anonymous Account Persistence', () => {
   });
 
   describe('UI Button State', () => {
-    it('shows "Anonymous Account" for new users', () => {
+    it('shows "Local Account" for new users', () => {
       const hasWallet = hasBurnerWallet();
       expect(hasWallet).toBe(false);
 
       // In the UI:
       // hasExistingAnonymousAccount would be false
-      // Button text: "Anonymous Account"
+      // Button text: "Local Account"
     });
 
-    it('shows "Restore Anonymous Account" for returning users', () => {
+    it('shows "Restore Local Account" for returning users', () => {
       // Create an account
       getOrCreateBurnerWallet();
 
@@ -233,14 +233,14 @@ describe('Anonymous Account Persistence', () => {
 
       // In the UI:
       // hasExistingAnonymousAccount would be true
-      // Button text: "Restore Anonymous Account" with restore icon
+      // Button text: "Restore Local Account" with restore icon
     });
   });
 });
 
 // Summary test to demonstrate the complete functionality
 describe('Summary: localStorage Persistence Proof', () => {
-  it('proves anonymous accounts persist in localStorage', () => {
+  it('proves local accounts persist in localStorage', () => {
     const storage = new MockLocalStorage();
     const STORAGE_KEY = 'canary-burner-wallet-private-key';
 
@@ -257,7 +257,7 @@ describe('Summary: localStorage Persistence Proof', () => {
     expect(restored.address).toBe(wallet.address);
 
     console.log('\n' + '='.repeat(60));
-    console.log('🎉 ANONYMOUS ACCOUNT PERSISTENCE PROVEN');
+    console.log('🎉 LOCAL ACCOUNT PERSISTENCE PROVEN');
     console.log('='.repeat(60));
     console.log('✅ Private key saved to localStorage');
     console.log('✅ Private key persists across sessions');

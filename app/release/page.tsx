@@ -409,72 +409,46 @@ function ReleaseDetailContent() {
 
             {/* Right: Navigation and Auth Status */}
             <div className="flex items-center gap-8">
-              {/* Main Navigation */}
-              <nav className="flex items-center gap-6 h-full">
-                <Link href="/" className="nav-link">
-                  CHECK IN
-                </Link>
-                <Link href="/?view=documents" className="nav-link">
-                  DOSSIERS
-                </Link>
-                <Link href="/?view=monitor" className="nav-link">
-                  RECIEVE
-                </Link>
-                <Link href="/feed" className="nav-link">
-                  PUBLIC RELEASES
-                </Link>
-                <Link
-                  href="/?view=settings"
-                  className={`p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-white/10 ${
-                    theme === 'light'
-                      ? 'text-gray-500 hover:text-gray-700'
-                      : 'text-gray-400 hover:text-gray-200'
-                  }`}
-                  aria-label="Settings"
-                  title="Settings"
-                >
-                  <Settings className="w-4 h-4" />
-                </Link>
-              </nav>
+              {/* Only show navigation if authenticated */}
+              {authenticated && currentAddress && (
+                <>
+                  {/* Navigation Links */}
+                  <div className="flex items-center gap-6">
+                    <Link
+                      href="/"
+                      className="nav-link"
+                    >
+                      ← BACK TO APP
+                    </Link>
+                  </div>
 
-              {/* Auth Status and Theme Toggle */}
-              <div className="flex items-center gap-6">
-                {/* Theme Toggle */}
-                <button
-                  onClick={toggleTheme}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
-                  title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                >
-                  {theme === 'light' ? (
-                    <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  ) : (
-                    <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  )}
-                </button>
+                  {/* Wallet Status and Theme Toggle - Desktop Only */}
+                  <div className="hidden md:flex items-center gap-6">
+                    {/* Theme Toggle */}
+                    <button
+                      onClick={toggleTheme}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                      title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                    >
+                      {theme === 'light' ? (
+                        <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      ) : (
+                        <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      )}
+                    </button>
 
-                {/* Authentication Status */}
-                {authenticated && currentAddress ? (
-                  <div className="flex items-center gap-2">
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                        {`${currentAddress.slice(0, 6)}...${currentAddress.slice(-4)}`}
-                      </span>
+                    {/* Authentication Status */}
+                    <div className="flex items-center gap-4">
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                          {`${currentAddress.slice(0, 6)}...${currentAddress.slice(-4)}`}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <button
-                    onClick={login}
-                    className={`px-4 py-1.5 text-sm font-medium rounded border transition-all ${
-                      theme === 'light'
-                        ? 'border-gray-900 bg-gray-900 text-white hover:bg-gray-800'
-                        : 'border-white bg-white text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    SIGN IN
-                  </button>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -492,10 +466,11 @@ function ReleaseDetailContent() {
                   currentTime={currentTime}
                   isOwner={isOwner}
                   currentUserAddress={currentAddress}
-                  onBack={() => router.push('/')}
+                  onBack={() => router.push('/feed')}
                   onDecrypt={handleDecrypt}
                   onConfirmRelease={handleConfirmRelease}
                   hasConfirmedRelease={hasConfirmedRelease}
+                  backButtonText="Back to Public Releases"
                 />
               ) : (
                 <DecryptionView
