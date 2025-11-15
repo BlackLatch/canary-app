@@ -148,31 +148,6 @@ export default function PublicReleasesPage() {
                     </div>
                   </>
                 )}
-                
-                {/* Only show theme toggle and sign in link when not authenticated - Desktop Only */}
-                {!hasWalletConnection() && (
-                  <div className="hidden md:flex items-center gap-6">
-                    {/* Theme Toggle */}
-                    <button
-                      onClick={toggleTheme}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
-                      title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                    >
-                      {theme === 'light' ? (
-                        <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      ) : (
-                        <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      )}
-                    </button>
-
-                    <Link
-                      href="/"
-                      className="text-sm text-muted hover:text-primary transition-colors"
-                    >
-                      SIGN IN
-                    </Link>
-                  </div>
-                )}
               </div>
             </div>
           </div>
