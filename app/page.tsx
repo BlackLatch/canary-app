@@ -17,6 +17,8 @@ import {
   FileText,
   Heart,
   FolderLock,
+  Menu,
+  X,
 } from "lucide-react";
 import {
   commitEncryptedFileToPinata,
@@ -225,6 +227,7 @@ const Home = () => {
   const [currentView, setCurrentView] = useState<"checkin" | "documents" | "monitor" | "guard" | "settings">(
     "checkin",
   );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInactiveDocuments, setShowInactiveDocuments] = useState(false);
@@ -2987,8 +2990,8 @@ const Home = () => {
 
                 {/* Right: Navigation and Wallet Status */}
                 <div className="flex items-center gap-5">
-                  {/* Main Navigation */}
-                  <nav className="flex items-center gap-4 h-full">
+                  {/* Main Navigation - Desktop Only */}
+                  <nav className="hidden md:flex items-center gap-4 h-full">
                     <button
                       onClick={() => setCurrentView("checkin")}
                       className={`nav-link ${
@@ -3067,10 +3070,10 @@ const Home = () => {
 
                   {/* Wallet Status and Theme Toggle */}
                   <div className="flex items-center gap-4">
-                    {/* Theme Toggle */}
+                    {/* Theme Toggle - Desktop Only */}
                     <button
                       onClick={toggleTheme}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                      className="hidden md:block p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
                       title={
                         theme === "light"
                           ? "Switch to dark mode"
@@ -3084,9 +3087,9 @@ const Home = () => {
                       )}
                     </button>
 
-                    {/* Authentication Status */}
+                    {/* Authentication Status - Desktop Only */}
                     {hasWalletConnection() ? (
-                      <div className="flex items-center gap-4">
+                      <div className="hidden md:flex items-center gap-4">
                         {authMode === "advanced" && getCurrentAddress() ? (
                           <>
                             {/* Advanced mode: Show wallet address (Web3, Burner, or Privy) */}
@@ -3115,17 +3118,19 @@ const Home = () => {
                           </div>
                         ) : null}
 
+                        {/* Sign Out Button - Desktop Only */}
                         <button
                           onClick={handleLogout}
-                          className="text-sm text-muted hover:text-primary transition-colors"
+                          className="hidden md:block text-sm text-muted hover:text-primary transition-colors"
                         >
                           SIGN OUT
                         </button>
                       </div>
                     ) : (
+                      // Not signed in - Don't show on mobile (available in hamburger menu)
                       <button
                         onClick={handleLogout}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
+                        className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded border text-xs transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${theme === "light" ? "border-gray-300 bg-white" : "border-gray-600 bg-black/40"}`}
                       >
                         <div className="w-2 h-2 rounded-full bg-gray-400"></div>
                         <span className={`monospace-accent ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}>
@@ -3134,10 +3139,284 @@ const Home = () => {
                       </button>
                     )}
                   </div>
+
+                  {/* Hamburger Menu Button - Mobile Only */}
+                  <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                    aria-label="Menu"
+                  >
+                    <Menu className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
             </div>
           </header>
+
+          {/* Mobile Menu Overlay */}
+          {isMobileMenuOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+
+              {/* Slide-in Menu */}
+              <div
+                className={`fixed top-0 right-0 bottom-0 w-80 z-50 md:hidden flex flex-col transform transition-transform duration-300 ${
+                  theme === "light" ? "bg-white" : "bg-black"
+                } shadow-2xl`}
+              >
+                {/* Menu Header */}
+                <div className={`flex items-center justify-between p-6 border-b flex-shrink-0 ${
+                  theme === "light" ? "border-gray-300" : "border-gray-600"
+                }`}>
+                  <h2 className={`text-xl font-semibold ${
+                    theme === "light" ? "text-gray-900" : "text-gray-100"
+                  }`}>
+                    Menu
+                  </h2>
+                  <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                    aria-label="Close menu"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Menu Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto">
+                  {/* Navigation Items */}
+                  <nav className="px-6 py-6 space-y-2">
+                    <button
+                      onClick={() => {
+                        setCurrentView("checkin");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition-colors ${
+                        currentView === "checkin"
+                          ? theme === "light"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-900"
+                          : theme === "light"
+                            ? "text-gray-700 hover:bg-gray-100"
+                            : "text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      CHECK IN
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        // Close any open decryption view
+                        setShowDecryptionView(false);
+                        setDecryptingDossier(null);
+                        setDecryptedFiles([]);
+                        setDecryptionProgress({
+                          stage: 'fetching',
+                          currentFile: 0,
+                          totalFiles: 0,
+                        });
+
+                        // Reset to viewing current user's dossiers
+                        setViewingUserAddress(null);
+
+                        // Fetch current user's dossiers
+                        const currentAddress = getCurrentAddress();
+                        if (currentAddress) {
+                          fetchUserDossiers(currentAddress as Address);
+                          window.history.pushState({}, '', `/?user=${currentAddress}`);
+                        }
+
+                        // Switch to documents view
+                        setCurrentView("documents");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition-colors ${
+                        currentView === "documents"
+                          ? theme === "light"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-900"
+                          : theme === "light"
+                            ? "text-gray-700 hover:bg-gray-100"
+                            : "text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      MY DOSSIERS
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setCurrentView("monitor");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition-colors ${
+                        currentView === "monitor"
+                          ? theme === "light"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-900"
+                          : theme === "light"
+                            ? "text-gray-700 hover:bg-gray-100"
+                            : "text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      RECIEVE
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setCurrentView("guard");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition-colors ${
+                        currentView === "guard"
+                          ? theme === "light"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-900"
+                          : theme === "light"
+                            ? "text-gray-700 hover:bg-gray-100"
+                            : "text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      GUARD
+                    </button>
+
+                    <a
+                      href="/feed"
+                      className={`block w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition-colors ${
+                        theme === "light"
+                          ? "text-gray-700 hover:bg-gray-100"
+                          : "text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      PUBLIC RELEASES
+                    </a>
+
+                    <button
+                      onClick={() => {
+                        setCurrentView("settings");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 ${
+                        currentView === "settings"
+                          ? theme === "light"
+                            ? "bg-gray-900 text-white"
+                            : "bg-white text-gray-900"
+                          : theme === "light"
+                            ? "text-gray-700 hover:bg-gray-100"
+                            : "text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      <Settings className="w-4 h-4" />
+                      SETTINGS
+                    </button>
+                  </nav>
+
+                  {/* Bottom Section - Theme & Auth */}
+                  <div className={`px-6 pt-6 pb-6 border-t space-y-4 ${
+                    theme === "light" ? "border-gray-300" : "border-gray-600"
+                  }`}>
+                    {/* Theme Toggle */}
+                    <button
+                      onClick={toggleTheme}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                        theme === "light"
+                          ? "bg-gray-100 hover:bg-gray-200"
+                          : "bg-white/10 hover:bg-white/20"
+                      }`}
+                    >
+                      <span className={`font-medium text-sm ${
+                        theme === "light" ? "text-gray-900" : "text-gray-100"
+                      }`}>
+                        Theme
+                      </span>
+                      {theme === "light" ? (
+                        <Moon className="w-5 h-5 text-gray-600" />
+                      ) : (
+                        <Sun className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+
+                    {/* Authentication Status */}
+                    {hasWalletConnection() ? (
+                      <div className="space-y-2">
+                        {authMode === "advanced" && getCurrentAddress() ? (
+                          <div
+                            className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${
+                              theme === "light"
+                                ? "border-gray-300 bg-gray-50"
+                                : "border-gray-600 bg-black/40"
+                            }`}
+                          >
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span
+                              className={`monospace-accent text-xs ${
+                                theme === "light" ? "text-gray-900" : "text-gray-100"
+                              }`}
+                            >
+                              {`${getCurrentAddress()!.slice(0, 6)}...${getCurrentAddress()!.slice(-4)}`}
+                            </span>
+                          </div>
+                        ) : authMode === "standard" && authenticated ? (
+                          <div
+                            className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${
+                              theme === "light"
+                                ? "border-gray-300 bg-gray-50"
+                                : "border-gray-600 bg-black/40"
+                            }`}
+                          >
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span
+                              className={`monospace-accent text-xs ${
+                                theme === "light" ? "text-gray-900" : "text-gray-100"
+                              }`}
+                            >
+                              {user?.email?.address || "Signed In"}
+                            </span>
+                          </div>
+                        ) : null}
+
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
+                            theme === "light"
+                              ? "text-gray-700 hover:bg-gray-100"
+                              : "text-gray-300 hover:bg-white/10"
+                          }`}
+                        >
+                          SIGN OUT
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
+                          theme === "light"
+                            ? "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                            : "border-gray-600 bg-black/40 hover:bg-white/5"
+                        }`}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                        <span className={`monospace-accent text-xs ${
+                          theme === "light" ? "text-gray-900" : "text-gray-100"
+                        }`}>
+                          Not Signed In
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex-1 overflow-auto">
             {showDecryptionView && decryptingDossier ? (
