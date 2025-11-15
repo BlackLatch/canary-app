@@ -83,30 +83,16 @@ export default function PublicReleasesPage() {
                 {/* Only show navigation if authenticated */}
                 {hasWalletConnection() && (
                   <>
-                    {/* Main Navigation */}
-                    <nav className="flex items-center gap-6 h-full">
-                      <Link 
-                        href="/?view=checkin"
-                        className="nav-link"
-                      >
-                        CHECK IN
-                      </Link>
-                      <Link 
-                        href="/?view=documents"
-                        className="nav-link"
-                      >
-                        DOSSIERS
-                      </Link>
-                      <Link 
-                        href="/feed"
-                        className="nav-link nav-link-active"
-                      >
-                        PUBLIC RELEASES
-                      </Link>
-                    </nav>
+                    {/* Simple Back to App Link */}
+                    <Link
+                      href="/"
+                      className="nav-link"
+                    >
+                      ← BACK TO APP
+                    </Link>
                     
-                    {/* Wallet Status and Theme Toggle */}
-                    <div className="flex items-center gap-6">
+                    {/* Wallet Status and Theme Toggle - Desktop Only */}
+                    <div className="hidden md:flex items-center gap-6">
                       {/* Theme Toggle */}
                       <button
                         onClick={toggleTheme}
@@ -119,7 +105,7 @@ export default function PublicReleasesPage() {
                           <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         )}
                       </button>
-                      
+
                       {/* Authentication Status */}
                       <div className="flex items-center gap-4">
                         {authMode === 'advanced' && address ? (
@@ -139,7 +125,7 @@ export default function PublicReleasesPage() {
                             </span>
                           </div>
                         ) : null}
-                        
+
                         <button
                           onClick={() => {
                             // Disconnect based on mode
@@ -163,9 +149,9 @@ export default function PublicReleasesPage() {
                   </>
                 )}
                 
-                {/* Only show theme toggle and sign in link when not authenticated */}
+                {/* Only show theme toggle and sign in link when not authenticated - Desktop Only */}
                 {!hasWalletConnection() && (
-                  <div className="flex items-center gap-6">
+                  <div className="hidden md:flex items-center gap-6">
                     {/* Theme Toggle */}
                     <button
                       onClick={toggleTheme}
@@ -178,8 +164,8 @@ export default function PublicReleasesPage() {
                         <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                       )}
                     </button>
-                    
-                    <Link 
+
+                    <Link
                       href="/"
                       className="text-sm text-muted hover:text-primary transition-colors"
                     >
