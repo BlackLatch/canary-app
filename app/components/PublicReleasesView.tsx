@@ -13,61 +13,208 @@ interface FeedDossier {
   timeUntilUnlock?: number;
 }
 
+interface CachedDossier {
+  user: string;
+  dossierId: string;
+  dossier: {
+    id: string;
+    name: string;
+    description: string;
+    lastCheckIn: string;
+    checkInInterval: string;
+    encryptedFileHashes: string[];
+    isActive: boolean;
+    isPermanentlyDisabled: boolean;
+    publicRecipients: string[];
+    guardians: string[];
+  };
+  isUnlocked: boolean;
+  cachedAt: number;
+}
+
+interface CacheData {
+  dossiers: CachedDossier[];
+  timestamp: number;
+}
+
 interface PublicReleasesViewProps {
   theme: 'light' | 'dark';
 }
+
+const CACHE_KEY = 'canary-public-releases-cache';
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hour cache validity
+
+// Convert FeedDossier to cacheable format
+const serializeDossier = (dossier: FeedDossier): CachedDossier => ({
+  user: dossier.user,
+  dossierId: dossier.dossierId.toString(),
+  dossier: {
+    id: dossier.dossier.id.toString(),
+    name: dossier.dossier.name,
+    description: dossier.dossier.description,
+    lastCheckIn: dossier.dossier.lastCheckIn.toString(),
+    checkInInterval: dossier.dossier.checkInInterval.toString(),
+    encryptedFileHashes: dossier.dossier.encryptedFileHashes,
+    isActive: dossier.dossier.isActive,
+    isPermanentlyDisabled: dossier.dossier.isPermanentlyDisabled,
+    publicRecipients: dossier.dossier.publicRecipients,
+    guardians: dossier.dossier.guardians,
+  },
+  isUnlocked: dossier.isUnlocked,
+  cachedAt: Date.now(),
+});
+
+// Convert cached format back to FeedDossier
+const deserializeDossier = (cached: CachedDossier): FeedDossier => ({
+  user: cached.user as Address,
+  dossierId: BigInt(cached.dossierId),
+  dossier: {
+    id: BigInt(cached.dossier.id),
+    name: cached.dossier.name,
+    description: cached.dossier.description,
+    lastCheckIn: BigInt(cached.dossier.lastCheckIn),
+    checkInInterval: BigInt(cached.dossier.checkInInterval),
+    encryptedFileHashes: cached.dossier.encryptedFileHashes,
+    isActive: cached.dossier.isActive,
+    isPermanentlyDisabled: cached.dossier.isPermanentlyDisabled,
+    publicRecipients: cached.dossier.publicRecipients,
+    guardians: cached.dossier.guardians,
+  },
+  isUnlocked: cached.isUnlocked,
+});
+
+// Load cached dossiers from localStorage
+const loadCache = (): FeedDossier[] => {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return [];
+
+    const cacheData: CacheData = JSON.parse(cached);
+
+    // Check if cache is still valid
+    const cacheAge = Date.now() - cacheData.timestamp;
+    if (cacheAge > CACHE_DURATION) {
+      console.log('📦 Cache expired, clearing...');
+      localStorage.removeItem(CACHE_KEY);
+      return [];
+    }
+
+    console.log(`📦 Loaded ${cacheData.dossiers.length} dossiers from cache (${Math.round(cacheAge / 1000)}s old)`);
+    return cacheData.dossiers.map(deserializeDossier);
+  } catch (error) {
+    console.error('Failed to load cache:', error);
+    localStorage.removeItem(CACHE_KEY);
+    return [];
+  }
+};
+
+// Save dossiers to localStorage cache
+const saveCache = (dossiers: FeedDossier[]) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const cacheData: CacheData = {
+      dossiers: dossiers.map(serializeDossier),
+      timestamp: Date.now(),
+    };
+
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+    console.log(`📦 Cached ${dossiers.length} dossiers`);
+  } catch (error) {
+    console.error('Failed to save cache:', error);
+    // If quota exceeded, clear old cache and try again with fresh data
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch {}
+  }
+};
+
+// Merge cached and fresh dossiers, removing duplicates
+const mergeDossiers = (cached: FeedDossier[], fresh: FeedDossier[]): FeedDossier[] => {
+  const map = new Map<string, FeedDossier>();
+
+  // Add cached dossiers first
+  cached.forEach(d => {
+    const key = `${d.user}-${d.dossierId.toString()}`;
+    map.set(key, d);
+  });
+
+  // Add/update with fresh dossiers (they take precedence)
+  fresh.forEach(d => {
+    const key = `${d.user}-${d.dossierId.toString()}`;
+    map.set(key, d);
+  });
+
+  return Array.from(map.values());
+};
 
 export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
   const [feedDossiers, setFeedDossiers] = useState<FeedDossier[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const hasLoadedRef = useRef(false);
+  const currentDossiersRef = useRef<FeedDossier[]>([]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadFeed = async () => {
       try {
-        // Only show loading on very first load
-        if (!hasLoadedRef.current && isMounted) {
-          setLoading(true);
+        // On first load, try to load from cache
+        if (!hasLoadedRef.current) {
+          const cachedDossiers = loadCache();
+
+          if (cachedDossiers.length > 0) {
+            // Show cached data immediately - no loading state
+            console.log('📦 Displaying cached dossiers immediately');
+            const sorted = [...cachedDossiers].sort(
+              (a, b) => Number(b.dossier.lastCheckIn) - Number(a.dossier.lastCheckIn)
+            );
+            currentDossiersRef.current = sorted;
+            setFeedDossiers(sorted);
+            setLoading(false);
+            hasLoadedRef.current = true;
+          } else {
+            // No cache, show loading state
+            setLoading(true);
+          }
         }
 
-        // Wait a minimum time to avoid flash of empty state
-        const startTime = Date.now();
-
-        // Get ALL public releases from ALL users (no auth required)
+        // Fetch fresh data from blockchain (in background if cache was shown)
+        console.log('🔗 Fetching fresh dossiers from blockchain...');
         const publicReleases = await ContractService.getAllPublicReleases();
 
-        const dossiers: FeedDossier[] = publicReleases.map(release => ({
+        const freshDossiers: FeedDossier[] = publicReleases.map(release => ({
           user: release.user,
           dossierId: release.dossierId,
           dossier: release.dossier,
           isUnlocked: true,
           timeUntilUnlock: undefined
         }));
-        
-        // Ensure minimum loading time to avoid flash
-        const elapsed = Date.now() - startTime;
-        if (elapsed < 500 && !hasLoadedRef.current) {
-          await new Promise(resolve => setTimeout(resolve, 500 - elapsed));
-        }
-        
+
+        if (!isMounted) return;
+
+        // Merge with existing data (fresh data takes precedence)
+        const merged = mergeDossiers(currentDossiersRef.current, freshDossiers);
+
         // Sort by creation time (newest first)
-        dossiers.sort((a, b) => Number(b.dossier.lastCheckIn) - Number(a.dossier.lastCheckIn));
-        
-        if (isMounted) {
-          setFeedDossiers(dossiers);
-          if (!hasLoadedRef.current) {
-            setLoading(false);
-            hasLoadedRef.current = true;
-          }
-        }
+        merged.sort((a, b) => Number(b.dossier.lastCheckIn) - Number(a.dossier.lastCheckIn));
+
+        // Update state and ref
+        currentDossiersRef.current = merged;
+        setFeedDossiers(merged);
+        setLoading(false);
+        hasLoadedRef.current = true;
+
+        // Save to cache for next time
+        saveCache(merged);
+
+        console.log(`✅ Feed updated: ${merged.length} total dossiers (${freshDossiers.length} from blockchain)`);
       } catch (error) {
         console.error('Failed to load feed:', error);
         if (isMounted && !hasLoadedRef.current) {
-          // Ensure minimum time even on error
-          await new Promise(resolve => setTimeout(resolve, 300));
           setLoading(false);
           hasLoadedRef.current = true;
         }
@@ -75,10 +222,10 @@ export default function PublicReleasesView({ theme }: PublicReleasesViewProps) {
     };
 
     loadFeed();
-    
-    // Refresh every 30 seconds to update countdowns (without showing loading)
+
+    // Refresh every 30 seconds to check for new dossiers
     const interval = setInterval(loadFeed, 30000);
-    
+
     return () => {
       isMounted = false;
       clearInterval(interval);
