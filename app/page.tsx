@@ -63,7 +63,8 @@ import {
   getNetworkName,
 } from "./lib/contract";
 import { statusSepolia } from "./lib/chains/status";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
+import ThemeAwareToaster from "./components/ThemeAwareToaster";
 import { getMimeType } from "./lib/mime-types";
 import { useNetworkGuard } from "./lib/hooks/useNetworkGuard";
 
@@ -2554,7 +2555,7 @@ const Home = () => {
   if (!isAuthenticated) {
     return (
       <div className={theme}>
-        <Toaster position="top-right" />
+        <ThemeAwareToaster />
         <div
           className={`min-h-screen flex flex-col ${theme === "light" ? "bg-gray-50" : "bg-black"}`}
         >
@@ -3074,7 +3075,7 @@ const Home = () => {
   // Main app content for signed-in users
   return (
     <div className={theme}>
-      <Toaster position="top-right" />
+      <ThemeAwareToaster />
       <DemoDisclaimer
         theme={theme}
         forceShow={showDemoDisclaimer}

@@ -7,7 +7,8 @@ import { tacoService } from '@/app/lib/taco';
 import type { Address } from 'viem';
 import { useTheme } from '@/app/lib/theme-context';
 import { Sun, Moon, Shield, ArrowLeft, Settings } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import ThemeAwareToaster from '@/app/components/ThemeAwareToaster';
 import { useAccount, useDisconnect } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import { useBurnerWallet } from '@/app/lib/burner-wallet-context';
@@ -329,7 +330,7 @@ function ReleaseDetailContent() {
   if (loading) {
     return (
       <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
-        <Toaster position="bottom-right" />
+        <ThemeAwareToaster />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="animate-pulse">
             <div className="h-12 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
@@ -347,7 +348,7 @@ function ReleaseDetailContent() {
   if (!dossier || !user || dossierId === null) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
-        <Toaster position="bottom-right" />
+        <ThemeAwareToaster />
         <div className={`text-center border rounded-lg p-12 ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
           <h2 className={`text-2xl font-semibold mb-3 ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
             Dossier Not Found
@@ -387,7 +388,7 @@ function ReleaseDetailContent() {
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
-      <Toaster position="bottom-right" />
+      <ThemeAwareToaster />
 
       {/* Demo Banner */}
       <div className={`border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-black border-gray-600'}`}>
