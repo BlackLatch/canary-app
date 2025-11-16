@@ -2095,40 +2095,57 @@ export class ContractService {
         try {
           const { user, dossierId } = event.args as { user: Address; dossierId: bigint };
 
+          console.log(`\n🔍 Checking dossier ${dossierId} from ${user.slice(0, 6)}...${user.slice(-4)}`);
+
           // Load dossier details
           const dossier = await this.getDossier(user, dossierId);
+          console.log(`  📄 Name: "${dossier.name}"`);
+          console.log(`  📊 Recipients: ${dossier.recipients.length} (${dossier.recipients.map(r => `${r.slice(0, 6)}...${r.slice(-4)}`).join(', ')})`);
+          console.log(`  👥 Guardians: ${dossier.guardians?.length || 0}`);
 
           // Check if dossier is active
+          console.log(`  ✓ Active: ${dossier.isActive}`);
           if (!dossier.isActive) {
+            console.log(`  ❌ FILTERED: Dossier is not active (paused/disabled)`);
             continue;
           }
 
           // Check if dossier is time-expired
           const shouldStayEncrypted = await this.shouldDossierStayEncrypted(user, dossierId);
+          const currentTime = BigInt(Math.floor(Date.now() / 1000));
+          const timeSinceCheckIn = currentTime - dossier.lastCheckIn;
+          const intervalNeeded = dossier.checkInInterval;
+          console.log(`  ⏰ Time since check-in: ${timeSinceCheckIn}s / ${intervalNeeded}s needed`);
+          console.log(`  ✓ Should stay encrypted: ${shouldStayEncrypted}`);
           if (shouldStayEncrypted) {
+            console.log(`  ❌ FILTERED: Not expired yet (${intervalNeeded - timeSinceCheckIn}s remaining)`);
             continue;
           }
 
           // Check guardian threshold (if guardians exist)
           if (dossier.guardians && dossier.guardians.length > 0) {
             const isThresholdMet = await this.isGuardianThresholdMet(user, dossierId);
+            console.log(`  ✓ Guardian threshold met: ${isThresholdMet} (need ${dossier.guardianThreshold}/${dossier.guardians.length})`);
             if (!isThresholdMet) {
-              // Skip dossiers awaiting guardian confirmation
+              console.log(`  ❌ FILTERED: Guardian threshold not met yet`);
               continue;
             }
           }
 
           // Check if it's a public release (more than 1 recipient means private)
           const isPublic = dossier.recipients.length === 1; // Only owner
+          console.log(`  ✓ Is public: ${isPublic}`);
           if (!isPublic) {
+            console.log(`  ❌ FILTERED: Private dossier (${dossier.recipients.length} recipients)`);
             continue;
           }
 
           // This is a public release!
+          console.log(`  ✅ INCLUDED: Public release!`);
           publicReleases.push({ user, dossierId, dossier });
 
         } catch (error) {
-          console.error(`Failed to check dossier ${event.args.dossierId}:`, error);
+          console.error(`  ❌ ERROR checking dossier ${event.args.dossierId}:`, error);
           // Continue with other dossiers
         }
       }
