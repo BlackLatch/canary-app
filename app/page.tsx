@@ -2606,7 +2606,7 @@ const Home = () => {
                   <h1
                     className={`editorial-header-large text-center mb-4 ${theme === "light" ? "text-black" : "text-gray-100"}`}
                   >
-                    Canary Testnet Demo
+                    Canary [Beta]
                   </h1>
                   <p
                     className={`editorial-body-large max-w-sm mx-auto font-medium ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}

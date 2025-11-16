@@ -1050,7 +1050,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                       theme === 'light' ? 'text-gray-600' : 'text-gray-400'
                     }`}>
                       <p className="text-sm">Version: 0.1.0 (Alpha)</p>
-                      <p className="text-sm">Build: Testnet Demo</p>
+                      <p className="text-sm">Build: Beta</p>
                       <p className="text-sm">© 2025 Canary. All rights reserved.</p>
                       <div className="pt-4">
                         <a 
