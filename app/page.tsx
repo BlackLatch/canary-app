@@ -4660,8 +4660,8 @@ const Home = () => {
                                   (guardian) => guardian.toLowerCase() === currentAddress.toLowerCase()
                                 );
 
-                                // Guardian can confirm if: 1) is guardian, 2) dossier expired, 3) not released yet
-                                const canConfirmRelease = isGuardian && isTimeExpired && selectedDocument.isReleased !== true;
+                                // Guardian can confirm if: 1) is guardian, 2) dossier expired or released, 3) hasn't confirmed yet
+                                const canConfirmRelease = isGuardian && (isTimeExpired || selectedDocument.isReleased === true) && !hasConfirmedRelease;
 
                                 if (!canConfirmRelease) return null;
 
