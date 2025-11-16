@@ -2103,22 +2103,24 @@ export class ContractService {
           console.log(`  📊 Recipients: ${dossier.recipients.length} (${dossier.recipients.map(r => `${r.slice(0, 6)}...${r.slice(-4)}`).join(', ')})`);
           console.log(`  👥 Guardians: ${dossier.guardians?.length || 0}`);
 
-          // Check if dossier is active
+          // Check if dossier is released
+          // A dossier is released if:
+          // 1. isActive = false (manually released or auto-released), OR
+          // 2. isActive = true AND time-expired
           console.log(`  ✓ Active: ${dossier.isActive}`);
-          if (!dossier.isActive) {
-            console.log(`  ❌ FILTERED: Dossier is not active (paused/disabled)`);
-            continue;
-          }
 
-          // Check if dossier is time-expired
           const shouldStayEncrypted = await this.shouldDossierStayEncrypted(user, dossierId);
           const currentTime = BigInt(Math.floor(Date.now() / 1000));
           const timeSinceCheckIn = currentTime - dossier.lastCheckIn;
           const intervalNeeded = dossier.checkInInterval;
           console.log(`  ⏰ Time since check-in: ${timeSinceCheckIn}s / ${intervalNeeded}s needed`);
           console.log(`  ✓ Should stay encrypted: ${shouldStayEncrypted}`);
-          if (shouldStayEncrypted) {
-            console.log(`  ❌ FILTERED: Not expired yet (${intervalNeeded - timeSinceCheckIn}s remaining)`);
+
+          const isReleased = !dossier.isActive || !shouldStayEncrypted;
+          console.log(`  ✓ Is released: ${isReleased} (active=${dossier.isActive}, expired=${!shouldStayEncrypted})`);
+
+          if (!isReleased) {
+            console.log(`  ❌ FILTERED: Not released yet (${intervalNeeded - timeSinceCheckIn}s remaining)`);
             continue;
           }
 
