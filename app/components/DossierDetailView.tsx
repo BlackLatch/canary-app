@@ -115,8 +115,8 @@ export default function DossierDetailView({
     (guardian) => guardian.toLowerCase() === currentUserAddress.toLowerCase()
   );
 
-  // Guardian can confirm if: 1) is guardian, 2) dossier expired, 3) not released yet
-  const canConfirmRelease = isGuardian && status === 'expired' && dossier.isReleased !== true;
+  // Guardian can confirm if: 1) is guardian, 2) dossier expired or released, 3) hasn't already confirmed
+  const canConfirmRelease = isGuardian && (status === 'expired' || status === 'released') && !hasConfirmedRelease;
 
   const canDecrypt = (() => {
     const lastCheckInMs = Number(dossier.lastCheckIn) * 1000;
