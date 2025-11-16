@@ -70,19 +70,19 @@ export default function GuardianConfirmReleaseModal({
             <div className="flex items-start gap-2">
               <span className={`text-sm mt-0.5 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>•</span>
               <p className={`text-sm ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                Your confirmation will be <strong>recorded on the blockchain</strong>
+                Your confirmation will be <strong>permanently recorded</strong>
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className={`text-sm mt-0.5 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>•</span>
               <p className={`text-sm ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                Once the guardian threshold is met, the dossier will be <strong>released for decryption</strong>
+                Once the guardian threshold is met, the dossier will be <strong>made available</strong>
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className={`text-sm mt-0.5 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>•</span>
               <p className={`text-sm ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                This action <strong>cannot be undone</strong>
+                This action is <strong>permanent</strong>
               </p>
             </div>
           </div>
