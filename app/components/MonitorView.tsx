@@ -301,13 +301,11 @@ export default function MonitorView({ onBack, onViewDossiers }: MonitorViewProps
               }`}>
                 About Receive
               </h3>
-              <ul className={`text-sm space-y-1 ${
+              <p className={`text-sm ${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
               }`}>
-                <li>• <strong>Private Recipient Dossiers:</strong> View dossiers where you've been added as a private recipient by the owner</li>
-                <li>• Click on any dossier to view full details and check their status</li>
-                <li>• All data is synced with the blockchain</li>
-              </ul>
+                <strong>Private Recipient Dossiers:</strong> View dossiers where you've been added as a private recipient by the owner
+              </p>
             </div>
           </div>
         </div>
