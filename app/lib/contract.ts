@@ -2103,6 +2103,12 @@ export class ContractService {
           console.log(`  📊 Recipients: ${dossier.recipients.length} (${dossier.recipients.map(r => `${r.slice(0, 6)}...${r.slice(-4)}`).join(', ')})`);
           console.log(`  👥 Guardians: ${dossier.guardians?.length || 0}`);
 
+          // Check if dossier is permanently disabled - these should NEVER appear in feed
+          if (dossier.isPermanentlyDisabled) {
+            console.log(`  ❌ FILTERED: Permanently disabled`);
+            continue;
+          }
+
           // Check if dossier is released
           // A dossier is released if:
           // 1. isActive = false (manually released or auto-released), OR
