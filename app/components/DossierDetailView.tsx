@@ -42,6 +42,7 @@ export default function DossierDetailView({
   onConfirmRelease,
   isCheckingIn = false,
   hasConfirmedRelease = false,
+  guardianConfirmations,
   backButtonText = 'Back to Dossiers',
 }: DossierDetailViewProps) {
   const [showEditSchedule, setShowEditSchedule] = useState(false);
