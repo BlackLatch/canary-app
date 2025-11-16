@@ -8,7 +8,7 @@ import type { Address } from 'viem';
 import { useTheme } from '@/app/lib/theme-context';
 import { Sun, Moon, Shield, ArrowLeft, Settings } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import { useAccount } from 'wagmi';
+import { useAccount, useDisconnect } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import { useBurnerWallet } from '@/app/lib/burner-wallet-context';
 import DossierDetailView from '@/app/components/DossierDetailView';
@@ -50,9 +50,28 @@ function ReleaseDetailContent() {
   }
 
   const { theme, toggleTheme } = useTheme();
-  const { address: connectedAddress } = useAccount();
-  const { authenticated, login } = usePrivy();
+  const { address: connectedAddress, isConnected } = useAccount();
+  const { authenticated, user: privyUser, logout } = usePrivy();
+  const { disconnect } = useDisconnect();
   const burnerWallet = useBurnerWallet();
+
+  const [authMode, setAuthMode] = useState<'standard' | 'advanced'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('canary-auth-mode') as 'standard' | 'advanced') || 'standard';
+    }
+    return 'standard';
+  });
+
+  const hasWalletConnection = () => {
+    return (authMode === 'advanced' && isConnected) || (authMode === 'standard' && authenticated);
+  };
+
+  const setAuthModeWithPersistence = (mode: 'standard' | 'advanced') => {
+    setAuthMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('canary-auth-mode', mode);
+    }
+  };
 
   // Helper to get current address (prioritize burner wallet)
   const getCurrentAddress = () => {
@@ -418,7 +437,7 @@ function ReleaseDetailContent() {
               </Link>
 
               {/* Only show wallet status if authenticated */}
-              {authenticated && currentAddress && (
+              {hasWalletConnection() && (
                 <>
                   {/* Wallet Status and Theme Toggle - Desktop Only */}
                   <div className="hidden md:flex items-center gap-6">
@@ -437,12 +456,42 @@ function ReleaseDetailContent() {
 
                     {/* Authentication Status */}
                     <div className="flex items-center gap-4">
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
-                          {`${currentAddress.slice(0, 6)}...${currentAddress.slice(-4)}`}
-                        </span>
-                      </div>
+                      {authMode === 'advanced' && connectedAddress ? (
+                        // Advanced mode: Show wallet address
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                            {`${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`}
+                          </span>
+                        </div>
+                      ) : authMode === 'standard' && authenticated ? (
+                        // Standard mode: Show user email or authenticated status
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs ${theme === 'light' ? 'border-gray-300 bg-white' : 'border-gray-600 bg-black/40'}`}>
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span className={`monospace-accent ${theme === 'light' ? 'text-gray-900' : 'text-gray-100'}`}>
+                            {privyUser?.email?.address || 'SIGNED IN'}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      <button
+                        onClick={() => {
+                          // Disconnect based on mode
+                          if (authMode === 'advanced' && isConnected) {
+                            disconnect();
+                          }
+                          if (authMode === 'standard' && authenticated) {
+                            logout();
+                          }
+                          // Reset state
+                          setAuthModeWithPersistence('standard');
+                          // Redirect to main page (login)
+                          window.location.href = '/';
+                        }}
+                        className="text-sm text-muted hover:text-primary transition-colors"
+                      >
+                        SIGN OUT
+                      </button>
                     </div>
                   </div>
                 </>
