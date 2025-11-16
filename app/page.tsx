@@ -2597,17 +2597,12 @@ const Home = () => {
                   <span
                     className={`text-2xl font-medium tracking-wide uppercase ${theme === "light" ? "text-gray-900" : "text-gray-100"}`}
                   >
-                    CANARY
+                    CANARY [Beta]
                   </span>
                 </div>
 
-                {/* Title and Subtitle */}
+                {/* Subtitle */}
                 <div className="mb-12">
-                  <h1
-                    className={`editorial-header-large text-center mb-4 ${theme === "light" ? "text-black" : "text-gray-100"}`}
-                  >
-                    Canary [Beta]
-                  </h1>
                   <p
                     className={`editorial-body-large max-w-sm mx-auto font-medium ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
                   >
