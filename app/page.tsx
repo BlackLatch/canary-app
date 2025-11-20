@@ -2754,40 +2754,6 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Public Releases Link */}
-                <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-                  <div className="text-center">
-                    <p
-                      className={`text-sm mb-4 ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
-                    >
-                      Want to see public releases?
-                    </p>
-                    <a
-                      href="/feed"
-                      className={`inline-flex items-center gap-2 px-6 py-3 font-medium text-base rounded-lg transition-all duration-300 ease-out border ${
-                        theme === "light"
-                          ? "text-gray-900 border-gray-300 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.05)]"
-                          : "text-gray-100 border-gray-600 hover:border-[#e53e3e] hover:text-[#e53e3e] hover:bg-[rgba(229,62,62,0.1)]"
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                        />
-                      </svg>
-                      VIEW PUBLIC RELEASES
-                    </a>
-                  </div>
-                </div>
-
                 {/* PWA Install Button */}
                 {showInstallButton && (
                   <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 pb-safe">
@@ -3209,9 +3175,6 @@ const Home = () => {
                     >
                       GUARD
                     </button>
-                    <a href="/feed" className="nav-link">
-                      PUBLIC RELEASES
-                    </a>
                     <button
                       onClick={() => setCurrentView("settings")}
                       className={`p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-white/10 ${
@@ -3444,17 +3407,6 @@ const Home = () => {
                     >
                       GUARD
                     </button>
-
-                    <a
-                      href="/feed"
-                      className={`block w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition-colors ${
-                        theme === "light"
-                          ? "text-gray-700 hover:bg-gray-100"
-                          : "text-gray-300 hover:bg-white/10"
-                      }`}
-                    >
-                      PUBLIC RELEASES
-                    </a>
 
                     <button
                       onClick={() => {
@@ -3771,12 +3723,12 @@ const Home = () => {
                 </div>
               </div>
             ) : currentView === "checkin" ? (
-              // Check In View - Matching Public Releases Layout
+              // Check In View
               <div
                 className={`flex-1 overflow-auto ${theme === "light" ? "bg-white" : "bg-black"}`}
               >
                 <div className="max-w-7xl mx-auto px-6 py-8">
-                  {/* Page Header - Like Public Releases */}
+                  {/* Page Header */}
                   <div
                     className={`mb-12 border-b pb-8 ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
                   >
@@ -4207,7 +4159,7 @@ const Home = () => {
                 }}
               />
             ) : (
-              // Documents View - Matching Public Releases Layout
+              // Documents View
               <div
                 className={`flex-1 overflow-auto ${theme === "light" ? "bg-white" : "bg-black"}`}
               >
@@ -5230,7 +5182,7 @@ const Home = () => {
                     </div>
                   ) : !showCreateForm ? (
                     <>
-                      {/* Page Header - Like Public Releases */}
+                      {/* Page Header */}
                       <div
                         className={`mb-12 border-b pb-8 ${theme === "light" ? "border-gray-300" : "border-gray-600"}`}
                       >

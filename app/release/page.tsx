@@ -98,13 +98,8 @@ function ReleaseDetailContent() {
   // Guardian confirmation state
   const [hasConfirmedRelease, setHasConfirmedRelease] = useState(false);
 
-  // Update time every second for accurate status display
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Initialize current time once (no need to poll on public release page)
+  // Time updates will happen naturally when user interacts with the page
 
   useEffect(() => {
     if (!user || dossierId === null || dossierId === undefined) {
@@ -514,11 +509,11 @@ function ReleaseDetailContent() {
                   currentTime={currentTime}
                   isOwner={isOwner}
                   currentUserAddress={currentAddress}
-                  onBack={() => router.push('/feed')}
+                  onBack={() => router.push('/')}
                   onDecrypt={handleDecrypt}
                   onConfirmRelease={handleConfirmRelease}
                   hasConfirmedRelease={hasConfirmedRelease}
-                  backButtonText="Back to Public Releases"
+                  backButtonText="Back to App"
                 />
               ) : (
                 <DecryptionView

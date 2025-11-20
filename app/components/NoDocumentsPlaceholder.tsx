@@ -33,9 +33,9 @@ export default function NoDocumentsPlaceholder({
       <button
         onClick={onCreateClick}
         className={`px-6 py-3 border rounded-lg font-medium uppercase tracking-wider transition-all inline-flex items-center gap-2 ${
-          theme === 'light' 
-            ? 'bg-black text-white hover:bg-gray-800 border-black' 
-            : 'bg-white text-gray-900 hover:bg-gray-100 border-white'
+          theme === 'light'
+            ? 'bg-black text-white hover:bg-gray-800 border-black'
+            : 'bg-white text-black hover:bg-gray-200 border-white'
         }`}
       >
         <span>{buttonText}</span>

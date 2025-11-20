@@ -104,7 +104,6 @@ canary/
 ├── app/
 │   ├── page.tsx                 # Main app (check-in, dossiers, monitor, share)
 │   ├── release/page.tsx         # Dossier detail permalink page
-│   ├── feed/page.tsx            # Public releases feed
 │   ├── lib/
 │   │   ├── contract.ts          # Smart contract interactions
 │   │   ├── taco.ts              # TACo encryption/decryption
@@ -160,7 +159,6 @@ canary/
 - `/?user={address}` - View user's dossier list (also used for sharing)
 - `/?user={address}&id={id}` - View specific dossier detail
 - `/release?user={address}&id={id}` - Alternative permalink (legacy)
-- `/feed` - Public releases feed
 
 ---
 
